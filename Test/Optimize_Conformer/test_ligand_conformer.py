@@ -2,7 +2,7 @@ import unittest
 import tempfile
 import shutil
 from unittest.mock import patch, MagicMock
-from rdkit import Chem
+# from rdkit import Chem
 from ProDock.Optimize_Conformer.ligand_conformer import Ligand_Conformer
 
 
@@ -31,7 +31,6 @@ class TestLigandConformer(unittest.TestCase):
     #     mock_writer.assert_called()
     #     mock_move.assert_called()
     #     shutil.rmtree(test_dir)
-
     def test_write_sdf(
         self, mock_writer_class, mock_move, mock_makedirs, mock_embedding, mock_list_smi
     ):
@@ -61,5 +60,7 @@ class TestLigandConformer(unittest.TestCase):
 
         # Cleanup
         shutil.rmtree(test_dir)
+
+
 if __name__ == "__main__":
     unittest.main()

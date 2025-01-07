@@ -3,7 +3,8 @@ import shutil
 import logging
 from rdkit import Chem
 from rdkit.Chem import AllChem
-from multiprocessing import Pool,cpu_count
+from multiprocessing import Pool, cpu_count
+
 
 # from meeko import MoleculePreparation, PDBQTMolecule, PDBQTWriterLegacy,RDKitMolCreate
 class Ligand_Conformer:
@@ -77,13 +78,15 @@ class Ligand_Conformer:
             AllChem.EmbedMolecule(mol, randomSeed=42)
             AllChem.MMFFOptimizeMolecule(mol)
         return mol
-    
+
     @staticmethod
     def _embed_molecule_parallel(mol: Chem.Mol) -> Chem.Mol:
         """Helper function for parallel processing."""
         return Ligand_Conformer.mol_embbeding_3d(mol)
-    
-    def write_sdf(self, smi_filename: str, sdf_output_folder: str, num_workers: int = None) -> None:
+
+    def write_sdf(
+        self, smi_filename: str, sdf_output_folder: str, num_workers: int = None
+    ) -> None:
         """
         Embeds all molecules from a SMILES file in 3D space, and writes each
         molecule to a separate SDF file in a specified folder.
