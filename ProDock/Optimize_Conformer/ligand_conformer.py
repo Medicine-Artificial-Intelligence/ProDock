@@ -1,8 +1,9 @@
 import os
 import shutil
+import logging
 from rdkit import Chem
 from rdkit.Chem import AllChem
-
+from multiprocessing import Pool,cpu_count
 
 # from meeko import MoleculePreparation, PDBQTMolecule, PDBQTWriterLegacy,RDKitMolCreate
 class Ligand_Conformer:
@@ -38,8 +39,8 @@ class Ligand_Conformer:
                 for smiles in smi
                 if Chem.MolFromSmiles(smiles)
             ]
-        print("Input Smi", len(smi))
-        print("Sucess embbeding 2D Mol", len(mol_list))
+        logging.info("Input Smi", len(smi))
+        logging.info("Sucess embbeding 2D Mol", len(mol_list))
         return mol_list
 
     @staticmethod
@@ -70,13 +71,19 @@ class Ligand_Conformer:
         embed_success = AllChem.EmbedMolecule(mol, ETversion=2, randomSeed=42)
 
         if embed_success == -1:
+            logging.warning("Embedding failed")
             pass
         else:
             AllChem.EmbedMolecule(mol, randomSeed=42)
             AllChem.MMFFOptimizeMolecule(mol)
         return mol
-
-    def write_sdf(self, smi_filename: str, sdf_output_folder: str) -> None:
+    
+    @staticmethod
+    def _embed_molecule_parallel(mol: Chem.Mol) -> Chem.Mol:
+        """Helper function for parallel processing."""
+        return Ligand_Conformer.mol_embbeding_3d(mol)
+    
+    def write_sdf(self, smi_filename: str, sdf_output_folder: str, num_workers: int = None) -> None:
         """
         Embeds all molecules from a SMILES file in 3D space, and writes each
         molecule to a separate SDF file in a specified folder.
@@ -100,11 +107,18 @@ class Ligand_Conformer:
         The SDF files are named as "ligand_0.sdf", "ligand_1.sdf", etc.
         """
         mol_list = Ligand_Conformer.list_smi(smi_filename)
+        # Determine number of workers
+        if num_workers is None:
+            num_workers = cpu_count()
 
-        for i in range(len(mol_list)):
-            mol_list[i] = Ligand_Conformer.mol_embbeding_3d(mol_list[i])
-        refine_mol_list = [smi for smi in mol_list if smi is not None]
-        print("Sucess embbeding 3D Mol", len(refine_mol_list))
+        logging.info("Using %d workers for parallel processing", num_workers)
+
+        # Parallel embedding
+        with Pool(processes=num_workers) as pool:
+            embedded_mols = pool.map(self._embed_molecule_parallel, mol_list)
+
+        refine_mol_list = [mol for mol in embedded_mols if mol is not None]
+        logging.info("Successfully embedded 3D Mol: %d", len(refine_mol_list))
 
         if not os.path.exists(sdf_output_folder):
             os.makedirs(sdf_output_folder)
