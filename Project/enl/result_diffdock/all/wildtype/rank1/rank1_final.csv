@@ -1,0 +1,4 @@
+Compounds,Confidence_score_rank1,Occupation_rank1,%Occupation_rank1,%atoms_rank1,Final_rank1
+NS-C-142,-0.19,304.72808837890625,46.38426579209059,100.0,0
+revumenib,-0.24,75.88909912109375,86.64760511773058,100.0,1
+ziftomenib,-0.15,156.65966796875,72.43633442655344,100.0,1

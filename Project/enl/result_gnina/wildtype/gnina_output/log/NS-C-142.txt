@@ -1,0 +1,30 @@
+              _             
+             (_)            
+   __ _ _ __  _ _ __   __ _ 
+  / _` | '_ \| | '_ \ / _` |
+ | (_| | | | | | | | | (_| |
+  \__, |_| |_|_|_| |_|\__,_|
+   __/ |                    
+  |___/                     
+
+gnina v1.3 master:97fa6bc+   Built Oct  3 2024.
+gnina is based on smina and AutoDock Vina.
+Please cite appropriately.
+
+Commandline: /home/labhhc3/Documents/Workspace/D18/Son/ProDock/gnina/gnina -r /home/labhhc3/Documents/Workspace/D18/Son/ProDock/Project/enl/processed_protein/wildtype.pdb -l /home/labhhc3/Documents/Workspace/D18/Son/ProDock/Project/enl/ligands/NS-C-142.sdf --out /home/labhhc3/Documents/Workspace/D18/Son/ProDock/Project/enl/result_gnina/wildtype/gnina_output/raw/NS-C-142.sdf --seed 42 --cnn_scoring rescore --exhaustiveness 32 --num_modes 10 --log /home/labhhc3/Documents/Workspace/D18/Son/ProDock/Project/enl/result_gnina/wildtype/gnina_output/log/NS-C-142.txt --device 0 --autobox_ligand /home/labhhc3/Documents/Workspace/D18/Son/ProDock/Project/enl/reference_ligand/wildtype.sdf --autobox_add 5 --flexdist_ligand /home/labhhc3/Documents/Workspace/D18/Son/ProDock/Project/enl/reference_ligand/wildtype.sdf --flexdist 5
+Flexible residues: A:155 A:177 A:238 A:241 A:276 A:278 A:285 A:319 A:322 A:323 A:330 A:341 A:363 A:366 A:367 A:371
+Using random seed: 42
+
+mode |  affinity  |  intramol  |    CNN     |   CNN
+     | (kcal/mol) | (kcal/mol) | pose score | affinity
+-----+------------+------------+------------+----------
+    1       -6.97       -0.32       0.7044      5.600
+    2       -6.98        0.12       0.6496      5.457
+    3       -6.77       -0.40       0.6286      5.592
+    4       -6.67       -0.45       0.6251      5.717
+    5       -7.27       -0.43       0.5723      5.447
+    6       -6.85       -0.47       0.5203      5.080
+    7       -6.69       -0.56       0.4038      5.370
+    8       -7.75       -0.31       0.3874      5.510
+    9       -6.45        0.65       0.3871      5.282
+   10       -7.29       -0.48       0.3803      5.131

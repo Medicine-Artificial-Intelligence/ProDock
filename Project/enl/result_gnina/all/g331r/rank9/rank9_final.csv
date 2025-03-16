@@ -1,0 +1,4 @@
+Compounds,Affinity_rank9,CNNpose_rank9,CNNaffinity_rank9,Solvation_rank9,Similarity-type1_rank9,Similarity-type2_rank9,Clashing<1.5A_rank9,Final_rank9
+NS-C-142,-6.9047,0.5098654032,5.7615237236,63.46,0.25,0.2857142857142857,0,1
+revumenib,-7.55902,0.2003460377,6.6531796455,105.29,0.125,0.1428571428571428,0,0
+ziftomenib,-8.43105,0.1090331823,5.905359745,110.28,0.125,0.1428571428571428,0,0

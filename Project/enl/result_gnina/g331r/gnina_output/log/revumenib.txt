@@ -1,0 +1,30 @@
+              _             
+             (_)            
+   __ _ _ __  _ _ __   __ _ 
+  / _` | '_ \| | '_ \ / _` |
+ | (_| | | | | | | | | (_| |
+  \__, |_| |_|_|_| |_|\__,_|
+   __/ |                    
+  |___/                     
+
+gnina v1.3 master:97fa6bc+   Built Oct  3 2024.
+gnina is based on smina and AutoDock Vina.
+Please cite appropriately.
+
+Commandline: /home/labhhc3/Documents/Workspace/D18/Son/ProDock/gnina/gnina -r /home/labhhc3/Documents/Workspace/D18/Son/ProDock/Project/enl/processed_protein/g331r.pdb -l /home/labhhc3/Documents/Workspace/D18/Son/ProDock/Project/enl/ligands/revumenib.sdf --out /home/labhhc3/Documents/Workspace/D18/Son/ProDock/Project/enl/result_gnina/g331r/gnina_output/raw/revumenib.sdf --seed 42 --cnn_scoring rescore --exhaustiveness 32 --num_modes 10 --log /home/labhhc3/Documents/Workspace/D18/Son/ProDock/Project/enl/result_gnina/g331r/gnina_output/log/revumenib.txt --device 0 --autobox_ligand /home/labhhc3/Documents/Workspace/D18/Son/ProDock/Project/enl/reference_ligand/g331r.sdf --autobox_add 5 --flexdist_ligand /home/labhhc3/Documents/Workspace/D18/Son/ProDock/Project/enl/reference_ligand/g331r.sdf --flexdist 5
+Flexible residues: A:155 A:177 A:238 A:241 A:276 A:278 A:285 A:319 A:322 A:323 A:326 A:330 A:341 A:363 A:366 A:367 A:371
+Using random seed: 42
+
+mode |  affinity  |  intramol  |    CNN     |   CNN
+     | (kcal/mol) | (kcal/mol) | pose score | affinity
+-----+------------+------------+------------+----------
+    1       -7.72       -0.85       0.3112      6.708
+    2       -7.78       -1.17       0.2880      7.808
+    3       -7.55       -0.75       0.2731      6.530
+    4       -8.19        2.33       0.2685      7.144
+    5       -8.35        1.49       0.2606      6.719
+    6       -8.08        0.71       0.2416      6.648
+    7       -7.80       -0.31       0.2086      6.796
+    8       -7.72       -0.06       0.2012      6.285
+    9       -7.56       -0.35       0.2003      6.653
+   10       -7.28       -0.41       0.1864      6.329

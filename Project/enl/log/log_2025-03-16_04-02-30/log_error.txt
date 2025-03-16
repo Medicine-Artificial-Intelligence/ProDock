@@ -1,0 +1,90 @@
+2025-03-16 04:02:32,107 - ERROR - Traceback (most recent call last):
+  File "/home/labhhc3/Documents/Workspace/D18/Son/ProDock/DiffDock/inference.py", line 29, in <module>
+    import utils.utils
+  File "/home/labhhc3/Documents/Workspace/D18/Son/ProDock/DiffDock/utils/utils.py", line 17, in <module>
+    from models.aa_model import AAModel
+  File "/home/labhhc3/Documents/Workspace/D18/Son/ProDock/DiffDock/models/aa_model.py", line 13, in <module>
+    from utils import so3, torus
+  File "/home/labhhc3/Documents/Workspace/D18/Son/ProDock/DiffDock/utils/torus.py", line 33, in <module>
+    score_ = np.load('.score.npy')
+             ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/labhhc3/anaconda3/envs/diffdock/lib/python3.11/site-packages/numpy/lib/npyio.py", line 427, in load
+    fid = stack.enter_context(open(os_fspath(file), "rb"))
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '.score.npy'
+
+2025-03-16 04:02:34,101 - ERROR - Traceback (most recent call last):
+  File "/home/labhhc3/Documents/Workspace/D18/Son/ProDock/DiffDock/inference.py", line 29, in <module>
+    import utils.utils
+  File "/home/labhhc3/Documents/Workspace/D18/Son/ProDock/DiffDock/utils/utils.py", line 17, in <module>
+    from models.aa_model import AAModel
+  File "/home/labhhc3/Documents/Workspace/D18/Son/ProDock/DiffDock/models/aa_model.py", line 13, in <module>
+    from utils import so3, torus
+  File "/home/labhhc3/Documents/Workspace/D18/Son/ProDock/DiffDock/utils/torus.py", line 33, in <module>
+    score_ = np.load('.score.npy')
+             ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/labhhc3/anaconda3/envs/diffdock/lib/python3.11/site-packages/numpy/lib/npyio.py", line 427, in load
+    fid = stack.enter_context(open(os_fspath(file), "rb"))
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '.score.npy'
+
+2025-03-16 04:02:36,105 - ERROR - Traceback (most recent call last):
+  File "/home/labhhc3/Documents/Workspace/D18/Son/ProDock/DiffDock/inference.py", line 29, in <module>
+    import utils.utils
+  File "/home/labhhc3/Documents/Workspace/D18/Son/ProDock/DiffDock/utils/utils.py", line 17, in <module>
+    from models.aa_model import AAModel
+  File "/home/labhhc3/Documents/Workspace/D18/Son/ProDock/DiffDock/models/aa_model.py", line 13, in <module>
+    from utils import so3, torus
+  File "/home/labhhc3/Documents/Workspace/D18/Son/ProDock/DiffDock/utils/torus.py", line 33, in <module>
+    score_ = np.load('.score.npy')
+             ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/labhhc3/anaconda3/envs/diffdock/lib/python3.11/site-packages/numpy/lib/npyio.py", line 427, in load
+    fid = stack.enter_context(open(os_fspath(file), "rb"))
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '.score.npy'
+
+2025-03-16 04:02:38,235 - ERROR - Traceback (most recent call last):
+  File "/home/labhhc3/Documents/Workspace/D18/Son/ProDock/DiffDock/inference.py", line 29, in <module>
+    import utils.utils
+  File "/home/labhhc3/Documents/Workspace/D18/Son/ProDock/DiffDock/utils/utils.py", line 17, in <module>
+    from models.aa_model import AAModel
+  File "/home/labhhc3/Documents/Workspace/D18/Son/ProDock/DiffDock/models/aa_model.py", line 13, in <module>
+    from utils import so3, torus
+  File "/home/labhhc3/Documents/Workspace/D18/Son/ProDock/DiffDock/utils/torus.py", line 33, in <module>
+    score_ = np.load('.score.npy')
+             ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/labhhc3/anaconda3/envs/diffdock/lib/python3.11/site-packages/numpy/lib/npyio.py", line 427, in load
+    fid = stack.enter_context(open(os_fspath(file), "rb"))
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '.score.npy'
+
+2025-03-16 04:02:40,339 - ERROR - Traceback (most recent call last):
+  File "/home/labhhc3/Documents/Workspace/D18/Son/ProDock/DiffDock/inference.py", line 29, in <module>
+    import utils.utils
+  File "/home/labhhc3/Documents/Workspace/D18/Son/ProDock/DiffDock/utils/utils.py", line 17, in <module>
+    from models.aa_model import AAModel
+  File "/home/labhhc3/Documents/Workspace/D18/Son/ProDock/DiffDock/models/aa_model.py", line 13, in <module>
+    from utils import so3, torus
+  File "/home/labhhc3/Documents/Workspace/D18/Son/ProDock/DiffDock/utils/torus.py", line 33, in <module>
+    score_ = np.load('.score.npy')
+             ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/labhhc3/anaconda3/envs/diffdock/lib/python3.11/site-packages/numpy/lib/npyio.py", line 427, in load
+    fid = stack.enter_context(open(os_fspath(file), "rb"))
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '.score.npy'
+
+2025-03-16 04:02:42,363 - ERROR - Traceback (most recent call last):
+  File "/home/labhhc3/Documents/Workspace/D18/Son/ProDock/DiffDock/inference.py", line 29, in <module>
+    import utils.utils
+  File "/home/labhhc3/Documents/Workspace/D18/Son/ProDock/DiffDock/utils/utils.py", line 17, in <module>
+    from models.aa_model import AAModel
+  File "/home/labhhc3/Documents/Workspace/D18/Son/ProDock/DiffDock/models/aa_model.py", line 13, in <module>
+    from utils import so3, torus
+  File "/home/labhhc3/Documents/Workspace/D18/Son/ProDock/DiffDock/utils/torus.py", line 33, in <module>
+    score_ = np.load('.score.npy')
+             ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/labhhc3/anaconda3/envs/diffdock/lib/python3.11/site-packages/numpy/lib/npyio.py", line 427, in load
+    fid = stack.enter_context(open(os_fspath(file), "rb"))
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '.score.npy'
+
