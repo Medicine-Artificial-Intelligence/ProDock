@@ -1,0 +1,29 @@
+parameter_file boron-silicon-atom_par.dat
+npts 62 62 62
+gridfld 5N2F_min.maps.fld
+spacing 0.375
+receptor_types HD C A N NA OA F P SA S Cl Br I Mg Ca Mn Fe Zn
+ligand_types HD C A N NA OA F P SA S Cl CL Br BR I Si B
+receptor 5N2F_min.pdbqt
+gridcenter 32.500 13.000 133.750
+smooth 0.500
+map 5N2F_min.HD.map
+map 5N2F_min.C.map
+map 5N2F_min.A.map
+map 5N2F_min.N.map
+map 5N2F_min.NA.map
+map 5N2F_min.OA.map
+map 5N2F_min.F.map
+map 5N2F_min.P.map
+map 5N2F_min.SA.map
+map 5N2F_min.S.map
+map 5N2F_min.Cl.map
+map 5N2F_min.CL.map
+map 5N2F_min.Br.map
+map 5N2F_min.BR.map
+map 5N2F_min.I.map
+map 5N2F_min.Si.map
+map 5N2F_min.B.map
+elecmap 5N2F_min.e.map
+dsolvmap 5N2F_min.d.map
+dielectric -42.000
