@@ -99,7 +99,7 @@ def main():
     elif args.source_dir:
         target_dir = list_primary_folders(args.source_dir)
         for i in target_dir:
-            if i != 'all':
+            if i != "all":
                 raw_dir = os.path.join(args.source_dir, i, "gnina_output", "raw")
                 files = list_primary_files(raw_dir)
             for j in files:

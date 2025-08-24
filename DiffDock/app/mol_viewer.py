@@ -11,7 +11,7 @@ https://huggingface.co/spaces/simonduerr/3dmol.js/blob/main/app.py
 
 def gen_3dmol_vis(pdb_text: str, sdf_text: str):
     x = (
-            """<!DOCTYPE html>
+        """<!DOCTYPE html>
             <html>
             <head>    
         <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
@@ -36,9 +36,13 @@ def gen_3dmol_vis(pdb_text: str, sdf_text: str):
         <div id="container" class="mol-container"></div>
     
                 <script>
-                   let pdb = `""" + pdb_text + """`  
+                   let pdb = `"""
+        + pdb_text
+        + """`  
             
-                   let sdf = `""" + sdf_text + """`
+                   let sdf = `"""
+        + sdf_text
+        + """`
 
              $(document).ready(function () {
                 let element = $("#container");
@@ -68,4 +72,3 @@ def gen_3dmol_vis(pdb_text: str, sdf_text: str):
     allow-scripts allow-same-origin allow-popups 
     allow-top-navigation-by-user-activation allow-downloads" allowfullscreen="" 
     allowpaymentrequest="" frameborder="0" srcdoc='{x}'></iframe>"""
-

@@ -54,8 +54,8 @@ def create_directory(path):
 def run_diffdock(args, protein_file, ligand_file, complex_name, output_dir):
     current_dir = os.getcwd()
     diffdock_dir = os.path.join(
-        os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-        "DiffDock")
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "DiffDock"
+    )
     os.chdir(diffdock_dir)
     diffdock_script = os.path.join(diffdock_dir, "inference.py")
     config_dir = os.path.join(diffdock_dir, "default_inference_args.yaml")

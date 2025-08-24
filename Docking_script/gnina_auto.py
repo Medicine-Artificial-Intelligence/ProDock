@@ -155,8 +155,8 @@ def run_docking(args, protein_path, ligand_path, result_dir):
     output_file = os.path.join(result_dir, "gnina_output", "raw", ligand_name + ".sdf")
     log_file = os.path.join(result_dir, "gnina_output", "log", ligand_name + ".txt")
     gnina_dir = os.path.join(
-        os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-        "gnina")
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "gnina"
+    )
     gnina_script = os.path.join(gnina_dir, "gnina")
     print(gnina_script)
     command = [
@@ -265,15 +265,26 @@ def main():
             if i > args.end_at - 1:
                 break
             print(f"  Docking ligand {ligand_file} with protein {protein_file}...")
-            run_docking(args, protein_path=protein_path, ligand_path=ligand_path, result_dir=result_dir)
+            run_docking(
+                args,
+                protein_path=protein_path,
+                ligand_path=ligand_path,
+                result_dir=result_dir,
+            )
     conformation_extract_dir = os.path.join(
-    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-        "Analysis_script")
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "Analysis_script"
+    )
     print(str(os.path.dirname(result_dir)))
-    conformation_extract_script = os.path.join(conformation_extract_dir,"conformation_extract.py")
-    command_extract = ["python", str(conformation_extract_script),
-    "--source_dir", str(os.path.dirname(result_dir)),
-    "--conformation", str(args.num_modes)
+    conformation_extract_script = os.path.join(
+        conformation_extract_dir, "conformation_extract.py"
+    )
+    command_extract = [
+        "python",
+        str(conformation_extract_script),
+        "--source_dir",
+        str(os.path.dirname(result_dir)),
+        "--conformation",
+        str(args.num_modes),
     ]
     print(command_extract)
     subprocess.run(command_extract)

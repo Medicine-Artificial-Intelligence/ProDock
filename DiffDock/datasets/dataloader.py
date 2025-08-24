@@ -17,8 +17,7 @@ class Collater:
         batch = [x for x in batch if x is not None]
         elem = batch[0]
         if isinstance(elem, BaseData):
-            return Batch.from_data_list(batch, self.follow_batch,
-                                        self.exclude_keys)
+            return Batch.from_data_list(batch, self.follow_batch, self.exclude_keys)
         elif isinstance(elem, torch.Tensor):
             return default_collate(batch)
         elif isinstance(elem, float):
@@ -29,12 +28,12 @@ class Collater:
             return batch
         elif isinstance(elem, Mapping):
             return {key: self([data[key] for data in batch]) for key in elem}
-        elif isinstance(elem, tuple) and hasattr(elem, '_fields'):
+        elif isinstance(elem, tuple) and hasattr(elem, "_fields"):
             return type(elem)(*(self(s) for s in zip(*batch)))
         elif isinstance(elem, Sequence) and not isinstance(elem, str):
             return [self(s) for s in zip(*batch)]
 
-        raise TypeError(f'DataLoader found invalid type: {type(elem)}')
+        raise TypeError(f"DataLoader found invalid type: {type(elem)}")
 
     def collate(self, batch):  # Deprecated...
         return self(batch)
@@ -59,6 +58,7 @@ class DataLoader(torch.utils.data.DataLoader):
         **kwargs (optional): Additional arguments of
             :class:`torch.utils.data.DataLoader`.
     """
+
     def __init__(
         self,
         dataset: Union[Dataset, List[BaseData]],
@@ -69,8 +69,8 @@ class DataLoader(torch.utils.data.DataLoader):
         **kwargs,
     ):
 
-        if 'collate_fn' in kwargs:
-            del kwargs['collate_fn']
+        if "collate_fn" in kwargs:
+            del kwargs["collate_fn"]
 
         # Save for PyTorch Lightning:
         self.follow_batch = follow_batch
@@ -91,11 +91,20 @@ def collate_fn(data_list):
 
 
 class DataListLoader(torch.utils.data.DataLoader):
-    def __init__(self, dataset: Union[Dataset, List[BaseData]],
-                 batch_size: int = 1, shuffle: bool = False, **kwargs):
-        if 'collate_fn' in kwargs:
-            del kwargs['collate_fn']
+    def __init__(
+        self,
+        dataset: Union[Dataset, List[BaseData]],
+        batch_size: int = 1,
+        shuffle: bool = False,
+        **kwargs,
+    ):
+        if "collate_fn" in kwargs:
+            del kwargs["collate_fn"]
 
-        super().__init__(dataset, batch_size=batch_size, shuffle=shuffle,
-                         collate_fn=collate_fn, **kwargs)
-
+        super().__init__(
+            dataset,
+            batch_size=batch_size,
+            shuffle=shuffle,
+            collate_fn=collate_fn,
+            **kwargs,
+        )

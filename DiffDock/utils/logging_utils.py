@@ -38,6 +38,7 @@ def configure_logger(loglevel=None, logger_name=LOGGER_NAME, logfile=None):
     logger.propagate = False
 
     formatter = _get_formatter(loglevel)
+
     def _prep_handler(handler):
         for ex_handler in logger.handlers:
             if type(ex_handler) == type(handler):
@@ -96,4 +97,3 @@ def check_git_uncommitted() -> bool:
     )
     lines = list(filter(lambda x: x, changed_files.split("\n")))
     return len(lines) > 0
-

@@ -87,16 +87,23 @@ def run_cli_command(
     work_dir=None,
 ):
     if work_dir is None:
-        work_dir = os.environ.get(
-            "DiffDockDir", PROJECT_DIR
-        )
+        work_dir = os.environ.get("DiffDockDir", PROJECT_DIR)
 
-    assert len(args) == len(ARG_ORDER), f'Expected {len(ARG_ORDER)} arguments, got {len(args)}'
+    assert len(args) == len(
+        ARG_ORDER
+    ), f"Expected {len(ARG_ORDER)} arguments, got {len(args)}"
 
-    inference_log_level = os.environ.get("INFERENCE_LOG_LEVEL", os.environ.get("LOG_LEVEL", "WARNING"))
+    inference_log_level = os.environ.get(
+        "INFERENCE_LOG_LEVEL", os.environ.get("LOG_LEVEL", "WARNING")
+    )
 
-    all_arg_dict = {"protein_path": protein_path, "ligand": ligand, "config": config_path,
-                    "no_final_step_noise": True, "loglevel": inference_log_level}
+    all_arg_dict = {
+        "protein_path": protein_path,
+        "ligand": ligand,
+        "config": config_path,
+        "no_final_step_noise": True,
+        "loglevel": inference_log_level,
+    }
     for arg_name, arg_val in zip(ARG_ORDER, args):
         all_arg_dict[arg_name] = arg_val
 
@@ -111,9 +118,7 @@ def run_cli_command(
     )
     logging.debug(f"Device check output:\n{result.stdout}")
 
-    command = [
-        "python3",
-        "inference.py"]
+    command = ["python3", "inference.py"]
 
     command += kwargs_to_cli_args(**all_arg_dict)
 
@@ -154,9 +159,14 @@ def run_cli_command(
                 logging.debug("Skipping command execution")
                 artificial_output_dir = os.path.join(TEMP_DIR, "artificial_output")
                 os.makedirs(artificial_output_dir, exist_ok=True)
-                shutil.copy(protein_path, os.path.join(artificial_output_dir, "protein.pdb"))
+                shutil.copy(
+                    protein_path, os.path.join(artificial_output_dir, "protein.pdb")
+                )
                 shutil.copy(ligand, os.path.join(artificial_output_dir, "rank1.sdf"))
-                shutil.copy(ligand, os.path.join(artificial_output_dir, "rank1_confidence-0.10.sdf"))
+                shutil.copy(
+                    ligand,
+                    os.path.join(artificial_output_dir, "rank1_confidence-0.10.sdf"),
+                )
 
         except subprocess.CalledProcessError as e:
             logging.error(f"An error occurred while executing the command: {e}")
@@ -261,12 +271,4 @@ def test_run_cli():
     ligand = os.path.join(work_dir, "data", "3dpf", "3dpf_ligand.sdf")
     config_file = os.path.join(APP_DIR, "default_inference_args.yaml")
 
-    run_cli_command(
-        protein_path,
-        ligand,
-        config_file,
-        10,
-        False,
-        True,
-        None
-    )
+    run_cli_command(protein_path, ligand, config_file, 10, False, True, None)

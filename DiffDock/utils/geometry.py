@@ -56,12 +56,12 @@ def axis_angle_to_quaternion(axis_angle):
     small_angles = angles.abs() < eps
     sin_half_angles_over_angles = torch.empty_like(angles)
     sin_half_angles_over_angles[~small_angles] = (
-            torch.sin(half_angles[~small_angles]) / angles[~small_angles]
+        torch.sin(half_angles[~small_angles]) / angles[~small_angles]
     )
     # for x small, sin(x/2) is about x/2 - (x/2)^3/6
     # so sin(x/2)/x is about 1/2 - (x*x)/48
     sin_half_angles_over_angles[small_angles] = (
-            0.5 - (angles[small_angles] * angles[small_angles]) / 48
+        0.5 - (angles[small_angles] * angles[small_angles]) / 48
     )
     quaternions = torch.cat(
         [torch.cos(half_angles), axis_angle * sin_half_angles_over_angles], dim=-1
@@ -235,9 +235,11 @@ def rigid_transform_Kabsch_3D_torch(A, B):
     # special reflection case
     if torch.linalg.det(R) < 0:
         # print("det(R) < R, reflection detected!, correcting for it ...")
-        SS = torch.diag(torch.tensor([1.,1.,-1.], device=A.device))
+        SS = torch.diag(torch.tensor([1.0, 1.0, -1.0], device=A.device))
         R = (Vt.T @ SS) @ U.T
-    assert math.fabs(torch.linalg.det(R) - 1) < 3e-3  # note I had to change this error bound to be higher
+    assert (
+        math.fabs(torch.linalg.det(R) - 1) < 3e-3
+    )  # note I had to change this error bound to be higher
 
     t = -R @ centroid_A + centroid_B
     return R, t
@@ -267,10 +269,12 @@ def rigid_transform_Kabsch_3D_torch_batch(A, B):
     R = torch.bmm(Vt.transpose(1, 2), U.transpose(1, 2))
 
     # reflection case
-    SS = torch.diag(torch.tensor([1., 1., -1.], device=A.device))
-    Rm = torch.bmm(Vt.transpose(1,2) @ SS, U.transpose(1, 2))
+    SS = torch.diag(torch.tensor([1.0, 1.0, -1.0], device=A.device))
+    Rm = torch.bmm(Vt.transpose(1, 2) @ SS, U.transpose(1, 2))
     R = torch.where(torch.linalg.det(R)[:, None, None] < 0, Rm, R)
-    assert torch.all(torch.abs(torch.linalg.det(R) - 1) < 3e-3)  # note I had to change this error bound to be higher
+    assert torch.all(
+        torch.abs(torch.linalg.det(R) - 1) < 3e-3
+    )  # note I had to change this error bound to be higher
 
     t = torch.bmm(-R, centroid_A) + centroid_B
     return R, t
@@ -305,14 +309,12 @@ def rigid_transform_Kabsch_independent_torch(A, B):
     # special reflection case
     if torch.linalg.det(R) < 0:
         # print("det(R) < R, reflection detected!, correcting for it ...")
-        SS = torch.diag(torch.tensor([1.,1.,-1.], device=A.device))
+        SS = torch.diag(torch.tensor([1.0, 1.0, -1.0], device=A.device))
         R = (Vt.T @ SS) @ U.T
-    assert math.fabs(torch.linalg.det(R) - 1) < 3e-3  # note I had to change this error bound to be higher
+    assert (
+        math.fabs(torch.linalg.det(R) - 1) < 3e-3
+    )  # note I had to change this error bound to be higher
 
-    t = - centroid_A + centroid_B # note does not change rotation
+    t = -centroid_A + centroid_B  # note does not change rotation
     R_vec = matrix_to_axis_angle(R)
     return t, R_vec
-
-
-
-
