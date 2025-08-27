@@ -479,3 +479,276 @@ RuntimeError: Failed to parse SMILES: 'NOTASMILES'
 2025-08-27 15:25:11 | [32mINFO[0m | prodock.ligand.process | Processed record 0 (CCO) -> /tmp/tmp5o1k99vl/out6/0000.sdf
 2025-08-27 15:25:11 | [32mINFO[0m | prodock.ligand.process | Processed record 0 (My Molecule #1) -> /tmp/tmpfv89vo6s/out5/My_Molecule_1.sdf
 2025-08-27 15:25:11 | [32mINFO[0m | prodock.ligand.process | Processed record 1 (M@2) -> /tmp/tmpfv89vo6s/out5/M_2.sdf
+2025-08-27 15:32:00 | [32mINFO[0m | prodock.chem.conformer | ConformerManager: loaded 3 SMILES
+2025-08-27 15:32:01 | [32mINFO[0m | prodock.chem.embed | Embedder: loaded 1 SMILES from iterable
+2025-08-27 15:32:01 | [32mINFO[0m | prodock.chem.embed | Embedder: finished embedding: 1 successes / 1 attempts
+2025-08-27 15:32:01 | [32mINFO[0m | prodock.chem.embed | Embedder: loaded 1 SMILES from iterable
+2025-08-27 15:32:01 | [32mINFO[0m | prodock.chem.embed | Embedder: loaded 1 SMILES from iterable
+2025-08-27 15:32:01 | [32mINFO[0m | prodock.chem.embed | Embedder: finished embedding: 1 successes / 1 attempts
+2025-08-27 15:32:01 | [32mINFO[0m | prodock.chem.embed | Embedder: finished embedding: 1 successes / 1 attempts
+2025-08-27 15:32:01 | [32mINFO[0m | prodock.chem.conformer | ConformerManager: embedded 3 / 3 molecules
+2025-08-27 15:32:01 | [32mINFO[0m | prodock.chem.optimize | Optimizer: loaded 1 MolBlocks for optimization
+2025-08-27 15:32:01 | [32mINFO[0m | prodock.chem.optimize | Optimizer: finished optimization: 1 succeeded
+2025-08-27 15:32:01 | [32mINFO[0m | prodock.chem.optimize | Optimizer: loaded 1 MolBlocks for optimization
+2025-08-27 15:32:01 | [32mINFO[0m | prodock.chem.optimize | Optimizer: finished optimization: 1 succeeded
+2025-08-27 15:32:01 | [32mINFO[0m | prodock.chem.optimize | Optimizer: loaded 1 MolBlocks for optimization
+2025-08-27 15:32:01 | [32mINFO[0m | prodock.chem.optimize | Optimizer: finished optimization: 1 succeeded
+2025-08-27 15:32:01 | [32mINFO[0m | prodock.chem.conformer | ConformerManager: optimized 3 molecules
+2025-08-27 15:32:01 | [32mINFO[0m | prodock.chem.conformer | ConformerManager: loaded 3 SMILES
+2025-08-27 15:32:01 | [32mINFO[0m | prodock.chem.embed | Embedder: loaded 1 SMILES from iterable
+2025-08-27 15:32:01 | [32mINFO[0m | prodock.chem.embed | Embedder: finished embedding: 1 successes / 1 attempts
+2025-08-27 15:32:01 | [32mINFO[0m | prodock.chem.embed | Embedder: loaded 1 SMILES from iterable
+2025-08-27 15:32:01 | [32mINFO[0m | prodock.chem.embed | Embedder: finished embedding: 1 successes / 1 attempts
+2025-08-27 15:32:01 | [32mINFO[0m | prodock.chem.embed | Embedder: loaded 1 SMILES from iterable
+2025-08-27 15:32:01 | [32mINFO[0m | prodock.chem.embed | Embedder: finished embedding: 1 successes / 1 attempts
+2025-08-27 15:32:01 | [32mINFO[0m | prodock.chem.conformer | ConformerManager: embedded 3 / 3 molecules
+2025-08-27 15:32:01 | [32mINFO[0m | prodock.chem.optimize | Optimizer: loaded 1 MolBlocks for optimization
+2025-08-27 15:32:01 | [32mINFO[0m | prodock.chem.optimize | Optimizer: finished optimization: 1 succeeded
+2025-08-27 15:32:01 | [32mINFO[0m | prodock.chem.optimize | Optimizer: loaded 1 MolBlocks for optimization
+2025-08-27 15:32:01 | [32mINFO[0m | prodock.chem.optimize | Optimizer: finished optimization: 1 succeeded
+2025-08-27 15:32:01 | [32mINFO[0m | prodock.chem.optimize | Optimizer: loaded 1 MolBlocks for optimization
+2025-08-27 15:32:01 | [32mINFO[0m | prodock.chem.optimize | Optimizer: finished optimization: 1 succeeded
+2025-08-27 15:32:01 | [32mINFO[0m | prodock.chem.conformer | ConformerManager: optimized 3 molecules
+2025-08-27 15:32:01 | [32mINFO[0m | prodock.chem.conformer | ConformerManager: pruned to top-1 confs for 3 molecules
+2025-08-27 15:32:01 | [32mINFO[0m | prodock.chem.conformer | ConformerManager: wrote 3 SDF files to /tmp/tmpkieaff2h/conformer_out
+2025-08-27 15:32:01 | [32mINFO[0m | prodock.chem.embed | Embedder: loaded 3 SMILES from iterable
+2025-08-27 15:32:01 | [32mINFO[0m | prodock.chem.embed | Embedder: finished embedding: 3 successes / 3 attempts
+2025-08-27 15:32:01 | [32mINFO[0m | prodock.chem.embed | Embedder: loaded 3 SMILES from iterable
+2025-08-27 15:32:01 | [32mINFO[0m | prodock.chem.embed | Embedder: finished embedding: 3 successes / 3 attempts
+2025-08-27 15:32:01 | [32mINFO[0m | prodock.chem.embed | Embedder: loaded 3 SMILES from iterable
+2025-08-27 15:32:01 | [33mWARNING[0m | prodock.chem.embed | Embedder: failed to parse SMILES: NOTASMILES
+2025-08-27 15:32:01 | [32mINFO[0m | prodock.chem.embed | Embedder: finished embedding: 2 successes / 3 attempts
+2025-08-27 15:32:01 | [32mINFO[0m | prodock.chem.embed | Embedder: loaded 3 SMILES from iterable
+2025-08-27 15:32:01 | [32mINFO[0m | prodock.chem.embed | Embedder: loaded 3 SMILES from iterable
+2025-08-27 15:32:01 | [32mINFO[0m | prodock.chem.embed | Embedder: finished embedding: 3 successes / 3 attempts
+2025-08-27 15:32:01 | [32mINFO[0m | prodock.chem.embed | Embedder: mols_to_sdf completed: wrote outputs to /tmp/tmp2ukwuprf/out
+2025-08-27 15:32:01 | [32mINFO[0m | prodock.chem.embed | Embedder: loaded 1 SMILES from iterable
+2025-08-27 15:32:01 | [32mINFO[0m | prodock.chem.embed | Embedder: finished embedding: 1 successes / 1 attempts
+2025-08-27 15:32:01 | [32mINFO[0m | prodock.chem.optimize | Optimizer: loaded 1 MolBlocks for optimization
+2025-08-27 15:32:01 | [32mINFO[0m | prodock.chem.optimize | Optimizer: finished optimization: 1 succeeded
+2025-08-27 15:32:01 | [32mINFO[0m | prodock.chem.embed | Embedder: loaded 1 SMILES from iterable
+2025-08-27 15:32:01 | [32mINFO[0m | prodock.chem.embed | Embedder: finished embedding: 1 successes / 1 attempts
+2025-08-27 15:32:01 | [32mINFO[0m | prodock.chem.optimize | Optimizer: loaded 1 MolBlocks for optimization
+2025-08-27 15:32:01 | [32mINFO[0m | prodock.chem.optimize | Optimizer: finished optimization: 1 succeeded
+2025-08-27 15:32:01 | [32mINFO[0m | prodock.chem.embed | Embedder: loaded 1 SMILES from iterable
+2025-08-27 15:32:01 | [32mINFO[0m | prodock.chem.embed | Embedder: finished embedding: 1 successes / 1 attempts
+2025-08-27 15:32:01 | [32mINFO[0m | prodock.chem.optimize | Optimizer: loaded 1 MolBlocks for optimization
+2025-08-27 15:32:01 | [32mINFO[0m | prodock.chem.optimize | Optimizer: finished optimization: 1 succeeded
+2025-08-27 15:32:01 | [32mINFO[0m | prodock.chem.embed | Embedder: loaded 1 SMILES from iterable
+2025-08-27 15:32:01 | [32mINFO[0m | prodock.chem.embed | Embedder: finished embedding: 1 successes / 1 attempts
+2025-08-27 15:32:01 | [32mINFO[0m | prodock.chem.optimize | Optimizer: loaded 1 MolBlocks for optimization
+2025-08-27 15:32:01 | [32mINFO[0m | prodock.chem.optimize | Optimizer: finished optimization: 1 succeeded
+2025-08-27 15:32:01 | [32mINFO[0m | prodock.chem.optimize | Optimizer.write_sdf: wrote 1 files to /tmp/tmppeug4uf4/opt_out
+2025-08-27 15:32:01 | [32mINFO[0m | prodock.chem.embed | Embedder: loaded 1 SMILES from iterable
+2025-08-27 15:32:01 | [32mINFO[0m | prodock.chem.embed | Embedder: finished embedding: 1 successes / 1 attempts
+2025-08-27 15:32:01 | [32mINFO[0m | prodock.chem.conformer | ConformerManager: embedded 1 / 1 molecules
+2025-08-27 15:32:01 | [32mINFO[0m | prodock.chem.optimize | Optimizer: loaded 1 MolBlocks for optimization
+2025-08-27 15:32:01 | [32mINFO[0m | prodock.chem.optimize | Optimizer: finished optimization: 1 succeeded
+2025-08-27 15:32:01 | [32mINFO[0m | prodock.chem.conformer | ConformerManager: optimized 1 molecules
+2025-08-27 15:32:01 | [32mINFO[0m | prodock.chem.embed | Embedder: loaded 1 SMILES from iterable
+2025-08-27 15:32:01 | [32mINFO[0m | prodock.chem.embed | Embedder: finished embedding: 1 successes / 1 attempts
+2025-08-27 15:32:01 | [32mINFO[0m | prodock.chem.conformer | ConformerManager: embedded 1 / 1 molecules
+2025-08-27 15:32:01 | [32mINFO[0m | prodock.chem.optimize | Optimizer: loaded 1 MolBlocks for optimization
+2025-08-27 15:32:01 | [32mINFO[0m | prodock.chem.optimize | Optimizer: finished optimization: 1 succeeded
+2025-08-27 15:32:01 | [32mINFO[0m | prodock.chem.conformer | ConformerManager: optimized 1 molecules
+2025-08-27 15:32:01 | [32mINFO[0m | prodock.chem.embed | Embedder: loaded 1 SMILES from iterable
+2025-08-27 15:32:01 | [32mINFO[0m | prodock.chem.embed | Embedder: finished embedding: 1 successes / 1 attempts
+2025-08-27 15:32:01 | [32mINFO[0m | prodock.chem.conformer | ConformerManager: embedded 1 / 1 molecules
+2025-08-27 15:32:01 | [32mINFO[0m | prodock.chem.embed | Embedder: loaded 1 SMILES from iterable
+2025-08-27 15:32:01 | [32mINFO[0m | prodock.chem.embed | Embedder: finished embedding: 1 successes / 1 attempts
+2025-08-27 15:32:01 | [32mINFO[0m | prodock.chem.conformer | ConformerManager: embedded 1 / 1 molecules
+2025-08-27 15:32:01 | [32mINFO[0m | prodock.chem.optimize | Optimizer: loaded 1 MolBlocks for optimization
+2025-08-27 15:32:01 | [32mINFO[0m | prodock.chem.optimize | Optimizer: finished optimization: 1 succeeded
+2025-08-27 15:32:01 | [32mINFO[0m | prodock.chem.conformer | ConformerManager: optimized 1 molecules
+2025-08-27 15:32:01 | [32mINFO[0m | prodock.chem.embed | Embedder: loaded 1 SMILES from iterable
+2025-08-27 15:32:01 | [32mINFO[0m | prodock.chem.embed | Embedder: finished embedding: 1 successes / 1 attempts
+2025-08-27 15:32:01 | [32mINFO[0m | prodock.chem.conformer | ConformerManager: embedded 1 / 1 molecules
+2025-08-27 15:32:01 | [32mINFO[0m | prodock.chem.optimize | Optimizer: loaded 1 MolBlocks for optimization
+2025-08-27 15:32:01 | [32mINFO[0m | prodock.chem.optimize | Optimizer: finished optimization: 1 succeeded
+2025-08-27 15:32:01 | [32mINFO[0m | prodock.chem.conformer | ConformerManager: optimized 1 molecules
+2025-08-27 15:32:01 | [32mINFO[0m | prodock.chem.embed | Embedder: loaded 1 SMILES from iterable
+2025-08-27 15:32:01 | [32mINFO[0m | prodock.chem.embed | Embedder: finished embedding: 1 successes / 1 attempts
+2025-08-27 15:32:01 | [32mINFO[0m | prodock.chem.conformer | ConformerManager: embedded 1 / 1 molecules
+2025-08-27 15:32:01 | [32mINFO[0m | prodock.chem.optimize | Optimizer: loaded 1 MolBlocks for optimization
+2025-08-27 15:32:01 | [32mINFO[0m | prodock.chem.optimize | Optimizer: finished optimization: 1 succeeded
+2025-08-27 15:32:01 | [32mINFO[0m | prodock.chem.conformer | ConformerManager: optimized 1 molecules
+2025-08-27 15:32:01 | [32mINFO[0m | prodock.chem.embed | Embedder: loaded 1 SMILES from iterable
+2025-08-27 15:32:01 | [32mINFO[0m | prodock.chem.embed | Embedder: finished embedding: 1 successes / 1 attempts
+2025-08-27 15:32:01 | [32mINFO[0m | prodock.chem.conformer | ConformerManager: embedded 1 / 1 molecules
+2025-08-27 15:32:01 | [32mINFO[0m | prodock.chem.optimize | Optimizer: loaded 1 MolBlocks for optimization
+2025-08-27 15:32:01 | [32mINFO[0m | prodock.chem.optimize | Optimizer: finished optimization: 1 succeeded
+2025-08-27 15:32:01 | [32mINFO[0m | prodock.chem.conformer | ConformerManager: optimized 1 molecules
+2025-08-27 15:32:01 | [32mINFO[0m | prodock.ligand.process | Processed record 0 (CCO) -> /tmp/tmpn65qqmkf/out/0000.sdf
+2025-08-27 15:32:01 | [32mINFO[0m | prodock.ligand.process | Processed record 1 (CCC) -> /tmp/tmpn65qqmkf/out/0001.sdf
+2025-08-27 15:32:01 | [32mINFO[0m | prodock.ligand.process | Saved manifest to /tmp/tmpn65qqmkf/manifest.csv
+2025-08-27 15:32:01 | [31mERROR[0m | prodock.ligand.process | Failed to process SMILES [NOTASMILES] (index=0): Failed to parse SMILES: 'NOTASMILES'
+Traceback (most recent call last):
+  File "/homes/biertank/tieu/Documents/Project/TACsy/ProEco/ProDock/prodock/process/ligand.py", line 468, in _process_one
+    mb = self._embed_with_rdkit_inmemory(smi)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/homes/biertank/tieu/Documents/Project/TACsy/ProEco/ProDock/prodock/process/ligand.py", line 328, in _embed_with_rdkit_inmemory
+    raise RuntimeError(f"Failed to parse SMILES: {smiles!r}")
+RuntimeError: Failed to parse SMILES: 'NOTASMILES'
+2025-08-27 15:32:01 | [32mINFO[0m | prodock.chem.embed | Embedder: loaded 1 SMILES from iterable
+2025-08-27 15:32:01 | [32mINFO[0m | prodock.chem.embed | Embedder: finished embedding: 1 successes / 1 attempts
+2025-08-27 15:32:01 | [32mINFO[0m | prodock.chem.conformer | ConformerManager: embedded 1 / 1 molecules
+2025-08-27 15:32:01 | [32mINFO[0m | prodock.ligand.process | Processed record 0 (CCO) -> /tmp/tmp4ykvn20i/out6/0000.sdf
+2025-08-27 15:32:01 | [32mINFO[0m | prodock.ligand.process | Processed record 0 (My Molecule #1) -> /tmp/tmp8ldh5uvo/out5/My_Molecule_1.sdf
+2025-08-27 15:32:01 | [32mINFO[0m | prodock.ligand.process | Processed record 1 (M@2) -> /tmp/tmp8ldh5uvo/out5/M_2.sdf
+2025-08-27 15:41:52 | [32mINFO[0m | prodock.chem.embed | Embedder: loaded 1 SMILES from iterable
+2025-08-27 15:41:52 | [32mINFO[0m | prodock.chem.embed | Embedder: finished embedding: 1 successes / 1 attempts
+2025-08-27 15:41:52 | [32mINFO[0m | prodock.chem.conformer | ConformerManager: embedded 1 / 1 molecules
+2025-08-27 15:41:52 | [32mINFO[0m | prodock.chem.optimize | Optimizer: loaded 1 MolBlocks for optimization
+2025-08-27 15:41:52 | [32mINFO[0m | prodock.chem.optimize | Optimizer: finished optimization: 1 succeeded
+2025-08-27 15:41:52 | [32mINFO[0m | prodock.chem.conformer | ConformerManager: optimized 1 molecules
+2025-08-27 15:41:52 | [32mINFO[0m | prodock.chem.embed | Embedder: loaded 1 SMILES from iterable
+2025-08-27 15:41:52 | [32mINFO[0m | prodock.chem.embed | Embedder: finished embedding: 1 successes / 1 attempts
+2025-08-27 15:41:52 | [32mINFO[0m | prodock.chem.conformer | ConformerManager: embedded 1 / 1 molecules
+2025-08-27 15:41:52 | [32mINFO[0m | prodock.chem.optimize | Optimizer: loaded 1 MolBlocks for optimization
+2025-08-27 15:41:52 | [32mINFO[0m | prodock.chem.optimize | Optimizer: finished optimization: 1 succeeded
+2025-08-27 15:41:52 | [32mINFO[0m | prodock.chem.conformer | ConformerManager: optimized 1 molecules
+2025-08-27 15:41:52 | [32mINFO[0m | prodock.chem.embed | Embedder: loaded 1 SMILES from iterable
+2025-08-27 15:41:52 | [32mINFO[0m | prodock.chem.embed | Embedder: finished embedding: 1 successes / 1 attempts
+2025-08-27 15:41:52 | [32mINFO[0m | prodock.chem.conformer | ConformerManager: embedded 1 / 1 molecules
+2025-08-27 15:41:52 | [32mINFO[0m | prodock.chem.embed | Embedder: loaded 1 SMILES from iterable
+2025-08-27 15:41:52 | [32mINFO[0m | prodock.chem.embed | Embedder: finished embedding: 1 successes / 1 attempts
+2025-08-27 15:41:52 | [32mINFO[0m | prodock.chem.conformer | ConformerManager: embedded 1 / 1 molecules
+2025-08-27 15:41:52 | [32mINFO[0m | prodock.chem.optimize | Optimizer: loaded 1 MolBlocks for optimization
+2025-08-27 15:41:52 | [32mINFO[0m | prodock.chem.optimize | Optimizer: finished optimization: 1 succeeded
+2025-08-27 15:41:52 | [32mINFO[0m | prodock.chem.conformer | ConformerManager: optimized 1 molecules
+2025-08-27 15:41:52 | [32mINFO[0m | prodock.chem.embed | Embedder: loaded 1 SMILES from iterable
+2025-08-27 15:41:52 | [32mINFO[0m | prodock.chem.embed | Embedder: finished embedding: 1 successes / 1 attempts
+2025-08-27 15:41:52 | [32mINFO[0m | prodock.chem.conformer | ConformerManager: embedded 1 / 1 molecules
+2025-08-27 15:41:52 | [32mINFO[0m | prodock.chem.optimize | Optimizer: loaded 1 MolBlocks for optimization
+2025-08-27 15:41:52 | [32mINFO[0m | prodock.chem.optimize | Optimizer: finished optimization: 1 succeeded
+2025-08-27 15:41:52 | [32mINFO[0m | prodock.chem.conformer | ConformerManager: optimized 1 molecules
+2025-08-27 15:41:52 | [32mINFO[0m | prodock.chem.embed | Embedder: loaded 1 SMILES from iterable
+2025-08-27 15:41:52 | [32mINFO[0m | prodock.chem.embed | Embedder: finished embedding: 1 successes / 1 attempts
+2025-08-27 15:41:52 | [32mINFO[0m | prodock.chem.conformer | ConformerManager: embedded 1 / 1 molecules
+2025-08-27 15:41:52 | [32mINFO[0m | prodock.chem.optimize | Optimizer: loaded 1 MolBlocks for optimization
+2025-08-27 15:41:52 | [32mINFO[0m | prodock.chem.optimize | Optimizer: finished optimization: 1 succeeded
+2025-08-27 15:41:52 | [32mINFO[0m | prodock.chem.conformer | ConformerManager: optimized 1 molecules
+2025-08-27 15:41:52 | [32mINFO[0m | prodock.chem.embed | Embedder: loaded 1 SMILES from iterable
+2025-08-27 15:41:52 | [32mINFO[0m | prodock.chem.embed | Embedder: finished embedding: 1 successes / 1 attempts
+2025-08-27 15:41:52 | [32mINFO[0m | prodock.chem.conformer | ConformerManager: embedded 1 / 1 molecules
+2025-08-27 15:41:52 | [32mINFO[0m | prodock.chem.optimize | Optimizer: loaded 1 MolBlocks for optimization
+2025-08-27 15:41:52 | [32mINFO[0m | prodock.chem.optimize | Optimizer: finished optimization: 1 succeeded
+2025-08-27 15:41:52 | [32mINFO[0m | prodock.chem.conformer | ConformerManager: optimized 1 molecules
+2025-08-27 15:42:42 | [32mINFO[0m | prodock.chem.embed | Embedder: loaded 1 SMILES from iterable
+2025-08-27 15:42:42 | [32mINFO[0m | prodock.chem.embed | Embedder: finished embedding: 1 successes / 1 attempts
+2025-08-27 15:42:42 | [32mINFO[0m | prodock.chem.conformer | ConformerManager: embedded 1 / 1 molecules
+2025-08-27 15:42:42 | [32mINFO[0m | prodock.chem.optimize | Optimizer: loaded 1 MolBlocks for optimization
+2025-08-27 15:42:42 | [32mINFO[0m | prodock.chem.optimize | Optimizer: finished optimization: 1 succeeded
+2025-08-27 15:42:42 | [32mINFO[0m | prodock.chem.conformer | ConformerManager: optimized 1 molecules
+2025-08-27 15:42:42 | [32mINFO[0m | prodock.chem.embed | Embedder: loaded 1 SMILES from iterable
+2025-08-27 15:42:42 | [32mINFO[0m | prodock.chem.embed | Embedder: finished embedding: 1 successes / 1 attempts
+2025-08-27 15:42:42 | [32mINFO[0m | prodock.chem.conformer | ConformerManager: embedded 1 / 1 molecules
+2025-08-27 15:42:42 | [32mINFO[0m | prodock.chem.optimize | Optimizer: loaded 1 MolBlocks for optimization
+2025-08-27 15:42:42 | [32mINFO[0m | prodock.chem.optimize | Optimizer: finished optimization: 1 succeeded
+2025-08-27 15:42:42 | [32mINFO[0m | prodock.chem.conformer | ConformerManager: optimized 1 molecules
+2025-08-27 15:42:42 | [32mINFO[0m | prodock.chem.embed | Embedder: loaded 1 SMILES from iterable
+2025-08-27 15:42:42 | [32mINFO[0m | prodock.chem.embed | Embedder: finished embedding: 1 successes / 1 attempts
+2025-08-27 15:42:42 | [32mINFO[0m | prodock.chem.conformer | ConformerManager: embedded 1 / 1 molecules
+2025-08-27 15:42:42 | [32mINFO[0m | prodock.chem.embed | Embedder: loaded 1 SMILES from iterable
+2025-08-27 15:42:42 | [32mINFO[0m | prodock.chem.embed | Embedder: finished embedding: 1 successes / 1 attempts
+2025-08-27 15:42:42 | [32mINFO[0m | prodock.chem.conformer | ConformerManager: embedded 1 / 1 molecules
+2025-08-27 15:42:42 | [32mINFO[0m | prodock.chem.optimize | Optimizer: loaded 1 MolBlocks for optimization
+2025-08-27 15:42:42 | [32mINFO[0m | prodock.chem.optimize | Optimizer: finished optimization: 1 succeeded
+2025-08-27 15:42:42 | [32mINFO[0m | prodock.chem.conformer | ConformerManager: optimized 1 molecules
+2025-08-27 15:42:42 | [32mINFO[0m | prodock.chem.embed | Embedder: loaded 1 SMILES from iterable
+2025-08-27 15:42:42 | [32mINFO[0m | prodock.chem.embed | Embedder: finished embedding: 1 successes / 1 attempts
+2025-08-27 15:42:42 | [32mINFO[0m | prodock.chem.conformer | ConformerManager: embedded 1 / 1 molecules
+2025-08-27 15:42:42 | [32mINFO[0m | prodock.chem.optimize | Optimizer: loaded 1 MolBlocks for optimization
+2025-08-27 15:42:42 | [32mINFO[0m | prodock.chem.optimize | Optimizer: finished optimization: 1 succeeded
+2025-08-27 15:42:42 | [32mINFO[0m | prodock.chem.conformer | ConformerManager: optimized 1 molecules
+2025-08-27 15:42:42 | [32mINFO[0m | prodock.chem.embed | Embedder: loaded 1 SMILES from iterable
+2025-08-27 15:42:42 | [32mINFO[0m | prodock.chem.embed | Embedder: finished embedding: 1 successes / 1 attempts
+2025-08-27 15:42:42 | [32mINFO[0m | prodock.chem.conformer | ConformerManager: embedded 1 / 1 molecules
+2025-08-27 15:42:42 | [32mINFO[0m | prodock.chem.optimize | Optimizer: loaded 1 MolBlocks for optimization
+2025-08-27 15:42:42 | [32mINFO[0m | prodock.chem.optimize | Optimizer: finished optimization: 1 succeeded
+2025-08-27 15:42:42 | [32mINFO[0m | prodock.chem.conformer | ConformerManager: optimized 1 molecules
+2025-08-27 15:42:42 | [32mINFO[0m | prodock.chem.embed | Embedder: loaded 1 SMILES from iterable
+2025-08-27 15:42:42 | [32mINFO[0m | prodock.chem.embed | Embedder: finished embedding: 1 successes / 1 attempts
+2025-08-27 15:42:42 | [32mINFO[0m | prodock.chem.conformer | ConformerManager: embedded 1 / 1 molecules
+2025-08-27 15:42:42 | [32mINFO[0m | prodock.chem.optimize | Optimizer: loaded 1 MolBlocks for optimization
+2025-08-27 15:42:42 | [32mINFO[0m | prodock.chem.optimize | Optimizer: finished optimization: 1 succeeded
+2025-08-27 15:42:42 | [32mINFO[0m | prodock.chem.conformer | ConformerManager: optimized 1 molecules
+2025-08-27 15:43:11 | [32mINFO[0m | prodock.chem.embed | Embedder: loaded 1 SMILES from iterable
+2025-08-27 15:43:11 | [32mINFO[0m | prodock.chem.embed | Embedder: finished embedding: 1 successes / 1 attempts
+2025-08-27 15:43:11 | [32mINFO[0m | prodock.chem.conformer | ConformerManager: embedded 1 / 1 molecules
+2025-08-27 15:43:11 | [32mINFO[0m | prodock.chem.optimize | Optimizer: loaded 1 MolBlocks for optimization
+2025-08-27 15:43:11 | [32mINFO[0m | prodock.chem.optimize | Optimizer: finished optimization: 1 succeeded
+2025-08-27 15:43:11 | [32mINFO[0m | prodock.chem.conformer | ConformerManager: optimized 1 molecules
+2025-08-27 15:43:11 | [32mINFO[0m | prodock.chem.embed | Embedder: loaded 1 SMILES from iterable
+2025-08-27 15:43:11 | [32mINFO[0m | prodock.chem.embed | Embedder: finished embedding: 1 successes / 1 attempts
+2025-08-27 15:43:11 | [32mINFO[0m | prodock.chem.conformer | ConformerManager: embedded 1 / 1 molecules
+2025-08-27 15:43:11 | [32mINFO[0m | prodock.chem.optimize | Optimizer: loaded 1 MolBlocks for optimization
+2025-08-27 15:43:11 | [32mINFO[0m | prodock.chem.optimize | Optimizer: finished optimization: 1 succeeded
+2025-08-27 15:43:11 | [32mINFO[0m | prodock.chem.conformer | ConformerManager: optimized 1 molecules
+2025-08-27 15:43:11 | [32mINFO[0m | prodock.chem.embed | Embedder: loaded 1 SMILES from iterable
+2025-08-27 15:43:11 | [32mINFO[0m | prodock.chem.embed | Embedder: finished embedding: 1 successes / 1 attempts
+2025-08-27 15:43:11 | [32mINFO[0m | prodock.chem.conformer | ConformerManager: embedded 1 / 1 molecules
+2025-08-27 15:43:11 | [32mINFO[0m | prodock.chem.embed | Embedder: loaded 1 SMILES from iterable
+2025-08-27 15:43:11 | [32mINFO[0m | prodock.chem.embed | Embedder: finished embedding: 1 successes / 1 attempts
+2025-08-27 15:43:11 | [32mINFO[0m | prodock.chem.conformer | ConformerManager: embedded 1 / 1 molecules
+2025-08-27 15:43:11 | [32mINFO[0m | prodock.chem.optimize | Optimizer: loaded 1 MolBlocks for optimization
+2025-08-27 15:43:11 | [32mINFO[0m | prodock.chem.optimize | Optimizer: finished optimization: 1 succeeded
+2025-08-27 15:43:11 | [32mINFO[0m | prodock.chem.conformer | ConformerManager: optimized 1 molecules
+2025-08-27 15:43:11 | [32mINFO[0m | prodock.chem.embed | Embedder: loaded 1 SMILES from iterable
+2025-08-27 15:43:11 | [32mINFO[0m | prodock.chem.embed | Embedder: finished embedding: 1 successes / 1 attempts
+2025-08-27 15:43:11 | [32mINFO[0m | prodock.chem.conformer | ConformerManager: embedded 1 / 1 molecules
+2025-08-27 15:43:11 | [32mINFO[0m | prodock.chem.optimize | Optimizer: loaded 1 MolBlocks for optimization
+2025-08-27 15:43:11 | [32mINFO[0m | prodock.chem.optimize | Optimizer: finished optimization: 1 succeeded
+2025-08-27 15:43:11 | [32mINFO[0m | prodock.chem.conformer | ConformerManager: optimized 1 molecules
+2025-08-27 15:43:11 | [32mINFO[0m | prodock.chem.embed | Embedder: loaded 1 SMILES from iterable
+2025-08-27 15:43:11 | [32mINFO[0m | prodock.chem.embed | Embedder: finished embedding: 1 successes / 1 attempts
+2025-08-27 15:43:11 | [32mINFO[0m | prodock.chem.conformer | ConformerManager: embedded 1 / 1 molecules
+2025-08-27 15:43:11 | [32mINFO[0m | prodock.chem.optimize | Optimizer: loaded 1 MolBlocks for optimization
+2025-08-27 15:43:11 | [32mINFO[0m | prodock.chem.optimize | Optimizer: finished optimization: 1 succeeded
+2025-08-27 15:43:11 | [32mINFO[0m | prodock.chem.conformer | ConformerManager: optimized 1 molecules
+2025-08-27 15:43:11 | [32mINFO[0m | prodock.chem.embed | Embedder: loaded 1 SMILES from iterable
+2025-08-27 15:43:11 | [32mINFO[0m | prodock.chem.embed | Embedder: finished embedding: 1 successes / 1 attempts
+2025-08-27 15:43:11 | [32mINFO[0m | prodock.chem.conformer | ConformerManager: embedded 1 / 1 molecules
+2025-08-27 15:43:11 | [32mINFO[0m | prodock.chem.optimize | Optimizer: loaded 1 MolBlocks for optimization
+2025-08-27 15:43:11 | [32mINFO[0m | prodock.chem.optimize | Optimizer: finished optimization: 1 succeeded
+2025-08-27 15:43:11 | [32mINFO[0m | prodock.chem.conformer | ConformerManager: optimized 1 molecules
+2025-08-27 15:44:16 | [33mWARNING[0m | Test.io.test_parser | RDKit MolFromMolBlock rejected generated SDF on this build; SDF parsing assertions skipped.
+2025-08-27 15:44:16 | [32mINFO[0m | prodock.chem.embed | Embedder: loaded 1 SMILES from iterable
+2025-08-27 15:44:16 | [32mINFO[0m | prodock.chem.embed | Embedder: finished embedding: 1 successes / 1 attempts
+2025-08-27 15:44:16 | [32mINFO[0m | prodock.chem.conformer | ConformerManager: embedded 1 / 1 molecules
+2025-08-27 15:44:16 | [32mINFO[0m | prodock.chem.optimize | Optimizer: loaded 1 MolBlocks for optimization
+2025-08-27 15:44:16 | [32mINFO[0m | prodock.chem.optimize | Optimizer: finished optimization: 1 succeeded
+2025-08-27 15:44:16 | [32mINFO[0m | prodock.chem.conformer | ConformerManager: optimized 1 molecules
+2025-08-27 15:44:16 | [32mINFO[0m | prodock.chem.embed | Embedder: loaded 1 SMILES from iterable
+2025-08-27 15:44:16 | [32mINFO[0m | prodock.chem.embed | Embedder: finished embedding: 1 successes / 1 attempts
+2025-08-27 15:44:16 | [32mINFO[0m | prodock.chem.conformer | ConformerManager: embedded 1 / 1 molecules
+2025-08-27 15:44:16 | [32mINFO[0m | prodock.chem.optimize | Optimizer: loaded 1 MolBlocks for optimization
+2025-08-27 15:44:16 | [32mINFO[0m | prodock.chem.optimize | Optimizer: finished optimization: 1 succeeded
+2025-08-27 15:44:16 | [32mINFO[0m | prodock.chem.conformer | ConformerManager: optimized 1 molecules
+2025-08-27 15:44:16 | [32mINFO[0m | prodock.chem.embed | Embedder: loaded 1 SMILES from iterable
+2025-08-27 15:44:16 | [32mINFO[0m | prodock.chem.embed | Embedder: finished embedding: 1 successes / 1 attempts
+2025-08-27 15:44:16 | [32mINFO[0m | prodock.chem.conformer | ConformerManager: embedded 1 / 1 molecules
+2025-08-27 15:44:16 | [32mINFO[0m | prodock.chem.embed | Embedder: loaded 1 SMILES from iterable
+2025-08-27 15:44:16 | [32mINFO[0m | prodock.chem.embed | Embedder: finished embedding: 1 successes / 1 attempts
+2025-08-27 15:44:16 | [32mINFO[0m | prodock.chem.conformer | ConformerManager: embedded 1 / 1 molecules
+2025-08-27 15:44:16 | [32mINFO[0m | prodock.chem.optimize | Optimizer: loaded 1 MolBlocks for optimization
+2025-08-27 15:44:16 | [32mINFO[0m | prodock.chem.optimize | Optimizer: finished optimization: 1 succeeded
+2025-08-27 15:44:16 | [32mINFO[0m | prodock.chem.conformer | ConformerManager: optimized 1 molecules
+2025-08-27 15:44:16 | [32mINFO[0m | prodock.chem.embed | Embedder: loaded 1 SMILES from iterable
+2025-08-27 15:44:16 | [32mINFO[0m | prodock.chem.embed | Embedder: finished embedding: 1 successes / 1 attempts
+2025-08-27 15:44:16 | [32mINFO[0m | prodock.chem.conformer | ConformerManager: embedded 1 / 1 molecules
+2025-08-27 15:44:16 | [32mINFO[0m | prodock.chem.optimize | Optimizer: loaded 1 MolBlocks for optimization
+2025-08-27 15:44:16 | [32mINFO[0m | prodock.chem.optimize | Optimizer: finished optimization: 1 succeeded
+2025-08-27 15:44:16 | [32mINFO[0m | prodock.chem.conformer | ConformerManager: optimized 1 molecules
+2025-08-27 15:44:16 | [32mINFO[0m | prodock.chem.embed | Embedder: loaded 1 SMILES from iterable
+2025-08-27 15:44:16 | [32mINFO[0m | prodock.chem.embed | Embedder: finished embedding: 1 successes / 1 attempts
+2025-08-27 15:44:16 | [32mINFO[0m | prodock.chem.conformer | ConformerManager: embedded 1 / 1 molecules
+2025-08-27 15:44:16 | [32mINFO[0m | prodock.chem.optimize | Optimizer: loaded 1 MolBlocks for optimization
+2025-08-27 15:44:16 | [32mINFO[0m | prodock.chem.optimize | Optimizer: finished optimization: 1 succeeded
+2025-08-27 15:44:16 | [32mINFO[0m | prodock.chem.conformer | ConformerManager: optimized 1 molecules
+2025-08-27 15:44:16 | [32mINFO[0m | prodock.chem.embed | Embedder: loaded 1 SMILES from iterable
+2025-08-27 15:44:16 | [32mINFO[0m | prodock.chem.embed | Embedder: finished embedding: 1 successes / 1 attempts
+2025-08-27 15:44:16 | [32mINFO[0m | prodock.chem.conformer | ConformerManager: embedded 1 / 1 molecules
+2025-08-27 15:44:16 | [32mINFO[0m | prodock.chem.optimize | Optimizer: loaded 1 MolBlocks for optimization
+2025-08-27 15:44:16 | [32mINFO[0m | prodock.chem.optimize | Optimizer: finished optimization: 1 succeeded
+2025-08-27 15:44:16 | [32mINFO[0m | prodock.chem.conformer | ConformerManager: optimized 1 molecules

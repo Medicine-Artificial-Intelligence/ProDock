@@ -26,6 +26,12 @@ from pathlib import Path
 from typing import Optional, Tuple, Union, Dict, Iterable
 import numpy as np
 from rdkit import Chem
+from prodock.io.parser import (
+    _parse_sdf_text,
+    _parse_pdb_text,
+    _parse_mol2_text,
+    _parse_xyz_text,
+)
 
 
 # -------------------------
@@ -136,6 +142,7 @@ class GridBox:
         :rtype: GridBox
         :raises ValueError: if parsing fails
         """
+        # obtain text (from file path or raw string)
         if _is_pathlike(data):
             text = Path(str(data)).read_text()
             if fmt is None and Path(str(data)).suffix:
@@ -145,46 +152,33 @@ class GridBox:
 
         fmt = (fmt or "sdf").lower()
 
-        if fmt == "sdf":
-            blocks = [b.strip() for b in text.split("$$$$") if b.strip()]
-            mol = None
-            for block in blocks:
-                try:
-                    m = Chem.MolFromMolBlock(block, sanitize=True, removeHs=False)
-                except Exception:
-                    m = None
-                if m is not None:
-                    mol = m
-                    break
-            if mol is None:
+        # dispatch to small parser helpers
+        parsers = {
+            "sdf": _parse_sdf_text,
+            "pdb": _parse_pdb_text,
+            "mol2": _parse_mol2_text,
+            "xyz": _parse_xyz_text,
+        }
+
+        parser = parsers.get(fmt)
+        if parser is None:
+            raise ValueError(f"Unsupported ligand format: {fmt}")
+
+        mol = parser(text)
+        if mol is None:
+            # format-specific error messages roughly match prior behavior
+            if fmt == "sdf":
                 raise ValueError("No valid molecule found in SDF content.")
-            self._mol = mol
-
-        elif fmt == "pdb":
-            mol = Chem.MolFromPDBBlock(text, removeHs=False)
-            if mol is None:
+            elif fmt == "pdb":
                 raise ValueError("Failed to parse PDB content for ligand.")
-            self._mol = mol
-
-        elif fmt == "mol2":
-            try:
-                mol = Chem.MolFromMol2Block(text, sanitize=True, removeHs=False)
-            except Exception:
-                mol = None
-            if mol is None:
+            elif fmt == "mol2":
                 raise ValueError(
                     "Failed to parse MOL2 content (RDKit build may lack MOL2 support)."
                 )
-            self._mol = mol
+            else:  # xyz or unknown fallback
+                raise ValueError(f"Failed to parse {fmt.upper()} content.")
 
-        elif fmt == "xyz":
-            mol = Chem.MolFromXYZBlock(text)
-            if mol is None:
-                raise ValueError("Failed to parse XYZ content.")
-            self._mol = mol
-
-        else:
-            raise ValueError(f"Unsupported ligand format: {fmt}")
+        self._mol = mol
         return self
 
     # -------------------------

@@ -1,6 +1,0 @@
-2025-03-16 04:02:32,107 - INFO - NS-C-142 docked with g331r.pdb_protein in 2.09 seconds.
-2025-03-16 04:02:34,101 - INFO - revumenib docked with g331r.pdb_protein in 1.99 seconds.
-2025-03-16 04:02:36,105 - INFO - ziftomenib docked with g331r.pdb_protein in 2.00 seconds.
-2025-03-16 04:02:38,235 - INFO - NS-C-142 docked with wildtype.pdb_protein in 2.13 seconds.
-2025-03-16 04:02:40,338 - INFO - revumenib docked with wildtype.pdb_protein in 2.10 seconds.
-2025-03-16 04:02:42,363 - INFO - ziftomenib docked with wildtype.pdb_protein in 2.02 seconds.
