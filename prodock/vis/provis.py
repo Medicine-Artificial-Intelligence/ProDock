@@ -16,7 +16,7 @@ from pathlib import Path
 from typing import Optional, Tuple, Union, List, Dict, Any
 import py3Dmol
 
-# Note: GridBox is imported by the GUI module, not necessarily required here.
+from ..preprocess.gridbox import GridBox
 
 
 class ProVis:

@@ -9,7 +9,8 @@ Backends tried (in order):
 2) Open Babel CLI (`obabel` or `babel`) for many direct format conversions
 3) RDKit (python API) for SDF -> PDB conversion (preferred if installed)
 
-Note: converting receptors reliably for docking often requires Meeko or MGLTools; Open Babel can help but may not set all docking-specific atom types.
+Note: converting receptors reliably for docking often requires Meeko or MGLTools;
+Open Babel can help but may not set all docking-specific atom types.
 """
 
 import shutil
@@ -27,7 +28,9 @@ except Exception:
     Chem = None  # type: ignore
     _RDKit_AVAILABLE = False
 
+from prodock.io.logging import get_logger
 
+logger = get_logger(__name__)
 # ---------------------------
 # Original (enhanced) functions
 # ---------------------------
@@ -71,7 +74,8 @@ def pdb_to_pdbqt(
             "--write_pdbqt",
             str(output_pdbqt),
         ]
-        # some Meeko versions expect "-o basename" rather than write_pdbqt; include both possibilities via extra_args if needed
+        # some Meeko versions expect "-o basename" rather than write_pdbqt;
+        # include both possibilities via extra_args if needed
     elif mode.lower() == "ligand":
         default_meeko = "mk_prepare_ligand.py"
         if meeko_cmd is None:
@@ -271,6 +275,7 @@ def sdf_to_pdbqt(
                     )
                 except Exception as e:
                     # fallback to OB if Meeko fails
+                    logger.warning(f"Meeko failed: {e}")
                     pass
         # if RDKit missing or Meeko failed, attempt Open Babel fallback below
 
