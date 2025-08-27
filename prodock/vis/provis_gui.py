@@ -27,7 +27,7 @@ import traceback
 import ipywidgets as widgets
 from IPython.display import display, clear_output
 
-from ..preprocess.gridbox import GridBox, _is_pathlike, _snap_tuple, _round_tuple
+from ..process.gridbox import GridBox, _is_pathlike, _snap_tuple, _round_tuple
 from .provis import ProVis
 
 

@@ -7,13 +7,13 @@ Single-process embedding. Designed to be called inside worker processes
 and MolBlock strings for downstream optimization.
 
 Logging:
-    Uses prodock.io.logging StructuredAdapter and log_step decorator to
-    emit structured logs for long-running operations.
+    Uses prodock.io.logging StructuredAdapter to emit structured logs for long-running operations.
 """
 
 from __future__ import annotations
 from typing import List, Optional, Dict, Any, Iterable
 from pathlib import Path
+import logging
 
 # RDKit imports
 try:
@@ -27,7 +27,17 @@ except Exception as e:
         "RDKit is required for prodock.chem.embed: install rdkit from conda-forge"
     ) from e
 
-from prodock.io.logging import get_logger, StructuredAdapter
+# prodock logging utilities (assume available in your environment)
+try:
+    from prodock.io.logging import get_logger, StructuredAdapter
+except Exception:
+    # minimal fallback
+    def get_logger(name: str):
+        return logging.getLogger(name)
+
+    class StructuredAdapter(logging.LoggerAdapter):
+        def __init__(self, logger, extra):
+            super().__init__(logger, extra)
 
 
 logger = StructuredAdapter(get_logger("prodock.chem.embed"), {"component": "embed"})
@@ -61,8 +71,7 @@ class Embedder:
             "Key methods:\n"
             "  - load_smiles_file(path)\n"
             "  - load_smiles_iterable(iterable)\n"
-            "  - embed_all(n_confs=1, add_hs=True, use_etkdg=True, et_version=None,"
-            " random_seed=None, max_attempts=1000)\n"
+            "  - embed_all(n_confs=1, add_hs=True, embed_algorithm='ETKDGv3', random_seed=None, max_attempts=1000)\n"
             "Properties: .smiles, .mols, .molblocks, .conf_counts"
         )
 
@@ -161,19 +170,19 @@ class Embedder:
     # ---------------- embed params builder ----------------
     @staticmethod
     def _build_embed_params(
-        use_etkdg: bool = True,
-        et_version: Optional[int] = None,
-        random_seed: Optional[int] = None,
+        embed_algorithm: Optional[str] = "ETKDGv3",
+        random_seed: Optional[int] = 42,
         max_attempts: int = 1000,
         clear_confs: bool = True,
         num_threads: int = 1,
         **extras: Any,
     ) -> AllChem.EmbedParameters:
         """
-        Build an RDKit EmbedParameters object (best-effort across RDKit versions).
+        Build an RDKit EmbedParameters object selecting a specific algorithm.
 
-        :param use_etkdg: Use ETKDG family of parameters if available.
-        :param et_version: Specific ETKDG version (1/2/3) if available.
+        :param embed_algorithm: one of "ETKDGv3", "ETKDGv2", "ETKDG", or None/"STANDARD".
+                                If the requested algorithm is not available in the RDKit
+                                installed, falls back to AllChem.EmbedParameters().
         :param random_seed: RNG seed (set when possible).
         :param max_attempts: maxAttempts value when supported.
         :param clear_confs: clear previous conformers before embedding.
@@ -181,21 +190,21 @@ class Embedder:
         :param extras: extra params to set on the object if attributes exist.
         :return: configured EmbedParameters
         """
+        alg = (embed_algorithm or "").upper() if embed_algorithm is not None else ""
         try:
-            if use_etkdg:
-                if et_version == 3 and hasattr(AllChem, "ETKDGv3"):
-                    params = AllChem.ETKDGv3()
-                elif et_version == 2 and hasattr(AllChem, "ETKDGv2"):
-                    params = AllChem.ETKDGv2()
-                elif hasattr(AllChem, "ETKDG"):
-                    params = AllChem.ETKDG()
-                else:
-                    params = AllChem.EmbedParameters()
+            if alg == "ETKDGV3" and hasattr(AllChem, "ETKDGv3"):
+                params = AllChem.ETKDGv3()
+            elif alg == "ETKDGV2" and hasattr(AllChem, "ETKDGv2"):
+                params = AllChem.ETKDGv2()
+            elif alg == "ETKDG" and hasattr(AllChem, "ETKDG"):
+                params = AllChem.ETKDG()
             else:
+                # fallback to generic params
                 params = AllChem.EmbedParameters()
         except Exception:
             params = AllChem.EmbedParameters()
 
+        # set common params if attributes exist
         if random_seed is not None and hasattr(params, "randomSeed"):
             try:
                 params.randomSeed = int(random_seed)
@@ -234,8 +243,7 @@ class Embedder:
         self,
         n_confs: int = 1,
         add_hs: bool = True,
-        use_etkdg: bool = True,
-        et_version: Optional[int] = None,
+        embed_algorithm: Optional[str] = "ETKDGv3",
         random_seed: Optional[int] = None,
         max_attempts: int = 1000,
         clear_confs: bool = True,
@@ -245,9 +253,9 @@ class Embedder:
         Sequentially embed all loaded SMILES into RDKit Mol objects with conformers.
 
         :param n_confs: number of conformers to generate per molecule.
-        :param add_hs: add explicit hydrogens before embedding.
-        :param use_etkdg: prefer ETKDG embed strategy.
-        :param et_version: specific ETKDG version if available.
+        :param add_hs: add explicit hydrogens before embedding (default True).
+        :param embed_algorithm: exact embedding algorithm to use (e.g. "ETKDGv3",
+                                "ETKDGv2", "ETKDG", or None for generic EmbedParameters).
         :param random_seed: seed used for the EmbedParameters (fallback to self._seed when None).
         :param max_attempts: EmbedParameters.maxAttempts if supported.
         :param clear_confs: clear existing conformers before embedding.
@@ -261,8 +269,7 @@ class Embedder:
 
         rs = int(random_seed) if random_seed is not None else int(self._seed)
         params = self._build_embed_params(
-            use_etkdg=use_etkdg,
-            et_version=et_version,
+            embed_algorithm=embed_algorithm,
             random_seed=rs,
             max_attempts=max_attempts,
             clear_confs=clear_confs,
@@ -271,8 +278,7 @@ class Embedder:
         self._last_params = {
             "n_confs": int(n_confs),
             "add_hs": bool(add_hs),
-            "use_etkdg": bool(use_etkdg),
-            "et_version": et_version,
+            "embed_algorithm": embed_algorithm,
             "random_seed": rs,
             "max_attempts": int(max_attempts),
             "clear_confs": bool(clear_confs),
@@ -310,6 +316,7 @@ class Embedder:
 
             try:
                 if int(n_confs) <= 1:
+                    # single-conformer embed
                     try:
                         res = AllChem.EmbedMolecule(working, params)
                     except TypeError:
@@ -323,6 +330,7 @@ class Embedder:
                         continue
                     conf_count = 1
                 else:
+                    # multiple conformers
                     try:
                         cids = AllChem.EmbedMultipleConfs(
                             working, numConfs=int(n_confs), params=params
@@ -402,4 +410,6 @@ class Embedder:
             writer = Chem.SDWriter(str(path))
             writer.write(mol)
             writer.close()
+            logger.debug("Embedder: wrote SDF for ligand %d -> %s", i, path)
+        logger.info("Embedder: mols_to_sdf completed: wrote outputs to %s", out)
         return self

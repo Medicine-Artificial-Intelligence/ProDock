@@ -1,7 +1,6 @@
 import unittest
 import tempfile
 from pathlib import Path
-import os
 
 try:
     import rdkit  # noqa: F401
@@ -13,7 +12,7 @@ except Exception:
     RDKit_AVAILABLE = False
 
 try:
-    from joblib import Parallel  # just to check availability
+    from joblib import Parallel  # noqa: F401
 
     JOBLIB_AVAILABLE = True
 except Exception:
@@ -23,15 +22,13 @@ except Exception:
 @unittest.skipUnless(RDKit_AVAILABLE, "RDKit is required for these tests")
 class TestConformerManager(unittest.TestCase):
     def setUp(self):
-        # try to import Conformer (preferred) otherwise ConformerManager
+        # prefer Conformer alias; falls back to ConformerManager if needed
         try:
             from prodock.chem.conformer import Conformer as ConformerClass
         except Exception:
-            # fallback to ConformerManager if your module exposes that name
             from prodock.chem.conformer import ConformerManager as ConformerClass  # type: ignore
         self.ConformerClass = ConformerClass
 
-        # create temp smiles file
         self.tmpdir = tempfile.TemporaryDirectory()
         p = Path(self.tmpdir.name) / "smiles.smi"
         p.write_text("CCO\nCCC\nc1ccccc1\n")
@@ -50,16 +47,16 @@ class TestConformerManager(unittest.TestCase):
             return {k: mol.GetProp(k) for k in mol.GetPropNames()}
         return {}
 
-    def test_sequence_workflow(self):
+    def test_sequence_workflow_with_algorithm_choices(self):
         from rdkit import Chem
 
         cm = self.cm
-        # If your high-level class uses different method names, these are expected:
-        # load_smiles_file, embed_all, optimize_all, prune_top_k, write_sdf
         cm.load_smiles_file(self.smiles_file)
-        cm.embed_all(n_confs=3, n_jobs=1)
+        # choose embed algorithm explicitly (falls back if not available)
+        cm.embed_all(n_confs=3, n_jobs=1, add_hs=True, embed_algorithm="ETKDGv3")
         self.assertGreaterEqual(len(cm.molblocks), 1)
-        cm.optimize_all(method="MMFF", n_jobs=1, max_iters=50)
+        # choose optimization method explicitly
+        cm.optimize_all(method="MMFF94S", n_jobs=1, max_iters=50)
         self.assertEqual(len(cm.energies), len(cm.molblocks))
         cm.prune_top_k(1)
         for mb in cm.molblocks:
@@ -79,10 +76,10 @@ class TestConformerManager(unittest.TestCase):
         self.assertTrue(any(k.startswith("CONF_ENERGY_") for k in props.keys()))
 
     @unittest.skipUnless(JOBLIB_AVAILABLE, "joblib required for parallel tests")
-    def test_parallel_embedding_and_optimization(self):
+    def test_parallel_embedding_and_optimization_with_choices(self):
         cm = self.cm
         cm.load_smiles_file(self.smiles_file)
-        cm.embed_all(n_confs=2, n_jobs=2)
+        cm.embed_all(n_confs=2, n_jobs=2, add_hs=True, embed_algorithm="ETKDG")
         self.assertGreaterEqual(len(cm.molblocks), 1)
         cm.optimize_all(method="UFF", n_jobs=2, max_iters=50)
         self.assertEqual(len(cm.energies), len(cm.molblocks))

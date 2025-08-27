@@ -16,7 +16,7 @@ from pathlib import Path
 from typing import Optional, Tuple, Union, List, Dict, Any
 import py3Dmol
 
-from ..preprocess.gridbox import GridBox
+from ..process.gridbox import GridBox
 
 
 class ProVis:

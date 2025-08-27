@@ -28,7 +28,7 @@ import logging
 from pathlib import Path
 from typing import Optional, Dict, Any, List, Tuple
 
-from prodock.preprocess.gridbox import GridBox
+from prodock.process.gridbox import GridBox
 from pymol import cmd  # type: ignore
 
 
