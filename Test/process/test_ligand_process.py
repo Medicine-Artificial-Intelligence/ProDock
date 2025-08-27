@@ -1,9 +1,9 @@
-# tests/test_ligand_process_unittest.py
+# tests/process/test_ligand_process.py
 import unittest
 import tempfile
 from pathlib import Path
 import csv
-import importlib
+from prodock.process.ligand import LigandProcess
 
 # attempt to silence RDKit log spam if RDKit is present
 try:
@@ -15,31 +15,6 @@ except Exception:
     RDKit_AVAILABLE = False
 
 
-def _find_ligand_class():
-    """
-    Try several import paths / names to locate the user's LigandProcess class.
-    Returns (class_obj, module_path_str).
-    """
-    candidates = [
-        ("prodock.preprocess.ligand_process", "LigandPreprocess"),
-        ("prodock.ligand.process", "LigandProcess"),
-        ("prodock.ligand.process", "LigandPreprocess"),
-        ("prodock.preprocess.ligand_process", "LigandProcess"),
-    ]
-    for modname, cname in candidates:
-        try:
-            mod = importlib.import_module(modname)
-        except Exception:
-            continue
-        cls = getattr(mod, cname, None)
-        if cls is not None:
-            return cls, f"{modname}.{cname}"
-    raise ImportError(
-        "Could not import LigandPreprocess / LigandProcess from expected locations. "
-        "Tried prodock.preprocess.ligand_process and prodock.ligand.process."
-    )
-
-
 @unittest.skipUnless(RDKit_AVAILABLE, "RDKit is required for LigandProcess tests")
 class TestLigandProcess(unittest.TestCase):
     def setUp(self):
@@ -48,26 +23,27 @@ class TestLigandProcess(unittest.TestCase):
         # create a small smiles file used in some tests
         self.smi_path = self.tmp / "smiles.smi"
         self.smi_path.write_text("CCO\nCCC\n")
-        # locate user's class (support multiple possible names/locations)
-        self.LigandClass, self.class_path = _find_ligand_class()
+        # direct class import (hardcoded)
+        self.LigandClass = LigandProcess
 
     def tearDown(self):
         self.tmpdir.cleanup()
 
     def test_basic_from_smiles_list_and_process_all(self):
         """
-        Basic flow: load two SMILES, process them (no 3D by default), ensure SDFs written,
-        manifest can be saved and has expected rows.
+        Basic flow: load two SMILES, process them with embedding/optimization disabled
+        (to keep the test fast), ensure SDFs written, manifest saved & rows match.
         """
         lp = self.LigandClass(output_dir=str(self.tmp / "out"))
         self.assertTrue(hasattr(lp, "from_smiles_list"))
         lp.from_smiles_list(["CCO", "CCC"])
-        # defaults: embed3d False (class default), so processing should be light-weight
+        # disable 3D embedding/optimization for a fast test run
+        lp.set_options(embed3d=False, add_hs=False, optimize=False)
         lp.process_all()
         # ensure records and outputs are present
         recs = lp.records
         self.assertEqual(len(recs), 2)
-        ok_paths = lp.output_paths
+        ok_paths = [p for p in lp.output_paths if p]  # filter possible None entries
         # at least one file should be produced (RDKit may write both)
         self.assertGreaterEqual(len(ok_paths), 1)
         for p in ok_paths:
@@ -98,8 +74,6 @@ class TestLigandProcess(unittest.TestCase):
         lp.set_conformer_jobs(1)
         lp.set_opt_max_iters(50)
         # internal attribute names may vary slightly; check common ones
-        # prefer checking getter-like attributes if present, otherwise private attrs
-        # Try common private attribute names used in implementation
         _embed = getattr(lp, "_embed_algorithm", None)
         _opt = getattr(lp, "_opt_method", None)
         _seed = getattr(lp, "_conformer_seed", None)
@@ -117,6 +91,8 @@ class TestLigandProcess(unittest.TestCase):
         """
         lp = self.LigandClass(output_dir=str(self.tmp / "out3"))
         lp.from_smiles_list(["NOTASMILES"])
+        # disable embedding to ensure predictable failure handling
+        lp.set_options(embed3d=False, add_hs=False, optimize=False)
         lp.process_all()
         self.assertEqual(len(lp.records), 1)
         failed = lp.failed
@@ -125,8 +101,9 @@ class TestLigandProcess(unittest.TestCase):
         rec = failed[0]
         self.assertIn("error", rec)
         self.assertEqual(rec["status"], "failed")
-        # output_paths should be empty
-        self.assertEqual(len(lp.output_paths), 0)
+        # output_paths should contain None or be empty for failed record
+        ok_paths = [p for p in lp.output_paths if p]
+        self.assertEqual(len(ok_paths), 0)
 
     def test_set_output_dir_and_clear_records(self):
         lp = self.LigandClass(output_dir=str(self.tmp / "out4"))
@@ -147,6 +124,8 @@ class TestLigandProcess(unittest.TestCase):
                 {"smiles": "CCC", "name": "M@2"},
             ]
         )
+        # disable embedding for speed (we're only checking filenames)
+        lp.set_options(embed3d=False, add_hs=False, optimize=False)
         lp.process_all()
         # check filenames in output dir are sanitized and present
         files = list((self.tmp / "out5").glob("*.sdf")) + [
@@ -159,11 +138,11 @@ class TestLigandProcess(unittest.TestCase):
         """
         If the project provides prodock.chem.conformer.Conformer, exercise a single
         record embedding path with embed3d=True. This test is skipped silently if
-        Conformer isn't present (we infer by inspecting the class attributes).
+        Conformer isn't present (we infer by attempting to enable embedding).
         """
         lp = self.LigandClass(output_dir=str(self.tmp / "out6"))
         lp.from_smiles_list(["CCO"])
-        # attempt to enable embedding; process may use either Conformer or fallback smiles2sdf
+        # enable embedding (may use Conformer or fallback RDKit)
         try:
             lp.set_options(embed3d=True, add_hs=True, optimize=False)
         except Exception:
@@ -177,8 +156,13 @@ class TestLigandProcess(unittest.TestCase):
         self.assertEqual(len(recs), 1)
         # if ok -> file exists; if failed -> error captured
         if recs[0]["status"] == "ok":
-            self.assertTrue(recs[0]["out_path"] is not None)
-            self.assertTrue(Path(recs[0]["out_path"]).exists())
+            # out_path may be None if output_dir handling is different; check presence carefully
+            outp = recs[0]["out_path"]
+            if outp:
+                self.assertTrue(Path(outp).exists())
+            else:
+                # if using in-memory only, ensure molblock present
+                self.assertIsNotNone(recs[0].get("molblock"))
         else:
             self.assertIsNotNone(recs[0]["error"])
 

@@ -38,14 +38,15 @@ except Exception:
             super().__init__(logger, extra)
 
 
+# local modules
+from prodock.chem.embed import Embedder
+from prodock.chem.optimize import Optimizer
+
 logger = StructuredAdapter(
     get_logger("prodock.chem.conformer"), {"component": "conformer"}
 )
 logger._base_logger = getattr(logger, "_base_logger", getattr(logger, "logger", None))
 
-# local modules
-from prodock.chem.embed import Embedder
-from prodock.chem.optimize import Optimizer
 
 # joblib for parallelism
 try:

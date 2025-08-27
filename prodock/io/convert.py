@@ -125,7 +125,8 @@ def pdb_to_pdbqt(
         proc = subprocess.run(args, capture_output=True, text=True)
         if proc.returncode != 0:
             raise RuntimeError(
-                f"Open Babel failed producing PDBQT (rc={proc.returncode})\nSTDOUT:\n{proc.stdout}\nSTDERR:\n{proc.stderr}"
+                f"Open Babel failed producing PDBQT (rc={proc.returncode})\n"
+                + f"STDOUT:\n{proc.stdout}\nSTDERR:\n{proc.stderr}"
             )
         if not output_pdbqt.exists():
             raise FileNotFoundError(f"PDBQT not produced by Open Babel: {output_pdbqt}")

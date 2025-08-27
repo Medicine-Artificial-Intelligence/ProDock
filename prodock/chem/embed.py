@@ -9,9 +9,8 @@ and MolBlock strings for downstream optimization.
 Logging:
     Uses prodock.io.logging StructuredAdapter to emit structured logs for long-running operations.
 """
-
 from __future__ import annotations
-from typing import List, Optional, Dict, Any, Iterable
+from typing import List, Optional, Dict, Any, Iterable, Tuple
 from pathlib import Path
 import logging
 
@@ -51,14 +50,15 @@ class Embedder:
     Methods are chainable (return self). Use properties to access results.
 
     :param seed: random seed for deterministic embeddings.
+    :type seed: int
     """
 
     def __init__(self, seed: int = 42) -> None:
         self._seed = int(seed)
         self._smiles: List[str] = []
-        self._mols: List[Chem.Mol] = []  # RDKit Mol with conformers
-        self._molblocks: List[str] = []  # MolBlock representation of mols
-        self._conf_counts: List[int] = []  # number of conformers per mol
+        self._mols: List[Chem.Mol] = []  #: RDKit Mol with conformers
+        self._molblocks: List[str] = []  #: MolBlock representation of mols
+        self._conf_counts: List[int] = []  #: number of conformers per mol
         self._last_params: Dict[str, Any] = {}
 
     def __repr__(self) -> str:
@@ -112,8 +112,11 @@ class Embedder:
         Load SMILES from a newline-separated file.
 
         :param path: Path to SMILES file (one SMILES per line; name after whitespace allowed).
+        :type path: str
         :param sanitize: If True, RDKit sanitization is applied when parsing.
+        :type sanitize: bool
         :return: self
+        :rtype: Embedder
         """
         p = Path(path)
         if not p.exists():
@@ -130,8 +133,11 @@ class Embedder:
         Load SMILES from any iterable of strings.
 
         :param smiles_iter: Iterable yielding SMILES strings.
+        :type smiles_iter: Iterable[str]
         :param sanitize: If True, attempt RDKit sanitization.
+        :type sanitize: bool
         :return: self
+        :rtype: Embedder
         """
         out: List[str] = []
         for s in smiles_iter:
@@ -148,7 +154,9 @@ class Embedder:
         Load existing MolBlock strings (they will be interpreted as RDKit Mols).
 
         :param molblocks: Iterable of MolBlock strings.
+        :type molblocks: Iterable[str]
         :return: self
+        :rtype: Embedder
         """
         out_mols: List[Chem.Mol] = []
         out_blocks: List[str] = []
@@ -167,7 +175,102 @@ class Embedder:
         logger.info("Embedder: loaded %d MolBlocks", len(self._molblocks))
         return self
 
-    # ---------------- embed params builder ----------------
+    # ---------------- embed params builder (split helpers) ----------------
+    @staticmethod
+    def _select_algorithm_params(
+        embed_algorithm: Optional[str],
+    ) -> AllChem.EmbedParameters:
+        """
+        Select RDKit EmbedParameters object for a requested algorithm.
+
+        :param embed_algorithm: algorithm name (case-insensitive), e.g. "ETKDGv3".
+        :type embed_algorithm: Optional[str]
+        :return: an EmbedParameters-like object
+        :rtype: AllChem.EmbedParameters
+        """
+        alg = (embed_algorithm or "").upper() if embed_algorithm is not None else ""
+        try:
+            if alg == "ETKDGV3" and hasattr(AllChem, "ETKDGv3"):
+                return AllChem.ETKDGv3()
+            if alg == "ETKDGV2" and hasattr(AllChem, "ETKDGv2"):
+                return AllChem.ETKDGv2()
+            if alg == "ETKDG" and hasattr(AllChem, "ETKDG"):
+                return AllChem.ETKDG()
+        except Exception:
+            # fall through to generic
+            pass
+        return AllChem.EmbedParameters()
+
+    @staticmethod
+    def _try_set_param(params: AllChem.EmbedParameters, attr: str, value: Any) -> None:
+        """
+        Try to set an attribute on params if present; swallow and log failures.
+
+        :param params: EmbedParameters object
+        :type params: AllChem.EmbedParameters
+        :param attr: attribute name to set
+        :type attr: str
+        :param value: value to set
+        :type value: Any
+        """
+        if value is None:
+            return
+        if not hasattr(params, attr):
+            return
+        try:
+            setattr(params, attr, value)
+        except Exception:
+            logger.debug(
+                "Embedder: could not set param %s on params", attr, exc_info=False
+            )
+
+    @staticmethod
+    def _configure_params(
+        params: AllChem.EmbedParameters,
+        random_seed: Optional[int],
+        max_attempts: int,
+        clear_confs: bool,
+        num_threads: int,
+        extras: Dict[str, Any],
+    ) -> AllChem.EmbedParameters:
+        """
+        Configure common EmbedParameters attributes in a best-effort manner.
+
+        This helper delegates atomic set attempts to `_try_set_param` to keep
+        cyclomatic complexity low in the orchestration function.
+
+        :param params: EmbedParameters object to configure.
+        :type params: AllChem.EmbedParameters
+        :param random_seed: RNG seed (or None).
+        :type random_seed: Optional[int]
+        :param max_attempts: requested maxAttempts.
+        :type max_attempts: int
+        :param clear_confs: whether to clear previous conformers.
+        :type clear_confs: bool
+        :param num_threads: requested thread count.
+        :type num_threads: int
+        :param extras: any extra params to apply if attributes exist.
+        :type extras: Dict[str, Any]
+        :return: configured params
+        :rtype: AllChem.EmbedParameters
+        """
+        # single loop over candidate attributes -> minimal branching here
+        candidates = {
+            "randomSeed": random_seed,
+            "maxAttempts": int(max_attempts) if max_attempts is not None else None,
+            "clearConfs": bool(clear_confs),
+            "numThreads": int(num_threads) if num_threads is not None else None,
+        }
+
+        for attr, val in candidates.items():
+            Embedder._try_set_param(params, attr, val)
+
+        # extras: set only attributes that exist
+        for k, v in (extras or {}).items():
+            Embedder._try_set_param(params, k, v)
+
+        return params
+
     @staticmethod
     def _build_embed_params(
         embed_algorithm: Optional[str] = "ETKDGv3",
@@ -180,65 +283,201 @@ class Embedder:
         """
         Build an RDKit EmbedParameters object selecting a specific algorithm.
 
-        :param embed_algorithm: one of "ETKDGv3", "ETKDGv2", "ETKDG", or None/"STANDARD".
-                                If the requested algorithm is not available in the RDKit
-                                installed, falls back to AllChem.EmbedParameters().
-        :param random_seed: RNG seed (set when possible).
-        :param max_attempts: maxAttempts value when supported.
-        :param clear_confs: clear previous conformers before embedding.
-        :param num_threads: requested number of threads (set on params if supported).
-        :param extras: extra params to set on the object if attributes exist.
+        This method delegates to smaller helpers so complexity is kept low.
+
+        :param embed_algorithm: algorithm name (e.g. "ETKDGv3")
+        :param random_seed: RNG seed (or None)
+        :param max_attempts: maxAttempts value when supported
+        :param clear_confs: clear previous conformers before embedding
+        :param num_threads: requested number of threads (best-effort)
+        :param extras: extra params to set on the object if attributes exist
         :return: configured EmbedParameters
         """
-        alg = (embed_algorithm or "").upper() if embed_algorithm is not None else ""
-        try:
-            if alg == "ETKDGV3" and hasattr(AllChem, "ETKDGv3"):
-                params = AllChem.ETKDGv3()
-            elif alg == "ETKDGV2" and hasattr(AllChem, "ETKDGv2"):
-                params = AllChem.ETKDGv2()
-            elif alg == "ETKDG" and hasattr(AllChem, "ETKDG"):
-                params = AllChem.ETKDG()
-            else:
-                # fallback to generic params
-                params = AllChem.EmbedParameters()
-        except Exception:
-            params = AllChem.EmbedParameters()
-
-        # set common params if attributes exist
-        if random_seed is not None and hasattr(params, "randomSeed"):
-            try:
-                params.randomSeed = int(random_seed)
-            except Exception:
-                pass
-
-        if hasattr(params, "maxAttempts"):
-            try:
-                params.maxAttempts = int(max_attempts)
-            except Exception:
-                pass
-
-        if hasattr(params, "clearConfs"):
-            try:
-                params.clearConfs = bool(clear_confs)
-            except Exception:
-                pass
-
-        if hasattr(params, "numThreads"):
-            try:
-                params.numThreads = int(num_threads)
-            except Exception:
-                pass
-
-        for k, v in extras.items():
-            if hasattr(params, k):
-                try:
-                    setattr(params, k, v)
-                except Exception:
-                    pass
-
+        params = Embedder._select_algorithm_params(embed_algorithm)
+        params = Embedder._configure_params(
+            params,
+            random_seed=random_seed,
+            max_attempts=max_attempts,
+            clear_confs=clear_confs,
+            num_threads=num_threads,
+            extras=extras,
+        )
         return params
 
-    # ---------------- embedding ----------------
+    # ---------------- embedding helpers (small focused functions) ----------------
+    @staticmethod
+    def _parse_smiles(smi: str) -> Optional[Chem.Mol]:
+        """
+        Parse a SMILES string to an RDKit Mol (sanitization enabled).
+
+        :param smi: SMILES string
+        :type smi: str
+        :return: RDKit Mol or None
+        :rtype: Optional[Chem.Mol]
+        """
+        try:
+            return Chem.MolFromSmiles(smi, sanitize=True)
+        except Exception:
+            logger.debug("Embedder: exception parsing SMILES %s", smi, exc_info=False)
+            return None
+
+    @staticmethod
+    def _add_hs_if_requested(mol: Chem.Mol, add_hs: bool) -> Chem.Mol:
+        """
+        Return a copy of mol with hydrogens added if requested.
+
+        :param mol: RDKit Mol
+        :type mol: Chem.Mol
+        :param add_hs: whether to add hydrogens
+        :type add_hs: bool
+        :return: working Mol
+        :rtype: Chem.Mol
+        """
+        working = Chem.Mol(mol)
+        if add_hs:
+            try:
+                working = Chem.AddHs(working)
+            except Exception:
+                logger.debug(
+                    "Embedder: AddHs failed; using original mol", exc_info=False
+                )
+        return working
+
+    @staticmethod
+    def _remove_conformers_safe(mol: Chem.Mol) -> None:
+        """
+        Remove all conformers from mol if API exists. Best-effort.
+
+        :param mol: RDKit Mol to modify in-place
+        :type mol: Chem.Mol
+        """
+        try:
+            if hasattr(mol, "RemoveAllConformers"):
+                mol.RemoveAllConformers()
+        except Exception:
+            logger.debug("Embedder: RemoveAllConformers failed", exc_info=False)
+
+    @staticmethod
+    def _embed_single_conf(
+        mol: Chem.Mol, params: AllChem.EmbedParameters, rs: int
+    ) -> bool:
+        """
+        Embed single conformer (best-effort). Returns True on success.
+
+        :param mol: RDKit Mol (modified in-place)
+        :type mol: Chem.Mol
+        :param params: embed parameters
+        :type params: AllChem.EmbedParameters
+        :param rs: fallback random seed
+        :type rs: int
+        :return: success flag
+        :rtype: bool
+        """
+        try:
+            try:
+                res = AllChem.EmbedMolecule(mol, params)
+            except TypeError:
+                res = AllChem.EmbedMolecule(mol, randomSeed=rs)
+            return res != -1
+        except Exception:
+            logger.debug("Embedder: single embed exception", exc_info=False)
+            return False
+
+    @staticmethod
+    def _embed_multiple_confs(
+        mol: Chem.Mol, params: AllChem.EmbedParameters, n_confs: int
+    ) -> int:
+        """
+        Embed multiple conformers and return the number of conformers created.
+
+        :param mol: RDKit Mol (modified in-place)
+        :type mol: Chem.Mol
+        :param params: embed parameters
+        :type params: AllChem.EmbedParameters
+        :param n_confs: requested number of conformers
+        :type n_confs: int
+        :return: number of conformers generated (0 on failure)
+        :rtype: int
+        """
+        try:
+            try:
+                cids = AllChem.EmbedMultipleConfs(
+                    mol, numConfs=int(n_confs), params=params
+                )
+            except TypeError:
+                cids = AllChem.EmbedMultipleConfs(mol, numConfs=int(n_confs))
+            return len(cids) if cids is not None else 0
+        except Exception:
+            logger.debug("Embedder: EmbedMultipleConfs exception", exc_info=False)
+            return 0
+
+    @staticmethod
+    def _molblock_safe(mol: Chem.Mol) -> str:
+        """
+        Return MolBlock for mol or an empty string on failure.
+
+        :param mol: RDKit Mol
+        :type mol: Chem.Mol
+        :return: MolBlock string or ""
+        :rtype: str
+        """
+        try:
+            return Chem.MolToMolBlock(mol)
+        except Exception:
+            logger.debug("Embedder: MolToMolBlock failed", exc_info=False)
+            return ""
+
+    def _embed_smiles_one(
+        self,
+        smi: str,
+        params: AllChem.EmbedParameters,
+        n_confs: int,
+        add_hs: bool,
+        random_seed: int,
+    ) -> Tuple[Optional[Chem.Mol], str, int]:
+        """
+        Embed a single SMILES string into an RDKit Mol with conformers.
+
+        This function is an orchestrator that delegates to many tiny helpers; the
+        helpers contain the branching and try/except so this method stays small.
+
+        :param smi: SMILES string
+        :type smi: str
+        :param params: embed parameters
+        :type params: AllChem.EmbedParameters
+        :param n_confs: requested number of conformers
+        :type n_confs: int
+        :param add_hs: whether to add hydrogens before embedding
+        :type add_hs: bool
+        :param random_seed: integer random seed to pass into fallbacks
+        :type random_seed: int
+        :return: (Mol or None, MolBlock string or "", number_of_conformers)
+        :rtype: Tuple[Optional[Chem.Mol], str, int]
+        """
+        mol = self._parse_smiles(smi)
+        if mol is None:
+            logger.warning("Embedder: failed to parse SMILES: %s", smi)
+            return None, "", 0
+
+        working = self._add_hs_if_requested(mol, add_hs)
+        self._remove_conformers_safe(working)
+
+        if int(n_confs) <= 1:
+            ok = self._embed_single_conf(working, params, random_seed)
+            if not ok:
+                logger.debug("Embedder: single embed failed for %s", smi)
+                return None, "", 0
+            conf_count = 1
+        else:
+            conf_count = self._embed_multiple_confs(working, params, int(n_confs))
+            if conf_count == 0:
+                logger.debug("Embedder: EmbedMultipleConfs returned 0 for %s", smi)
+                return None, "", 0
+
+        mb = self._molblock_safe(working)
+        return working, mb, conf_count
+
+    # ---------------- embedding (orchestration) ----------------
     def embed_all(
         self,
         n_confs: int = 1,
@@ -253,14 +492,22 @@ class Embedder:
         Sequentially embed all loaded SMILES into RDKit Mol objects with conformers.
 
         :param n_confs: number of conformers to generate per molecule.
+        :type n_confs: int
         :param add_hs: add explicit hydrogens before embedding (default True).
+        :type add_hs: bool
         :param embed_algorithm: exact embedding algorithm to use (e.g. "ETKDGv3",
                                 "ETKDGv2", "ETKDG", or None for generic EmbedParameters).
+        :type embed_algorithm: Optional[str]
         :param random_seed: seed used for the EmbedParameters (fallback to self._seed when None).
+        :type random_seed: Optional[int]
         :param max_attempts: EmbedParameters.maxAttempts if supported.
+        :type max_attempts: int
         :param clear_confs: clear existing conformers before embedding.
+        :type clear_confs: bool
         :param num_threads: requested thread count for embedding params (best-effort).
+        :type num_threads: int
         :return: self
+        :rtype: Embedder
         """
         if not self._smiles:
             raise RuntimeError(
@@ -275,6 +522,8 @@ class Embedder:
             clear_confs=clear_confs,
             num_threads=num_threads,
         )
+
+        # record last params (simple dict)
         self._last_params = {
             "n_confs": int(n_confs),
             "add_hs": bool(add_hs),
@@ -291,92 +540,22 @@ class Embedder:
 
         for smi in self._smiles:
             if not smi:
-                out_mols.append(None)  # keep shape; will filter later
-                out_blocks.append(None)
-                out_counts.append(0)
+                logger.debug("Embedder: empty SMILES entry encountered; skipping")
                 continue
-            mol = Chem.MolFromSmiles(smi, sanitize=True)
+
+            mol, mb, conf_count = self._embed_smiles_one(
+                smi, params, n_confs, add_hs, rs
+            )
             if mol is None:
-                logger.warning("Embedder: failed to parse SMILES: %s", smi)
-                out_mols.append(None)
-                out_blocks.append(None)
-                out_counts.append(0)
                 continue
-
-            working = Chem.Mol(mol)
-            if add_hs:
-                working = Chem.AddHs(working)
-
-            # clear conformers if requested
-            try:
-                if hasattr(working, "RemoveAllConformers"):
-                    working.RemoveAllConformers()
-            except Exception:
-                pass
-
-            try:
-                if int(n_confs) <= 1:
-                    # single-conformer embed
-                    try:
-                        res = AllChem.EmbedMolecule(working, params)
-                    except TypeError:
-                        # older RDKit signature fallback
-                        res = AllChem.EmbedMolecule(working, randomSeed=rs)
-                    if res == -1:
-                        logger.debug("Embedder: single embed failed for %s", smi)
-                        out_mols.append(None)
-                        out_blocks.append(None)
-                        out_counts.append(0)
-                        continue
-                    conf_count = 1
-                else:
-                    # multiple conformers
-                    try:
-                        cids = AllChem.EmbedMultipleConfs(
-                            working, numConfs=int(n_confs), params=params
-                        )
-                    except TypeError:
-                        cids = AllChem.EmbedMultipleConfs(
-                            working, numConfs=int(n_confs)
-                        )
-                    conf_count = len(cids)
-                    if conf_count == 0:
-                        logger.debug(
-                            "Embedder: EmbedMultipleConfs returned 0 for %s", smi
-                        )
-                        out_mols.append(None)
-                        out_blocks.append(None)
-                        out_counts.append(0)
-                        continue
-            except Exception as e:
-                logger.exception("Embedder: exception embedding %s: %s", smi, e)
-                out_mols.append(None)
-                out_blocks.append(None)
-                out_counts.append(0)
-                continue
-
-            out_mols.append(working)
-            try:
-                mb = Chem.MolToMolBlock(working)
-            except Exception:
-                mb = ""
+            out_mols.append(mol)
             out_blocks.append(mb)
             out_counts.append(conf_count)
 
-        # filter None failures
-        final_mols = []
-        final_blocks = []
-        final_counts = []
-        for m, mb, c in zip(out_mols, out_blocks, out_counts):
-            if m is None:
-                continue
-            final_mols.append(m)
-            final_blocks.append(mb)
-            final_counts.append(c)
+        self._mols = out_mols
+        self._molblocks = out_blocks
+        self._conf_counts = out_counts
 
-        self._mols = final_mols
-        self._molblocks = final_blocks
-        self._conf_counts = final_counts
         logger.info(
             "Embedder: finished embedding: %d successes / %d attempts",
             len(self._mols),
@@ -390,8 +569,11 @@ class Embedder:
         Write embedded molecules to SDF files.
 
         :param out_folder: destination folder path.
+        :type out_folder: str
         :param per_mol_folder: if True, write each SDF into its own folder ligand_i/ligand_i.sdf
+        :type per_mol_folder: bool
         :return: self
+        :rtype: Embedder
         """
         out = Path(out_folder)
         out.mkdir(parents=True, exist_ok=True)

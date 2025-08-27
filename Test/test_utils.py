@@ -1,6 +1,6 @@
 import unittest
 from rdkit.Chem.rdchem import Mol
-from ProDock.utils import mol_from_smiles
+from prodock.utils import mol_from_smiles
 
 
 class TestMolFromSmiles(unittest.TestCase):

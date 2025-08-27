@@ -13,7 +13,7 @@ Writes energy tags as molecule properties (CONF_ENERGY_<confId>) when exporting 
 """
 
 from __future__ import annotations
-from typing import List, Dict, Optional, Iterable
+from typing import List, Dict, Iterable
 from pathlib import Path
 import logging
 
@@ -64,7 +64,10 @@ class Optimizer:
         self._energies: List[Dict[int, float]] = []  # per molecule: confId -> energy
 
     def __repr__(self) -> str:
-        return f"<Optimizer inputs={len(self._molblocks_in)} optimized={len(self._optimized_blocks)} max_iters={self.max_iters}>"
+        return (
+            f"<Optimizer inputs={len(self._molblocks_in)}"
+            + f" optimized={len(self._optimized_blocks)} max_iters={self.max_iters}>"
+        )
 
     # ---------------- properties ----------------
     @property

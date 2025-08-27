@@ -568,7 +568,7 @@ class PDBQuery:
         if self.cofactors:
             cof_sel = self._join_selection("resn", self.cofactors)
             cmd.select("cofactors", cof_sel)
-            cmd.select("removed_solvent", f"solvents and not cofactors")
+            cmd.select("removed_solvent", "solvents and not cofactors")
             logger.info("Preserving cofactors: %s", ", ".join(self.cofactors))
         else:
             cmd.select("removed_solvent", "solvents")
