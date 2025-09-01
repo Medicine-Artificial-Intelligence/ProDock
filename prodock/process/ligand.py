@@ -1,36 +1,40 @@
-# prodock/preprocess/ligand_process.py
+# prodock/process/ligand.py
 """
-LigandProcess module
---------------------
+LigandProcess
+=============
 
-RDKit-based utilities to produce per-ligand SDF files from SMILES with
-configurable embedding and force-field optimization.
+Convert SMILES -> per-ligand 3D files with optional embedding and optimization.
 
-This implementation prefers :class:`prodock.chem.conformer.Conformer` for
-3D embedding/optimization, but will perform an in-memory RDKit embedding
-when Conformer is unavailable. If ``output_dir`` is set to ``None``, no SDF
-files are written to disk — MolBlock strings are kept in memory and exposed
-via :attr:`sdf_strings` and :attr:`mols`.
+Defaults
+--------
+- If `prodock.io.convert.Converter` is available, default target format is "pdbqt"
+  using backend "meeko" with temporary SDF handling via "rdkit".
+- If Converter is not available, automatically falls back to "sdf".
 
-See :class:`LigandProcess` for examples.
+Behaviour
+---------
+- Produces an intermediate SDF per-record, and if target != "sdf" uses Converter
+  to create the final output (per-record). Intermediate SDFs are removed by default.
+- MolBlock strings are retained in memory (rec["molblock"]) even when files are written.
 """
 
 from __future__ import annotations
 
 import logging
 import re
+import tempfile
 from pathlib import Path
-from typing import Dict, List, Optional, Sequence, Union
+from typing import Dict, List, Optional, Sequence, Union, Iterable
 
 try:
-    import pandas as pd  # optional dependency
+    import pandas as pd  # optional dependency for save_manifest/from_dataframe
 except Exception:
     pd = None  # type: ignore
 
-# prodock logging utilities (fallback to stdlib logging adapter if unavailable)
+# logging adapter fallback
 try:
     from prodock.io.logging import get_logger, StructuredAdapter
-except Exception:  # pragma: no cover - fallback path
+except Exception:  # pragma: no cover
 
     def get_logger(name: str):
         return logging.getLogger(name)
@@ -41,46 +45,44 @@ except Exception:  # pragma: no cover - fallback path
 
 
 logger = StructuredAdapter(
-    get_logger("prodock.ligand.process"), {"component": "ligand.process"}
+    get_logger("prodock.process.ligand"), {"component": "ligand.process"}
 )
 logger._base_logger = getattr(logger, "_base_logger", getattr(logger, "logger", None))
 
-# Conformer (optional)
+# Optional Conformer
 try:
     from prodock.chem.conformer import Conformer  # type: ignore
 
     _HAS_CONFORMER = True
-except Exception:  # pragma: no cover - optional import
+except Exception:  # pragma: no cover
     Conformer = None  # type: ignore
     _HAS_CONFORMER = False
-    logger.debug(
-        "Conformer not available; falling back to RDKit in-memory embedding when needed."
-    )
+    logger.debug("Conformer not available; RDKit fallback will be used where needed.")
 
-# RDKit (required for in-memory fallback). We attempt to import here.
+# Optional Converter for non-SDF outputs
+try:
+    from prodock.io.convert import Converter  # type: ignore
+
+    _HAS_CONVERTER = True
+except Exception:  # pragma: no cover
+    Converter = None  # type: ignore
+    _HAS_CONVERTER = False
+    logger.debug("Converter not available; non-SDF outputs will fall back to SDF.")
+
+# RDKit (used for in-memory embed and writing SDF)
 try:
     from rdkit import Chem  # type: ignore
     from rdkit.Chem import AllChem  # type: ignore
     from rdkit import RDLogger  # type: ignore
 
     RDLogger.DisableLog("rdApp.*")
-except (
-    Exception
-):  # pragma: no cover - if RDKit isn't present callers should skip tests / fail earlier
+except Exception:  # pragma: no cover
     Chem = None  # type: ignore
     AllChem = None  # type: ignore
 
 
 def _sanitize_filename(name: str, max_len: int = 120) -> str:
-    """
-    Sanitize an arbitrary string to a safe filename.
-
-    :param name: Original name string.
-    :param max_len: Maximum number of characters to keep.
-    :returns: Sanitized filename (non-empty).
-    :rtype: str
-    """
-    cleaned = re.sub(r"[^\w\-.]+", "_", name.strip())
+    cleaned = re.sub(r"[^\w\-.]+", "_", str(name).strip())
     if len(cleaned) > max_len:
         cleaned = cleaned[:max_len].rstrip("_")
     return cleaned or "molecule"
@@ -88,62 +90,43 @@ def _sanitize_filename(name: str, max_len: int = 120) -> str:
 
 class LigandProcess:
     """
-    Convert SMILES into per-ligand SDF files (or in-memory MolBlocks) with optional 3D
-    embedding and optimization.
+    High-level helper to convert SMILES -> per-ligand files (SDF default fallback,
+    or PDBQT/PDB/MOL2 if Converter is present).
 
-    If ``output_dir`` is provided, SDF files are written there. If ``output_dir`` is
-    ``None`` no files are written and the MolBlock strings are kept in memory.
-
-    Examples
-    --------
-    1) Read SMILES from a newline-separated file (one SMILES per line) and process::
-
-        # assume 'smiles.smi' contains:
-        # CCO
-        # c1ccccc1
-        from prodock.ligand.process import LigandProcess
-        with open("smiles.smi", "r", encoding="utf-8") as fh:
-            smiles = [line.strip().split()[0] for line in fh if line.strip()]
-        lp = LigandProcess(output_dir="out/sdf_from_file")
-        lp.from_smiles_list(smiles)
-        lp.set_options(embed3d=True, add_hs=True, optimize=True)
-        lp.set_embed_method("ETKDGv3").set_opt_method("MMFF94")
-        lp.process_all()
-        lp.save_manifest("out/sdf_from_file/manifest.csv")
-
-    2) Provide a list of SMILES programmatically::
-
-        lp = LigandProcess(output_dir="out/sdf_from_list")
-        lp.from_smiles_list(["CCO", "CCC", "c1ccccc1"])
-        lp.set_options(embed3d=True, add_hs=True, optimize=False)
-        lp.process_all()
-
-    3) Provide a list of dictionaries (useful when you have names/metadata)::
-
-        rows = [
-            {"smiles": "CCO", "name": "ethanol"},
-            {"smiles": "c1ccccc1", "name": "benzene"},
-        ]
-        lp = LigandProcess(output_dir="out/sdf_from_dicts", name_key="name")
-        lp.from_list_of_dicts(rows)
-        lp.set_embed_method("ETKDGv2").set_opt_method("UFF")
-        lp.process_all()
+    Records format (internal, one per-molecule):
+        {
+            "index": int,
+            "smiles": str,
+            "name": str,
+            "out_path": Optional[Path],
+            "status": "pending"|"ok"|"failed",
+            "error": Optional[str],
+            "molblock": Optional[str],
+        }
     """
+
+    # Supported mapping to file extensions
+    _EXT_MAP = {
+        "sdf": "sdf",
+        "pdb": "pdb",
+        "mol2": "mol2",
+        "pdbqt": "pdbqt",
+        "mol": "mol",
+    }
 
     def __init__(
         self,
-        output_dir: Optional[Union[str, Path]] = "ligands_sdf",
+        output_dir: Optional[Union[str, Path]] = "ligands_out",
         smiles_key: str = "smiles",
         name_key: str = "name",
         index_pad: int = 4,
     ) -> None:
         """
-        :param output_dir: directory to write SDFs (set to None to disable writing).
-        :param smiles_key: dict/DataFrame key for SMILES.
-        :param name_key: dict/DataFrame key for name/label.
-        :param index_pad: zero-pad width for index-based filenames.
+        :param output_dir: directory to write outputs. None disables file writing.
+        :param smiles_key: dict / DataFrame key for SMILES.
+        :param name_key: dict / DataFrame key for name.
+        :param index_pad: zero-pad width for index-based fallback filenames.
         """
-        # output_dir may be None to indicate "do not write files"
         self.output_dir: Optional[Path] = (
             Path(output_dir) if output_dir is not None else None
         )
@@ -154,38 +137,41 @@ class LigandProcess:
         self.name_key = name_key
         self.index_pad = int(index_pad)
 
-        # processing options (defaults: embed and optimize enabled)
+        # embedding / optimisation defaults
         self._embed3d: bool = True
         self._add_hs: bool = True
         self._optimize: bool = True
 
-        # Conformer options (used only when Conformer is available)
+        # Conformer options
         self._embed_algorithm: Optional[str] = "ETKDGv3"
         self._opt_method: str = "MMFF94"
         self._conformer_seed: int = 42
         self._conformer_n_jobs: int = 1
         self._opt_max_iters: int = 200
 
-        # internal records list: each record is a dict with keys index/smiles/name/out_path/status/error/molblock
+        # output/conversion defaults: prefer pdbqt via meeko if Converter available
+        if _HAS_CONVERTER:
+            self._output_format: str = "pdbqt"
+            self._converter_backend: Optional[str] = "meeko"
+            self._tmp_from_sdf_backend: Optional[str] = "rdkit"
+        else:
+            self._output_format = "sdf"
+            self._converter_backend = None
+            self._tmp_from_sdf_backend = None
+            logger.warning("Converter not present: defaulting to SDF outputs.")
+
+        self._keep_intermediate: bool = False  # remove SDF intermediate by default
+
+        # internal records
         self._records: List[Dict] = []
 
-    # ------------------------------------------------------------------ #
-    # configuration helpers
-    # ------------------------------------------------------------------ #
+    # ----------------------------- configuration ----------------------------- #
     def set_options(
         self,
         embed3d: Optional[bool] = None,
         add_hs: Optional[bool] = None,
         optimize: Optional[bool] = None,
     ) -> "LigandProcess":
-        """
-        Configure processing options.
-
-        :param embed3d: request 3D embedding if True.
-        :param add_hs: add explicit hydrogens prior to embedding/optimization.
-        :param optimize: run force-field optimization after embedding.
-        :returns: self
-        """
         if embed3d is not None:
             self._embed3d = bool(embed3d)
         if add_hs is not None:
@@ -193,7 +179,7 @@ class LigandProcess:
         if optimize is not None:
             self._optimize = bool(optimize)
         logger.debug(
-            "Options set: embed3d=%s add_hs=%s optimize=%s",
+            "Options: embed3d=%s add_hs=%s optimize=%s",
             self._embed3d,
             self._add_hs,
             self._optimize,
@@ -201,60 +187,64 @@ class LigandProcess:
         return self
 
     def set_embed_method(self, embed_algorithm: Optional[str]) -> "LigandProcess":
-        """
-        Select embedding algorithm used by Conformer.
-
-        :param embed_algorithm: "ETKDGv3" | "ETKDGv2" | "ETKDG" | None
-        :returns: self
-        """
         self._embed_algorithm = embed_algorithm
-        logger.debug("Embed algorithm set to %r", self._embed_algorithm)
+        logger.debug("Embed algorithm -> %r", embed_algorithm)
         return self
 
     def set_opt_method(self, method: str) -> "LigandProcess":
-        """
-        Select optimizer method used by Conformer.
-
-        :param method: 'UFF' | 'MMFF' | 'MMFF94' | 'MMFF94S'
-        :returns: self
-        """
         self._opt_method = str(method)
-        logger.debug("Optimization method set to %r", self._opt_method)
+        logger.debug("Opt method -> %r", self._opt_method)
         return self
 
     def set_conformer_seed(self, seed: int) -> "LigandProcess":
-        """Set RNG seed used by Conformer."""
         self._conformer_seed = int(seed)
         return self
 
     def set_conformer_jobs(self, n_jobs: int) -> "LigandProcess":
-        """Set number of jobs forwarded to Conformer when parallelising at that layer."""
         self._conformer_n_jobs = int(n_jobs)
         return self
 
     def set_opt_max_iters(self, max_iters: int) -> "LigandProcess":
-        """Set maximum iterations for optimizer."""
         self._opt_max_iters = int(max_iters)
         return self
 
-    # ------------------------------------------------------------------ #
-    # input ingestion
-    # ------------------------------------------------------------------ #
+    # Output configuration (you asked default to be pdbqt/meeko; still exposed)
+    def set_output_format(self, fmt: str) -> "LigandProcess":
+        key = (fmt or "").lower()
+        if key not in self._EXT_MAP:
+            raise ValueError(
+                f"Unsupported output format {fmt!r}. Supported: {sorted(self._EXT_MAP)}"
+            )
+        if key != "sdf" and not _HAS_CONVERTER:
+            logger.warning("Converter not available: forcing output format to 'sdf'.")
+            key = "sdf"
+        self._output_format = key
+        logger.debug("Output format -> %r", key)
+        return self
+
+    def set_converter_backend(self, backend: Optional[str]) -> "LigandProcess":
+        self._converter_backend = backend
+        logger.debug("Converter backend -> %r", backend)
+        return self
+
+    def set_tmp_from_sdf_backend(self, backend: Optional[str]) -> "LigandProcess":
+        self._tmp_from_sdf_backend = backend
+        logger.debug("tmp_from_sdf_backend -> %r", backend)
+        return self
+
+    def set_keep_intermediate(self, keep: bool) -> "LigandProcess":
+        self._keep_intermediate = bool(keep)
+        return self
+
+    # ----------------------------- input ingestion --------------------------- #
     def from_smiles_list(
         self, smiles: Sequence[str], names: Optional[Sequence[str]] = None
     ) -> "LigandProcess":
-        """
-        Load molecules from a list of SMILES strings.
-
-        :param smiles: sequence of SMILES strings.
-        :param names: optional parallel sequence of names (same length).
-        :returns: self
-        """
         if names is not None and len(names) != len(smiles):
-            raise ValueError("`names` (if provided) must be same length as `smiles`")
+            raise ValueError("names (if provided) must match smiles length")
         entries = []
-        for i, smi in enumerate(smiles):
-            entry = {self.smiles_key: smi}
+        for i, s in enumerate(smiles):
+            entry = {self.smiles_key: s}
             if names is not None:
                 entry[self.name_key] = names[i]
             entries.append(entry)
@@ -262,25 +252,12 @@ class LigandProcess:
         return self
 
     def from_list_of_dicts(self, rows: Sequence[Dict]) -> "LigandProcess":
-        """
-        Load molecules from a list of dictionaries.
-
-        Each dict must contain the SMILES under `smiles_key`. Name is optional.
-        """
         self._load_entries(list(rows))
         return self
 
     def from_dataframe(self, df: "pd.DataFrame") -> "LigandProcess":
-        """
-        Load from a pandas DataFrame.
-
-        :raises RuntimeError: if pandas not available
-        :raises KeyError: if smiles_key missing
-        """
         if pd is None:
-            raise RuntimeError(
-                "pandas is not available; install pandas to use from_dataframe()"
-            )
+            raise RuntimeError("pandas is required for from_dataframe")
         if self.smiles_key not in df.columns:
             raise KeyError(f"DataFrame missing required column '{self.smiles_key}'")
         rows = df.to_dict(orient="records")
@@ -288,7 +265,6 @@ class LigandProcess:
         return self
 
     def _load_entries(self, entries: List[Dict]) -> None:
-        """Normalize input rows into internal records structure (clears previous records)."""
         self._records = []
         for i, row in enumerate(entries):
             smi = row.get(self.smiles_key) or row.get(self.smiles_key.lower())
@@ -309,28 +285,16 @@ class LigandProcess:
                 }
             )
 
-    # ------------------------------------------------------------------ #
-    # embedding fallback (RDKit in-memory)
-    # ------------------------------------------------------------------ #
+    # ----------------------------- RDKit fallback ---------------------------- #
     def _embed_with_rdkit_inmemory(self, smiles: str) -> str:
-        """
-        Create a MolBlock string from SMILES using RDKit embedding/optimization in-memory.
-
-        :param smiles: input SMILES
-        :returns: MolBlock string
-        :raises RuntimeError: if RDKit not available or embedding fails
-        """
         if Chem is None or AllChem is None:
             raise RuntimeError("RDKit not available for in-memory embedding")
-
         mol = Chem.MolFromSmiles(smiles, sanitize=True)
         if mol is None:
             raise RuntimeError(f"Failed to parse SMILES: {smiles!r}")
-
         working = Chem.Mol(mol)
         if self._add_hs:
             working = Chem.AddHs(working)
-
         params = None
         try:
             if hasattr(AllChem, "ETKDGv3"):
@@ -343,7 +307,6 @@ class LigandProcess:
                 params = AllChem.EmbedParameters()
         except Exception:
             params = None
-
         try:
             if params is not None:
                 AllChem.EmbedMolecule(working, params)
@@ -354,7 +317,6 @@ class LigandProcess:
                 AllChem.EmbedMolecule(working)
             except Exception as e:
                 raise RuntimeError(f"RDKit embedding failed: {e}")
-
         if self._optimize:
             try:
                 AllChem.UFFOptimizeMolecule(working)
@@ -362,58 +324,41 @@ class LigandProcess:
                 try:
                     AllChem.MMFFOptimizeMolecule(working)
                 except Exception:
-                    # ignore optimization failures — we still return coordinates if present
-                    logger.debug("Both UFF and MMFF optimization failed (continuing).")
-
+                    logger.debug(
+                        "Optimization failed with both UFF and MMFF; continuing with coordinates if present."
+                    )
         if not self._add_hs:
             working = Chem.RemoveHs(working)
-
         try:
             mb = Chem.MolToMolBlock(working)
         except Exception as e:
             raise RuntimeError(f"Failed to convert Mol to MolBlock: {e}")
         return mb
 
-    # ------------------------------------------------------------------ #
-    # filename uniqueness helper
-    # ------------------------------------------------------------------ #
-    def _make_unique_base(self, base: str) -> str:
-        """
-        Ensure `base` filename (without extension) is unique within the output_dir
-        and within already-produced records in this run. If not unique, append
-        a numeric suffix: base -> base_1 -> base_2 -> ...
-        """
+    # ----------------------------- filename helper -------------------------- #
+    def _make_unique_base(self, base: str, ext: str) -> str:
         if self.output_dir is None:
-            # no file writing happening; keep base unchanged
             return base
-
         out_dir = Path(self.output_dir)
-        candidate = out_dir / f"{base}.sdf"
-        used_names = {
-            Path(r["out_path"]).name for r in self._records if r.get("out_path")
-        }
-        if not candidate.exists() and f"{base}.sdf" not in used_names:
+        candidate = out_dir / f"{base}.{ext}"
+        used = {Path(r["out_path"]).name for r in self._records if r.get("out_path")}
+        if not candidate.exists() and f"{base}.{ext}" not in used:
             return base
-
         suffix = 1
         while True:
             new_base = f"{base}_{suffix}"
-            if (
-                not (out_dir / f"{new_base}.sdf").exists()
-                and f"{new_base}.sdf" not in used_names
+            if (not (out_dir / f"{new_base}.{ext}").exists()) and (
+                f"{new_base}.{ext}" not in used
             ):
                 return new_base
             suffix += 1
 
-    # ------------------------------------------------------------------ #
-    # processing
-    # ------------------------------------------------------------------ #
+    # ----------------------------- core processing -------------------------- #
     def process_all(
         self, start: int = 0, stop: Optional[int] = None
     ) -> "LigandProcess":
-        """Process all records (or slice) and populate out_path/molblock/status/error."""
         if not self._records:
-            logger.warning("No records loaded to process.")
+            logger.warning("No records to process.")
             return self
         stop_idx = stop if stop is not None else len(self._records)
         for rec in self._records[start:stop_idx]:
@@ -421,28 +366,29 @@ class LigandProcess:
         return self
 
     def _process_one(self, rec: Dict) -> None:
-        """
-        Process a single record and write an SDF file if output_dir is configured.
-        Always stores the MolBlock string in ``rec['molblock']`` for successful records.
-        """
         idx = rec["index"]
         smi = rec["smiles"]
         name = rec.get("name", "") or ""
         index_str = str(idx).zfill(self.index_pad)
 
-        # determine base filename
-        if name:
-            raw_base = _sanitize_filename(name)
-            base = self._make_unique_base(raw_base)
-        else:
-            base = index_str
+        target_ext = self._EXT_MAP[self._output_format]
 
-        out_path = (
-            (self.output_dir / f"{base}.sdf") if self.output_dir is not None else None
+        # choose base name
+        raw_base = _sanitize_filename(name) if name else index_str
+        base = (
+            self._make_unique_base(raw_base, target_ext)
+            if self.output_dir
+            else raw_base
+        )
+
+        final_out: Optional[Path] = (
+            (self.output_dir / f"{base}.{target_ext}")
+            if self.output_dir is not None
+            else None
         )
 
         try:
-            # Preferred path: use Conformer to produce MolBlock when embedding/optimization requested and available
+            # produce MolBlock (Conformer preferred)
             if (self._embed3d or self._optimize) and _HAS_CONFORMER:
                 cm = Conformer(seed=self._conformer_seed)
                 cm.load_smiles([smi])
@@ -458,44 +404,101 @@ class LigandProcess:
                         n_jobs=self._conformer_n_jobs,
                         max_iters=self._opt_max_iters,
                     )
-                if not cm.molblocks:
-                    raise RuntimeError(
-                        "Conformer failed to produce an embedded molecule"
-                    )
-                mb = cm.molblocks[0]
+                mb_list = getattr(cm, "molblocks", None)
+                if not mb_list:
+                    raise RuntimeError("Conformer failed to produce molblocks")
+                mb = mb_list[0]
             else:
-                # fallback: do in-memory RDKit embedding/optimization to get MolBlock
                 mb = self._embed_with_rdkit_inmemory(smi)
 
-            # store molblock into record
             rec["molblock"] = mb
 
-            # write to disk if requested
-            if out_path is not None:
-                if Chem is None:
-                    raise RuntimeError("RDKit not available to write MolBlock -> SDF")
-                m = Chem.MolFromMolBlock(
-                    mb, sanitize=False, removeHs=(not self._add_hs)
-                )
-                if m is None:
-                    raise RuntimeError(
-                        "Failed to parse MolBlock to RDKit Mol for writing"
-                    )
-                writer = Chem.SDWriter(str(out_path))
-                writer.write(m)
-                writer.close()
-                rec["out_path"] = out_path
-            else:
+            # if not writing files, finish here
+            if final_out is None:
                 rec["out_path"] = None
+                rec["status"] = "ok"
+                rec["error"] = None
+                logger.info("Record %d (%s) processed in-memory.", idx, name or smi)
+                return
 
+            # always write an SDF intermediate first
+            if Chem is None:
+                raise RuntimeError("RDKit required to write SDFs.")
+
+            if target_ext == "sdf":
+                sdf_path = final_out
+            else:
+                tmp = tempfile.NamedTemporaryFile(
+                    prefix=f"{base}_", suffix=".sdf", dir=self.output_dir, delete=False
+                )
+                sdf_path = Path(tmp.name)
+                tmp.close()
+
+            # write SDF
+            m = Chem.MolFromMolBlock(mb, sanitize=False, removeHs=(not self._add_hs))
+            if m is None:
+                raise RuntimeError(
+                    "Failed to parse MolBlock into RDKit Mol for writing."
+                )
+            writer = Chem.SDWriter(str(sdf_path))
+            writer.write(m)
+            writer.close()
+
+            # If target is SDF, done
+            if target_ext == "sdf":
+                rec["out_path"] = sdf_path
+                rec["status"] = "ok"
+                rec["error"] = None
+                logger.info("Record %d (%s) -> %s", idx, name or smi, str(sdf_path))
+                return
+
+            # If Converter missing: fallback to using SDF as final output
+            if not _HAS_CONVERTER:
+                logger.warning(
+                    "Converter not available; using SDF as final output for record %d (%s).",
+                    idx,
+                    name or smi,
+                )
+                rec["out_path"] = sdf_path
+                rec["status"] = "ok"
+                rec["error"] = None
+                logger.info(
+                    "Record %d (%s) -> %s (SDF fallback)",
+                    idx,
+                    name or smi,
+                    str(sdf_path),
+                )
+                return
+
+            # Run Converter for this single file
+            conv = (
+                Converter()
+                .set_input(str(sdf_path))
+                .set_output(str(final_out))
+                .set_mode("ligand")
+            )
+            if self._converter_backend:
+                conv = conv.set_backend(self._converter_backend)
+            if self._tmp_from_sdf_backend:
+                conv = conv.set_tmp_from_sdf_backend(self._tmp_from_sdf_backend)
+            conv.run()
+
+            # cleanup intermediate unless requested otherwise
+            if (
+                not self._keep_intermediate
+                and sdf_path.exists()
+                and sdf_path != final_out
+            ):
+                try:
+                    sdf_path.unlink()
+                except Exception:
+                    logger.debug("Could not remove intermediate %s", sdf_path)
+
+            rec["out_path"] = final_out
             rec["status"] = "ok"
             rec["error"] = None
-            logger.info(
-                "Processed record %d (%s) -> %s",
-                idx,
-                name or smi,
-                str(out_path) if out_path is not None else "<in-memory>",
-            )
+            logger.info("Record %d (%s) -> %s", idx, name or smi, str(final_out))
+
         except Exception as exc:
             rec["out_path"] = None
             rec["molblock"] = None
@@ -505,17 +508,39 @@ class LigandProcess:
                 "Failed to process SMILES [%s] (index=%d): %s", smi, idx, exc
             )
 
-    # ------------------------------------------------------------------ #
-    # persistence & manifest helpers
-    # ------------------------------------------------------------------ #
+    # ----------------------------- batch conversion helper ------------------ #
+    def finalize_batch_conversion(
+        self, input_glob: str, output_pattern: str, mode: str = "ligand"
+    ) -> "LigandProcess":
+        """
+        Convert many intermediate SDFs to the configured output format in a single
+        Converter invocation. Useful if you prefer bulk conversion (e.g. dirname/*.sdf -> dirname/*.pdbqt).
+
+        :param input_glob: glob pattern for existing SDFs (relative to output_dir if set).
+        :param output_pattern: output pattern (Converter-specific). Example: "out/*.pdbqt"
+        :param mode: Converter mode, default "ligand".
+        """
+        if not _HAS_CONVERTER:
+            raise RuntimeError("Converter not available for batch conversion.")
+        if self.output_dir is not None:
+            input_arg = str(Path(self.output_dir) / input_glob)
+            output_arg = str(Path(self.output_dir) / output_pattern)
+        else:
+            input_arg = input_glob
+            output_arg = output_pattern
+        conv = Converter().set_input(input_arg).set_output(output_arg).set_mode(mode)
+        if self._converter_backend:
+            conv = conv.set_backend(self._converter_backend)
+        if self._tmp_from_sdf_backend:
+            conv = conv.set_tmp_from_sdf_backend(self._tmp_from_sdf_backend)
+        conv.run()
+        logger.info("Batch conversion completed: %s -> %s", input_arg, output_arg)
+        return self
+
+    # ----------------------------- persistence ------------------------------ #
     def save_manifest(
         self, path: Union[str, Path] = "ligands_manifest.csv"
     ) -> "LigandProcess":
-        """
-        Save a CSV manifest summarising processing results.
-
-        Contains fields: index, smiles, name, out_path, status, error.
-        """
         path = Path(path)
         rows = []
         for r in self._records:
@@ -544,32 +569,25 @@ class LigandProcess:
         logger.info("Saved manifest to %s", path)
         return self
 
-    # ------------------------------------------------------------------ #
-    # properties & helpers
-    # ------------------------------------------------------------------ #
+    # ----------------------------- properties & helpers -------------------- #
     @property
     def records(self) -> List[Dict]:
-        """Return a shallow copy of internal records."""
         return list(self._records)
 
     @property
     def output_paths(self) -> List[Optional[Path]]:
-        """Return output paths for written SDFs (None for in-memory-only records)."""
         return [r["out_path"] for r in self._records]
 
     @property
     def failed(self) -> List[Dict]:
-        """Return records that failed processing."""
         return [r for r in self._records if r.get("status") == "failed"]
 
     @property
     def ok(self) -> List[Dict]:
-        """Return records that completed successfully."""
         return [r for r in self._records if r.get("status") == "ok"]
 
     @property
     def summary(self) -> Dict[str, int]:
-        """Return summary counts of processed records."""
         total = len(self._records)
         ok = len(self.ok)
         failed = len(self.failed)
@@ -578,12 +596,6 @@ class LigandProcess:
 
     @property
     def sdf_strings(self) -> List[str]:
-        """
-        Return the MolBlock (SDF) text for successful records (in same order as records).
-
-        :returns: list of MolBlock strings (may be empty).
-        :rtype: List[str]
-        """
         return [
             r["molblock"]
             for r in self._records
@@ -592,15 +604,8 @@ class LigandProcess:
 
     @property
     def mols(self) -> List:
-        """
-        Return RDKit Mol objects constructed from stored MolBlocks for successful records.
-
-        Requires RDKit to be importable; raises RuntimeError otherwise.
-
-        :returns: list of RDKit Chem.Mol objects.
-        """
         if Chem is None:
-            raise RuntimeError("RDKit not available to construct Mol objects")
+            raise RuntimeError("RDKit not available to build RDKit Mol objects")
         out = []
         for mb in self.sdf_strings:
             m = Chem.MolFromMolBlock(mb, sanitize=False, removeHs=False)
@@ -609,28 +614,18 @@ class LigandProcess:
         return out
 
     def __len__(self) -> int:
-        """Number of loaded records."""
         return len(self._records)
 
     def __repr__(self) -> str:
-        s = f"<LigandProcess: {len(self)} entries, ok={self.summary['ok']}, failed={self.summary['failed']}>"
-        return s
+        return f"<LigandProcess: {len(self)} entries, ok={self.summary['ok']}, failed={self.summary['failed']}, fmt={self._output_format}>"
 
-    # ------------------------------------------------------------------ #
-    # convenience helpers
-    # ------------------------------------------------------------------ #
+    # convenience
     def set_output_dir(self, path: Optional[Union[str, Path]]) -> "LigandProcess":
-        """
-        Change the output directory. Pass ``None`` to disable writing SDFs to disk.
-
-        :param path: new output directory or ``None``.
-        """
         self.output_dir = Path(path) if path is not None else None
         if self.output_dir is not None:
             self.output_dir.mkdir(parents=True, exist_ok=True)
         return self
 
     def clear_records(self) -> "LigandProcess":
-        """Clear loaded records (does not delete files on disk)."""
         self._records = []
         return self

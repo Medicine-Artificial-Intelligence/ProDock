@@ -1,3 +1,4 @@
 *.pyc
 dev/*
 logs/*
+*.dat

@@ -1,115 +1,161 @@
 """
-Conversion utilities for ProDock:
-- pdb_to_pdbqt, pdbqt_to_pdb, sdf_to_pdb (improved)
-- additional converters: sdf_to_pdbqt, pdb_to_sdf, pdbqt_to_sdf
-- Converter class (chainable OOP) for re-usable conversion workflows
+Conversion utilities for ProDock (NO-FALLBACK, explicit backends).
 
-Backends tried (in order):
-1) Meeko CLI (mk_prepare_ligand.py / mk_prepare_receptor.py) when preparing PDB -> PDBQT
-2) Open Babel CLI (`obabel` or `babel`) for many direct format conversions
-3) RDKit (python API) for SDF -> PDB conversion (preferred if installed)
+Backends:
+- Meeko CLI: mk_prepare_ligand.py / mk_prepare_receptor.py
+- Open Babel CLI: obabel (or babel)
+- MGLTools (AutoDockTools): prepare_ligand4.py / prepare_receptor4.py
+- RDKit (Python API): for SDF <-> PDB where selected
 
-Note: converting receptors reliably for docking often requires Meeko or MGLTools;
-Open Babel can help but may not set all docking-specific atom types.
+Design:
+- Every function takes a required `backend` (and fails if unsupported/unavailable).
+- No implicit fallback. If you want a different route, pick the backend explicitly.
+- For SDF -> PDBQT with Meeko/MGLTools, you must go via a temp PDB; choose
+  the intermediate converter with `tmp_from_sdf_backend="rdkit"|"obabel"`.
+
+Notes:
+- Converting receptors reliably for docking typically needs Meeko or MGLTools.
+- Open Babel can emit PDBQT but may not set docking-specific atom types.
 """
+
+from __future__ import annotations
 
 import shutil
 import subprocess
 import tempfile
 from pathlib import Path
-from typing import Union, Optional, List
+from typing import Union, Optional, List, Literal
 
-# Try to import RDKit if available (used for sdf -> pdb)
+# Optional RDKit (used only when you explicitly choose it)
 try:
     from rdkit import Chem  # type: ignore
 
-    _RDKit_AVAILABLE = True
+    _RDKIT_AVAILABLE = True
 except Exception:
     Chem = None  # type: ignore
-    _RDKit_AVAILABLE = False
+    _RDKIT_AVAILABLE = False
 
 from prodock.io.logging import get_logger
 
 logger = get_logger(__name__)
+
 # ---------------------------
-# Original (enhanced) functions
+# Utilities
+# ---------------------------
+
+Backend = Literal["meeko", "obabel", "mgltools"]
+TmpConv = Literal["rdkit", "obabel"]
+
+
+def _ensure_exists(path: Union[str, Path], kind: str) -> Path:
+    p = Path(path).resolve()
+    if not p.exists():
+        raise FileNotFoundError(f"{kind} not found: {p}")
+    return p
+
+
+def _require_exe(name: str) -> str:
+    exe = shutil.which(name)
+    if exe is None:
+        raise RuntimeError(f"Required executable not found in PATH: {name}")
+    return exe
+
+
+def _run(args: List[str]) -> None:
+    proc = subprocess.run(args, capture_output=True, text=True)
+    if proc.returncode != 0:
+        raise RuntimeError(
+            f"Command failed (rc={proc.returncode}): {' '.join(args)}\n"
+            f"STDOUT:\n{proc.stdout}\nSTDERR:\n{proc.stderr}"
+        )
+
+
+def _rdkit_require() -> None:
+    if not _RDKIT_AVAILABLE:
+        raise RuntimeError("RDKit is required for this operation but is not available.")
+
+
+def _tmp_sdf_to_pdb_with_rdkit(in_sdf: Path, out_pdb: Path) -> None:
+    _rdkit_require()
+    suppl = Chem.SDMolSupplier(str(in_sdf), removeHs=False, sanitize=True)  # type: ignore
+    mol = next((m for m in suppl if m is not None), None)
+    if mol is None:
+        raise ValueError(f"No valid molecule found in {in_sdf}")
+    Chem.MolToPDBFile(mol, str(out_pdb))  # type: ignore
+
+
+def _tmp_sdf_to_pdb_with_obabel(in_sdf: Path, out_pdb: Path) -> None:
+    obabel = _require_exe("obabel") if shutil.which("obabel") else _require_exe("babel")
+    _run([obabel, "-isdf", str(in_sdf), "-opdb", "-O", str(out_pdb)])
+
+
+def _sdf_to_pdb_intermediate(in_sdf: Path, out_pdb: Path, tmp_backend: TmpConv) -> None:
+    if tmp_backend == "rdkit":
+        _tmp_sdf_to_pdb_with_rdkit(in_sdf, out_pdb)
+    elif tmp_backend == "obabel":
+        _tmp_sdf_to_pdb_with_obabel(in_sdf, out_pdb)
+    else:
+        raise ValueError("tmp_from_sdf_backend must be 'rdkit' or 'obabel'.")
+
+
+# ---------------------------
+# Core conversions (explicit backends, no fallback)
 # ---------------------------
 
 
 def pdb_to_pdbqt(
     input_pdb: Union[str, Path],
     output_pdbqt: Union[str, Path],
-    mode: str = "receptor",
-    meeko_cmd: Optional[str] = None,
+    *,
+    mode: Literal["receptor", "ligand"],
+    backend: Backend,
     extra_args: Optional[List[str]] = None,
+    meeko_cmd: Optional[str] = None,
+    mgltools_cmd: Optional[str] = None,
 ) -> Path:
     """
-    Convert PDB -> PDBQT using Meeko or fallback to Open Babel.
+    Convert PDB -> PDBQT via an explicit backend only (no fallback).
 
-    :param input_pdb: input PDB file.
-    :param output_pdbqt: output PDBQT file.
-    :param mode: 'receptor' or 'ligand'.
-    :param meeko_cmd: explicit command (default: mk_prepare_receptor.py / mk_prepare_ligand.py).
-    :param extra_args: extra CLI args to pass.
-    :return: Path to PDBQT produced.
+    :param input_pdb: input PDB file
+    :param output_pdbqt: output PDBQT path
+    :param mode: 'receptor' or 'ligand'
+    :param backend: 'meeko' | 'obabel' | 'mgltools'
+    :param extra_args: extra CLI args for the chosen backend
+    :param meeko_cmd: override Meeko script name (default: mk_prepare_{receptor,ligand}.py)
+    :param mgltools_cmd: override MGLTools script name (prepare_{receptor,ligand}4.py)
     """
-    input_pdb = Path(input_pdb).resolve()
+    input_pdb = _ensure_exists(input_pdb, "Input PDB")
     output_pdbqt = Path(output_pdbqt).resolve()
     output_pdbqt.parent.mkdir(parents=True, exist_ok=True)
+    extra_args = list(extra_args or [])
 
-    if not input_pdb.exists():
-        raise FileNotFoundError(f"Input PDB not found: {input_pdb}")
+    if backend == "meeko":
+        # Choose the appropriate script
+        if mode == "receptor":
+            cmd = meeko_cmd or "mk_prepare_receptor.py"
+            exe = _require_exe(cmd)
+            # Meeko receptor typical args
+            args = [
+                exe,
+                "--read_pdb",
+                str(input_pdb),
+                "--write_pdbqt",
+                str(output_pdbqt),
+            ]
+            args += extra_args
+            _run(args)
+        else:  # ligand
+            cmd = meeko_cmd or "mk_prepare_ligand.py"
+            exe = _require_exe(cmd)
+            # Modern Meeko ligand CLI supports -i/-o
+            args = [exe, "-i", str(input_pdb), "-o", str(output_pdbqt)]
+            args += extra_args
+            _run(args)
 
-    # decide Meeko command
-    if mode.lower() == "receptor":
-        default_meeko = "mk_prepare_receptor.py"
-        if meeko_cmd is None:
-            meeko_cmd = default_meeko
-        # Meeko receptor CLI historically supports: --read_pdb, --write_pdbqt (but CLI variants differ)
-        # construct args defensively
-        args = [
-            meeko_cmd,
-            "--read_pdb",
-            str(input_pdb),
-            "--write_pdbqt",
-            str(output_pdbqt),
-        ]
-        # some Meeko versions expect "-o basename" rather than write_pdbqt;
-        # include both possibilities via extra_args if needed
-    elif mode.lower() == "ligand":
-        default_meeko = "mk_prepare_ligand.py"
-        if meeko_cmd is None:
-            meeko_cmd = default_meeko
-        args = [meeko_cmd, "-i", str(input_pdb), "-o", str(output_pdbqt)]
-    else:
-        raise ValueError("mode must be 'receptor' or 'ligand'")
-
-    if extra_args:
-        args += list(extra_args)
-
-    # Prefer Meeko CLI if present
-    exe = shutil.which(meeko_cmd)
-    if exe:
-        proc = subprocess.run(args, capture_output=True, text=True)
-        if proc.returncode != 0:
-            raise RuntimeError(
-                f"{meeko_cmd} failed (rc={proc.returncode})\nSTDOUT:\n{proc.stdout}\nSTDERR:\n{proc.stderr}"
-            )
-        if not output_pdbqt.exists():
-            # Some Meeko variants produce basename+".pdbqt" — check
-            candidate = Path(str(output_pdbqt))
-            if not candidate.exists():
-                # try basename fallback
-                fallback = output_pdbqt.with_suffix(".pdbqt")
-                if fallback.exists():
-                    return fallback
-                raise FileNotFoundError(f"PDBQT not produced: {output_pdbqt}")
-        return output_pdbqt
-
-    # fallback: use Open Babel if available (limited for receptor)
-    obabel = shutil.which("obabel") or shutil.which("babel")
-    if obabel:
-        # obabel usage: obabel -ipdb input.pdb -opdbqt -O output.pdbqt --partialcharge gasteiger
+    elif backend == "obabel":
+        obabel = (
+            _require_exe("obabel") if shutil.which("obabel") else _require_exe("babel")
+        )
         args = [
             obabel,
             "-ipdb",
@@ -119,170 +165,138 @@ def pdb_to_pdbqt(
             str(output_pdbqt),
             "--partialcharge",
             "gasteiger",
-        ]
-        if extra_args:
-            args += list(extra_args)
-        proc = subprocess.run(args, capture_output=True, text=True)
-        if proc.returncode != 0:
-            raise RuntimeError(
-                f"Open Babel failed producing PDBQT (rc={proc.returncode})\n"
-                + f"STDOUT:\n{proc.stdout}\nSTDERR:\n{proc.stderr}"
-            )
-        if not output_pdbqt.exists():
-            raise FileNotFoundError(f"PDBQT not produced by Open Babel: {output_pdbqt}")
-        return output_pdbqt
+        ] + extra_args
+        _run(args)
 
-    # No tool found
-    raise RuntimeError(
-        "Neither Meeko nor Open Babel found. Install Meeko (mk_prepare_{ligand,receptor}.py) or Open Babel (obabel)."
-    )
+    elif backend == "mgltools":
+        if mode == "receptor":
+            cmd = mgltools_cmd or "prepare_receptor4.py"
+            exe = _require_exe(cmd)
+            # Minimal required flags; adjust via extra_args as you like
+            args = [exe, "-r", str(input_pdb), "-o", str(output_pdbqt)]
+            args += extra_args
+            _run(args)
+        else:
+            cmd = mgltools_cmd or "prepare_ligand4.py"
+            exe = _require_exe(cmd)
+            args = [exe, "-l", str(input_pdb), "-o", str(output_pdbqt)]
+            args += extra_args
+            _run(args)
+    else:
+        raise ValueError("backend must be one of: 'meeko', 'obabel', 'mgltools'.")
+
+    if not output_pdbqt.exists():
+        raise FileNotFoundError(f"PDBQT not produced: {output_pdbqt}")
+    return output_pdbqt
 
 
 def pdbqt_to_pdb(
     input_pdbqt: Union[str, Path],
     output_pdb: Union[str, Path],
-    obabel_cmd: str = "obabel",
+    *,
+    backend: Literal["obabel"],
     extra_args: Optional[List[str]] = None,
 ) -> Path:
     """
-    Convert PDBQT -> PDB using Open Babel (Meeko has no direct reverse).
+    Convert PDBQT -> PDB. Only Open Babel provides this direct route.
 
-    :param input_pdbqt: input PDBQT file.
-    :param output_pdb: output PDB file.
-    :param obabel_cmd: path to obabel binary.
-    :param extra_args: extra CLI args.
-    :return: Path to PDB produced.
+    :param input_pdbqt: input PDBQT
+    :param output_pdb: output PDB
+    :param backend: must be 'obabel'
     """
-    input_pdbqt = Path(input_pdbqt).resolve()
+    if backend != "obabel":
+        raise NotImplementedError(
+            "PDBQT -> PDB is only supported with backend='obabel'."
+        )
+
+    input_pdbqt = _ensure_exists(input_pdbqt, "Input PDBQT")
     output_pdb = Path(output_pdb).resolve()
     output_pdb.parent.mkdir(parents=True, exist_ok=True)
 
-    if not input_pdbqt.exists():
-        raise FileNotFoundError(f"Input PDBQT not found: {input_pdbqt}")
+    obabel = _require_exe("obabel") if shutil.which("obabel") else _require_exe("babel")
+    args = [obabel, "-ipdbqt", str(input_pdbqt), "-opdb", "-O", str(output_pdb)] + list(
+        extra_args or []
+    )
+    _run(args)
 
-    exe = shutil.which(obabel_cmd)
-    if exe is None:
-        raise RuntimeError(f"Open Babel binary not found: {obabel_cmd}")
-
-    args = [exe, "-ipdbqt", str(input_pdbqt), "-opdb", "-O", str(output_pdb)]
-    if extra_args:
-        args += list(extra_args)
-
-    proc = subprocess.run(args, capture_output=True, text=True)
-    if proc.returncode != 0:
-        raise RuntimeError(
-            f"obabel failed (rc={proc.returncode})\nSTDOUT:\n{proc.stdout}\nSTDERR:\n{proc.stderr}"
-        )
     if not output_pdb.exists():
         raise FileNotFoundError(f"PDB not produced: {output_pdb}")
     return output_pdb
 
 
-def sdf_to_pdb(input_sdf: Union[str, Path], output_pdb: Union[str, Path]) -> Path:
+def sdf_to_pdb(
+    input_sdf: Union[str, Path],
+    output_pdb: Union[str, Path],
+    *,
+    backend: Literal["rdkit", "obabel"],
+    extra_args: Optional[List[str]] = None,
+) -> Path:
     """
-    Convert the first molecule in an SDF file to PDB.
+    Convert SDF -> PDB via a single explicit backend.
 
-    :param input_sdf: path to input .sdf file
-    :param output_pdb: path to output .pdb file
-    :return: Path to written PDB
+    :param backend: 'rdkit' or 'obabel'
     """
-    input_sdf = Path(input_sdf).resolve()
+    input_sdf = _ensure_exists(input_sdf, "SDF")
     output_pdb = Path(output_pdb).resolve()
     output_pdb.parent.mkdir(parents=True, exist_ok=True)
 
-    if not input_sdf.exists():
-        raise FileNotFoundError(f"SDF not found: {input_sdf}")
-
-    # prefer RDKit if available
-    if _RDKit_AVAILABLE:
-        suppl = Chem.SDMolSupplier(str(input_sdf), removeHs=False, sanitize=True)
+    if backend == "rdkit":
+        _rdkit_require()
+        suppl = Chem.SDMolSupplier(str(input_sdf), removeHs=False, sanitize=True)  # type: ignore
         mol = next((m for m in suppl if m is not None), None)
         if mol is None:
             raise ValueError(f"No valid molecule found in {input_sdf}")
-        Chem.MolToPDBFile(mol, str(output_pdb))
-        return output_pdb
+        Chem.MolToPDBFile(mol, str(output_pdb))  # type: ignore
 
-    # fallback to Open Babel
-    obabel = shutil.which("obabel") or shutil.which("babel")
-    if obabel:
-        args = [obabel, "-isdf", str(input_sdf), "-opdb", "-O", str(output_pdb)]
-        proc = subprocess.run(args, capture_output=True, text=True)
-        if proc.returncode != 0:
-            raise RuntimeError(
-                f"obabel failed (rc={proc.returncode})\nSTDOUT:\n{proc.stdout}\nSTDERR:\n{proc.stderr}"
-            )
-        if not output_pdb.exists():
-            raise FileNotFoundError(f"PDB not produced by Open Babel: {output_pdb}")
-        return output_pdb
+    elif backend == "obabel":
+        obabel = (
+            _require_exe("obabel") if shutil.which("obabel") else _require_exe("babel")
+        )
+        args = [obabel, "-isdf", str(input_sdf), "-opdb", "-O", str(output_pdb)] + list(
+            extra_args or []
+        )
+        _run(args)
+    else:
+        raise ValueError("backend must be 'rdkit' or 'obabel'.")
 
-    raise RuntimeError(
-        "Neither RDKit nor Open Babel available for SDF -> PDB conversion."
-    )
-
-
-# ---------------------------
-# Additional useful conversions
-# ---------------------------
+    if not output_pdb.exists():
+        raise FileNotFoundError(f"PDB not produced: {output_pdb}")
+    return output_pdb
 
 
 def sdf_to_pdbqt(
     input_sdf: Union[str, Path],
     output_pdbqt: Union[str, Path],
-    use_meeko: bool = False,
-    obabel_cmd: str = "obabel",
+    *,
+    backend: Backend,
+    tmp_from_sdf_backend: TmpConv = "rdkit",
     extra_args: Optional[List[str]] = None,
+    meeko_cmd: Optional[str] = None,
+    mgltools_cmd: Optional[str] = None,
 ) -> Path:
     """
-    Convert SDF -> PDBQT. Tries:
-      1) RDKit -> temporary PDB -> Meeko ligand prepare (if use_meeko True or Meeko available)
-      2) Open Babel direct conversion (obabel -isdf -opdbqt -O out.pdbqt --partialcharge gasteiger)
+    Convert SDF -> PDBQT using an explicit backend. No fallback.
 
-    :param input_sdf: path to input SDF
-    :param output_pdbqt: desired output PDBQT path
-    :param use_meeko: if True prefer Meeko pathway (recommended for docking-compatible PDBQT)
-    :param obabel_cmd: obabel binary name
-    :param extra_args: extra args to pass to underlying tool
-    :return: Path to PDBQT produced
+    - backend='obabel': direct via Open Babel.
+    - backend == 'meeko': prefer calling Meeko with the original SDF (Meeko accepts sdf/mol2/mol).
+      If input is not an SDF, we fall back to creating a temporary SDF (via RDKit or Open Babel)
+      and call Meeko with that temporary SDF.
+    - backend == 'mgltools': similar to meeko, try using SDF/MOL2 where possible.
+
+    Note: This avoids creating a temporary PDB and then feeding PDB to Meeko (which can fail).
     """
     input_sdf = Path(input_sdf).resolve()
     output_pdbqt = Path(output_pdbqt).resolve()
     output_pdbqt.parent.mkdir(parents=True, exist_ok=True)
+    extra_args = list(extra_args or [])
 
     if not input_sdf.exists():
         raise FileNotFoundError(f"SDF not found: {input_sdf}")
 
-    # If user requested Meeko pathway and Meeko is available, use RDKit->temp PDB->Meeko
-    meeko_lig = shutil.which("mk_prepare_ligand.py")
-    if use_meeko or meeko_lig:
-        if _RDKit_AVAILABLE:
-            with tempfile.TemporaryDirectory() as td:
-                tmp_pdb = Path(td) / (input_sdf.stem + ".pdb")
-                # create pdb with RDKit
-                suppl = Chem.SDMolSupplier(
-                    str(input_sdf), removeHs=False, sanitize=True
-                )
-                mol = next((m for m in suppl if m is not None), None)
-                if mol is None:
-                    raise ValueError(f"No valid molecule found in {input_sdf}")
-                Chem.MolToPDBFile(mol, str(tmp_pdb))
-                # call Meeko ligand prepare
-                try:
-                    return pdb_to_pdbqt(
-                        tmp_pdb,
-                        output_pdbqt,
-                        mode="ligand",
-                        meeko_cmd=meeko_lig,
-                        extra_args=extra_args,
-                    )
-                except Exception as e:
-                    # fallback to OB if Meeko fails
-                    logger.warning(f"Meeko failed: {e}")
-                    pass
-        # if RDKit missing or Meeko failed, attempt Open Babel fallback below
-
-    # fallback: Open Babel direct conversion
-    obabel = shutil.which(obabel_cmd)
-    if obabel:
+    if backend == "obabel":
+        obabel = (
+            _require_exe("obabel") if shutil.which("obabel") else _require_exe("babel")
+        )
         args = [
             obabel,
             "-isdf",
@@ -292,95 +306,200 @@ def sdf_to_pdbqt(
             str(output_pdbqt),
             "--partialcharge",
             "gasteiger",
-        ]
-        if extra_args:
-            args += list(extra_args)
-        proc = subprocess.run(args, capture_output=True, text=True)
-        if proc.returncode != 0:
-            raise RuntimeError(
-                f"Open Babel failed (rc={proc.returncode})\nSTDOUT:\n{proc.stdout}\nSTDERR:\n{proc.stderr}"
-            )
-        if not output_pdbqt.exists():
-            raise FileNotFoundError(f"PDBQT not produced: {output_pdbqt}")
-        return output_pdbqt
+        ] + extra_args
+        _run(args)
 
-    raise RuntimeError(
-        "No available method to convert SDF -> PDBQT (install Meeko + RDKit or Open Babel)."
-    )
+    elif backend == "meeko":
+        meeko_lig = _require_exe(meeko_cmd or "mk_prepare_ligand.py")
+        # If input is already SDF (best case), call Meeko directly with it.
+        if input_sdf.suffix.lower() == ".sdf":
+            args = [
+                meeko_lig,
+                "-i",
+                str(input_sdf),
+                "-o",
+                str(output_pdbqt),
+            ] + extra_args
+            _run(args)
+        else:
+            # otherwise create a temporary SDF (rdkit or obabel) and pass that to Meeko
+            with tempfile.TemporaryDirectory() as td:
+                tmp_sdf = Path(td) / (input_sdf.stem + ".sdf")
+                if tmp_from_sdf_backend == "rdkit":
+                    _rdkit_require()
+                    # try RDKit reading arbitrary formats that RDKit supports
+                    # read via RDKit then write SDF
+                    if input_sdf.suffix.lower() in {".sdf"}:
+                        shutil.copyfile(str(input_sdf), str(tmp_sdf))
+                    else:
+                        # try to load via RDKit generic readers (MolFromSmiles, MolFromPDBFile, etc.)
+                        if input_sdf.suffix.lower() in {".pdb", ".pdbqt"}:
+                            # RDKit: read PDB
+                            mol = Chem.MolFromPDBFile(str(input_sdf), removeHs=False)  # type: ignore
+                        else:
+                            # fallback: try reading as SMILES (if .smi), else try SDMolSupplier
+                            if input_sdf.suffix.lower() == ".smi":
+                                with open(input_sdf, "r") as fh:
+                                    smi = fh.readline().strip().split()[0]
+                                mol = Chem.MolFromSmiles(smi)  # type: ignore
+                            else:
+                                suppl = Chem.SDMolSupplier(
+                                    str(input_sdf), removeHs=False, sanitize=True
+                                )  # type: ignore
+                                mol = next((m for m in suppl if m is not None), None)
+                        if mol is None:
+                            raise ValueError(
+                                f"RDKit could not parse {input_sdf} to create intermediate SDF."
+                            )
+                        w = Chem.SDWriter(str(tmp_sdf))  # type: ignore
+                        w.write(mol)  # type: ignore
+                        w.close()  # type: ignore
+                else:
+                    # tmp_from_sdf_backend == "obabel"
+                    ob = (
+                        _require_exe("obabel")
+                        if shutil.which("obabel")
+                        else _require_exe("babel")
+                    )
+                    _run(
+                        [
+                            ob,
+                            f"-i{input_sdf.suffix.lstrip('.')}",
+                            str(input_sdf),
+                            "-osdf",
+                            "-O",
+                            str(tmp_sdf),
+                        ]
+                    )
+
+                # now call Meeko with the tmp SDF
+                args = [
+                    meeko_lig,
+                    "-i",
+                    str(tmp_sdf),
+                    "-o",
+                    str(output_pdbqt),
+                ] + extra_args
+                _run(args)
+
+    elif backend == "mgltools":
+        # For ligands MGLTools' prepare_ligand4.py generally accepts MOL/MOL2/SDF.
+        mgl_lig = _require_exe(mgltools_cmd or "prepare_ligand4.py")
+        if input_sdf.suffix.lower() == ".sdf":
+            args = [mgl_lig, "-l", str(input_sdf), "-o", str(output_pdbqt)] + extra_args
+            _run(args)
+        else:
+            # create tmp sdf as above then call prepare_ligand4.py
+            with tempfile.TemporaryDirectory() as td:
+                tmp_sdf = Path(td) / (input_sdf.stem + ".sdf")
+                if tmp_from_sdf_backend == "rdkit":
+                    _rdkit_require()
+                    suppl = Chem.SDMolSupplier(str(input_sdf), removeHs=False, sanitize=True)  # type: ignore
+                    mol = next((m for m in suppl if m is not None), None)
+                    if mol is None:
+                        raise ValueError(f"No valid molecule found in {input_sdf}")
+                    Chem.SDWriter(str(tmp_sdf)).write(mol)  # type: ignore
+                else:
+                    ob = (
+                        _require_exe("obabel")
+                        if shutil.which("obabel")
+                        else _require_exe("babel")
+                    )
+                    _run(
+                        [
+                            ob,
+                            f"-i{input_sdf.suffix.lstrip('.')}",
+                            str(input_sdf),
+                            "-osdf",
+                            "-O",
+                            str(tmp_sdf),
+                        ]
+                    )
+                args = [
+                    mgl_lig,
+                    "-l",
+                    str(tmp_sdf),
+                    "-o",
+                    str(output_pdbqt),
+                ] + extra_args
+                _run(args)
+    else:
+        raise ValueError("backend must be one of: 'meeko', 'obabel', 'mgltools'.")
+
+    if not output_pdbqt.exists():
+        raise FileNotFoundError(f"PDBQT not produced: {output_pdbqt}")
+    return output_pdbqt
 
 
-def pdb_to_sdf(input_pdb: Union[str, Path], output_sdf: Union[str, Path]) -> Path:
+def pdb_to_sdf(
+    input_pdb: Union[str, Path],
+    output_sdf: Union[str, Path],
+    *,
+    backend: Literal["rdkit", "obabel"],
+    extra_args: Optional[List[str]] = None,
+) -> Path:
     """
-    Convert PDB -> SDF (single molecule). Uses RDKit if available, otherwise Open Babel.
+    Convert PDB -> SDF via a single explicit backend.
 
-    :param input_pdb: input PDB path
-    :param output_sdf: output SDF path
-    :return: Path to SDF file
+    :param backend: 'rdkit' or 'obabel'
     """
-    input_pdb = Path(input_pdb).resolve()
+    input_pdb = _ensure_exists(input_pdb, "Input PDB")
     output_sdf = Path(output_sdf).resolve()
     output_sdf.parent.mkdir(parents=True, exist_ok=True)
 
-    if not input_pdb.exists():
-        raise FileNotFoundError(f"Input PDB not found: {input_pdb}")
-
-    if _RDKit_AVAILABLE:
-        # RDKit: read PDB as Mol, write as SDF (single molecule)
-        mol = Chem.MolFromPDBFile(str(input_pdb), removeHs=False)
+    if backend == "rdkit":
+        _rdkit_require()
+        mol = Chem.MolFromPDBFile(str(input_pdb), removeHs=False)  # type: ignore
         if mol is None:
             raise ValueError(f"RDKit could not parse PDB: {input_pdb}")
-        writer = Chem.SDWriter(str(output_sdf))
-        writer.write(mol)
-        writer.close()
-        return output_sdf
+        writer = Chem.SDWriter(str(output_sdf))  # type: ignore
+        writer.write(mol)  # type: ignore
+        writer.close()  # type: ignore
 
-    obabel = shutil.which("obabel") or shutil.which("babel")
-    if obabel:
-        args = [obabel, "-ipdb", str(input_pdb), "-osdf", "-O", str(output_sdf)]
-        proc = subprocess.run(args, capture_output=True, text=True)
-        if proc.returncode != 0:
-            raise RuntimeError(
-                f"Open Babel failed (rc={proc.returncode})\nSTDOUT:\n{proc.stdout}\nSTDERR:\n{proc.stderr}"
-            )
-        if not output_sdf.exists():
-            raise FileNotFoundError(f"SDF not produced: {output_sdf}")
-        return output_sdf
+    elif backend == "obabel":
+        obabel = (
+            _require_exe("obabel") if shutil.which("obabel") else _require_exe("babel")
+        )
+        args = [obabel, "-ipdb", str(input_pdb), "-osdf", "-O", str(output_sdf)] + list(
+            extra_args or []
+        )
+        _run(args)
 
-    raise RuntimeError(
-        "No available method to convert PDB -> SDF (install RDKit or Open Babel)."
-    )
+    else:
+        raise ValueError("backend must be 'rdkit' or 'obabel'.")
+
+    if not output_sdf.exists():
+        raise FileNotFoundError(f"SDF not produced: {output_sdf}")
+    return output_sdf
 
 
 def pdbqt_to_sdf(
     input_pdbqt: Union[str, Path],
     output_sdf: Union[str, Path],
-    obabel_cmd: str = "obabel",
+    *,
+    backend: Literal["obabel"],
+    extra_args: Optional[List[str]] = None,
 ) -> Path:
     """
-    Convert PDBQT -> SDF using Open Babel.
+    Convert PDBQT -> SDF. Only Open Babel provides this direct route.
 
-    :param input_pdbqt: input PDBQT path
-    :param output_sdf: output SDF path
-    :param obabel_cmd: obabel binary
-    :return: Path to SDF
+    :param backend: must be 'obabel'
     """
-    input_pdbqt = Path(input_pdbqt).resolve()
+    if backend != "obabel":
+        raise NotImplementedError(
+            "PDBQT -> SDF is only supported with backend='obabel'."
+        )
+
+    input_pdbqt = _ensure_exists(input_pdbqt, "Input PDBQT")
     output_sdf = Path(output_sdf).resolve()
     output_sdf.parent.mkdir(parents=True, exist_ok=True)
 
-    if not input_pdbqt.exists():
-        raise FileNotFoundError(f"Input PDBQT not found: {input_pdbqt}")
+    obabel = _require_exe("obabel") if shutil.which("obabel") else _require_exe("babel")
+    args = [obabel, "-ipdbqt", str(input_pdbqt), "-osdf", "-O", str(output_sdf)] + list(
+        extra_args or []
+    )
+    _run(args)
 
-    obabel = shutil.which(obabel_cmd)
-    if obabel is None:
-        raise RuntimeError("Open Babel not found (required to convert PDBQT -> SDF).")
-
-    args = [obabel, "-ipdbqt", str(input_pdbqt), "-osdf", "-O", str(output_sdf)]
-    proc = subprocess.run(args, capture_output=True, text=True)
-    if proc.returncode != 0:
-        raise RuntimeError(
-            f"Open Babel failed (rc={proc.returncode})\nSTDOUT:\n{proc.stdout}\nSTDERR:\n{proc.stderr}"
-        )
     if not output_sdf.exists():
         raise FileNotFoundError(f"SDF not produced: {output_sdf}")
     return output_sdf
@@ -389,88 +508,105 @@ def pdbqt_to_sdf(
 def ensure_pdbqt(
     input_path: Union[str, Path],
     output_dir: Union[str, Path],
-    prefer: str = "meeko",
+    *,
+    backend: Backend,
+    mode: Literal["receptor", "ligand"] = "ligand",
+    tmp_from_sdf_backend: TmpConv = "rdkit",
     extra_args: Optional[List[str]] = None,
 ) -> Path:
     """
-    Ensure the given input is available as a PDBQT file. If input is already .pdbqt, returns it.
-    Otherwise converts to PDBQT into output_dir and returns the Path.
+    Ensure the given input becomes a PDBQT using the specified backend ONLY (no fallback).
+    If input is already .pdbqt, returns it as-is.
 
-    :param input_path: any input path (.pdb, .sdf, .mol2, .pdbqt)
-    :param output_dir: directory where to place converted pdbqt
-    :param prefer: 'meeko' or 'obabel' preference for conversion
-    :param extra_args: extra args to pass to converter
-    :return: Path to PDBQT
+    Routes:
+    - .pdb -> PDBQT via `pdb_to_pdbqt` with chosen backend
+    - .sdf -> PDBQT via `sdf_to_pdbqt` with chosen backend (and temp converter if needed)
+    - .mol2/.smi: supported only with backend='obabel' (direct to PDBQT). Others: raise.
+
+    :param backend: 'meeko' | 'obabel' | 'mgltools'
     """
-    p = Path(input_path)
+    p = Path(input_path).resolve()
+    if not p.exists():
+        raise FileNotFoundError(f"Input not found: {p}")
+
     if p.suffix.lower() == ".pdbqt":
-        return p.resolve()
-    output_dir = Path(output_dir)
+        return p
+
+    output_dir = Path(output_dir).resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
     out_p = output_dir / (p.stem + ".pdbqt")
 
-    # route by extension
     ext = p.suffix.lower()
     if ext == ".pdb":
-        # prefer meeko if requested
-        if prefer == "meeko":
-            try:
-                return pdb_to_pdbqt(p, out_p, mode="ligand", extra_args=extra_args)
-            except Exception:
-                # fallback to obabel
-                pass
-        return pdb_to_pdbqt(p, out_p, mode="ligand", extra_args=extra_args)
-
-    if ext in {".sdf", ".mol2", ".smi", ".smi.gz"}:
-        return sdf_to_pdbqt(
-            p, out_p, use_meeko=(prefer == "meeko"), extra_args=extra_args
+        return pdb_to_pdbqt(
+            p,
+            out_p,
+            mode=mode,
+            backend=backend,
+            extra_args=extra_args,
         )
 
-    # final fallback: try obabel conversion with autodetected input format
-    obabel = shutil.which("obabel") or shutil.which("babel")
-    if obabel:
-        args = [obabel, f"-i{ext.lstrip('.')}", str(p), "-opdbqt", "-O", str(out_p)]
-        if extra_args:
-            args += list(extra_args)
-        proc = subprocess.run(args, capture_output=True, text=True)
-        if proc.returncode != 0:
-            raise RuntimeError(
-                f"Open Babel fallback failed (rc={proc.returncode})\nSTDOUT:\n{proc.stdout}\nSTDERR:\n{proc.stderr}"
+    if ext == ".sdf":
+        return sdf_to_pdbqt(
+            p,
+            out_p,
+            backend=backend,
+            tmp_from_sdf_backend=tmp_from_sdf_backend,
+            extra_args=extra_args,
+        )
+
+    if ext in {".mol2", ".smi"}:
+        if backend != "obabel":
+            raise NotImplementedError(
+                f"Input extension {ext} to PDBQT is only supported with backend='obabel'."
             )
+        obabel = (
+            _require_exe("obabel") if shutil.which("obabel") else _require_exe("babel")
+        )
+        args = [obabel, f"-i{ext.lstrip('.')}", str(p), "-opdbqt", "-O", str(out_p)]
+        args += list(extra_args or [])
+        _run(args)
         if not out_p.exists():
-            raise FileNotFoundError(f"PDBQT not produced by fallback: {out_p}")
+            raise FileNotFoundError(f"PDBQT not produced: {out_p}")
         return out_p
 
-    raise RuntimeError(
-        "No available tool to produce PDBQT for input: install Meeko or Open Babel."
+    raise NotImplementedError(
+        f"Unsupported input extension {ext} for ensure_pdbqt with backend='{backend}'."
     )
 
 
 # ---------------------------
-# Chainable OOP Converter
+# Chainable OOP Converter (explicit, no fallback)
 # ---------------------------
 
 
 class Converter:
     """
-    Chainable converter helper for ProDock.
+    Chainable converter helper for ProDock (explicit backend, no fallback).
 
     Example:
-      conv = Converter().set_input("mol.sdf").set_output("mol.pdbqt").set_mode("ligand").use_meeko().run()
-      out = conv.output
-
-    :param input_path: initial input (set via set_input)
+      out = (
+          Converter()
+          .set_input("lig.sdf")
+          .set_output("lig.pdbqt")
+          .set_mode("ligand")
+          .set_backend("meeko")                 # or "obabel", "mgltools"
+          .set_tmp_from_sdf_backend("rdkit")    # or "obabel" (only if needed)
+          .set_extra_args(["--some-flag"])
+          .run()
+          .output
+      )
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._input: Optional[Path] = None
         self._output: Optional[Path] = None
-        self._mode: Optional[str] = None
-        self._prefer: str = "meeko"
+        self._mode: Literal["ligand", "receptor"] = "ligand"
+        self._backend: Optional[Backend] = None
+        self._tmp_from_sdf_backend: TmpConv = "rdkit"
         self._extra_args: Optional[List[str]] = None
         self._meeko_cmd: Optional[str] = None
-        self._obabel_cmd: Optional[str] = None
-        self._last_cmd: Optional[List[str]] = None
+        self._mgltools_cmd: Optional[str] = None
 
     def set_input(self, input_path: Union[str, Path]) -> "Converter":
         self._input = Path(input_path)
@@ -480,87 +616,113 @@ class Converter:
         self._output = Path(output_path)
         return self
 
-    def set_mode(self, mode: str) -> "Converter":
-        if mode.lower() not in {"ligand", "receptor"}:
-            raise ValueError("mode must be 'ligand' or 'receptor'")
-        self._mode = mode.lower()
+    def set_mode(self, mode: Literal["ligand", "receptor"]) -> "Converter":
+        self._mode = mode
         return self
 
-    def use_meeko(self, meeko_cmd: Optional[str] = None) -> "Converter":
-        self._prefer = "meeko"
-        self._meeko_cmd = meeko_cmd
+    def set_backend(self, backend: Backend) -> "Converter":
+        self._backend = backend
         return self
 
-    def use_obabel(self, obabel_cmd: Optional[str] = None) -> "Converter":
-        self._prefer = "obabel"
-        self._obabel_cmd = obabel_cmd
+    def set_tmp_from_sdf_backend(self, tmp_backend: TmpConv) -> "Converter":
+        self._tmp_from_sdf_backend = tmp_backend
         return self
 
     def set_extra_args(self, args: Optional[List[str]]) -> "Converter":
         self._extra_args = None if args is None else list(args)
         return self
 
+    def set_meeko_cmd(self, cmd: Optional[str]) -> "Converter":
+        self._meeko_cmd = cmd
+        return self
+
+    def set_mgltools_cmd(self, cmd: Optional[str]) -> "Converter":
+        self._mgltools_cmd = cmd
+        return self
+
     def run(self) -> "Converter":
         if self._input is None:
             raise RuntimeError("No input set (call .set_input(...))")
+        if self._backend is None:
+            raise RuntimeError(
+                "No backend set (call .set_backend('meeko'|'obabel'|'mgltools'))"
+            )
         if self._output is None:
-            # infer output from input + desired extension
+            # default: change extension to .pdbqt in CWD if not given
             self._output = Path.cwd() / (self._input.stem + ".pdbqt")
-        # route conversions depending on extension
+
         inp = self._input.resolve()
         out = self._output.resolve()
         ext = inp.suffix.lower()
 
         if ext == ".pdb":
-            # PDB -> PDBQT
-            meeko_cmd = self._meeko_cmd
-            if self._prefer != "meeko":
-                meeko_cmd = None
-            res = pdb_to_pdbqt(
+            self._output = pdb_to_pdbqt(
                 inp,
                 out,
-                mode=(self._mode or "ligand"),
-                meeko_cmd=meeko_cmd,
+                mode=self._mode,
+                backend=self._backend,
                 extra_args=self._extra_args,
+                meeko_cmd=self._meeko_cmd,
+                mgltools_cmd=self._mgltools_cmd,
             )
-            self._last_cmd = None
-            self._output = res
             return self
 
         if ext == ".sdf":
-            res = sdf_to_pdbqt(
+            self._output = sdf_to_pdbqt(
                 inp,
                 out,
-                use_meeko=(self._prefer == "meeko"),
-                obabel_cmd=(self._obabel_cmd or "obabel"),
+                backend=self._backend,
+                tmp_from_sdf_backend=self._tmp_from_sdf_backend,
                 extra_args=self._extra_args,
+                meeko_cmd=self._meeko_cmd,
+                mgltools_cmd=self._mgltools_cmd,
             )
-            self._output = res
             return self
 
         if ext == ".pdbqt":
-            # nothing to do — just copy
+            # nothing to do; keep as-is
             self._output = inp
             return self
 
-        # fallback: try ensure_pdbqt which will attempt many fallbacks
-        res = ensure_pdbqt(
-            inp, out.parent, prefer=self._prefer, extra_args=self._extra_args
+        # Allow direct OBabel conversions for some other text formats
+        if ext in {".mol2", ".smi"}:
+            if self._backend != "obabel":
+                raise NotImplementedError(
+                    f"Direct {ext}->PDBQT is only supported with backend='obabel' in Converter."
+                )
+            self._output = ensure_pdbqt(
+                inp,
+                out.parent,
+                backend=self._backend,
+                mode=self._mode,
+                tmp_from_sdf_backend=self._tmp_from_sdf_backend,
+                extra_args=self._extra_args,
+            )
+            return self
+
+        raise NotImplementedError(
+            f"Converter: unsupported input extension {ext} for backend '{self._backend}'."
         )
-        self._output = res
-        return self
 
     @property
     def output(self) -> Optional[Path]:
         return self._output
 
     def __repr__(self) -> str:
-        return f"<Converter input={self._input} output={self._output} mode={self._mode} prefer={self._prefer}>"
+        return (
+            f"<Converter input={self._input} output={self._output} "
+            f"mode={self._mode} backend={self._backend} tmp_from_sdf={self._tmp_from_sdf_backend}>"
+        )
 
     def help(self) -> None:
         print("Converter usage:")
         print("  conv = Converter()")
         print(
-            "  conv.set_input('lig.sdf').set_output('lig.pdbqt').set_mode('ligand').use_meeko().run()"
+            "  (conv.set_input('lig.sdf')"
+            ".set_output('lig.pdbqt')"
+            ".set_mode('ligand')"
+            ".set_backend('meeko')"
+            ".set_tmp_from_sdf_backend('rdkit')"
+            ".run())"
         )
         print("  print(conv.output)")
