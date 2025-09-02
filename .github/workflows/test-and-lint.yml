@@ -70,7 +70,7 @@ jobs:
             echo "conda libstdc++.so.6 NOT found under ${ENV_PREFIX}/lib"
           fi
 
-          # try importing openmm inside the conda env
+          # try importing openmm inside the conda env (one-line)
           conda run -n "${CONDA_ENV_NAME}" --no-capture-output python -c "import openmm; print('openmm imported OK', getattr(openmm,'__file__',None))"
 
       - name: Lint with flake8
@@ -83,4 +83,6 @@ jobs:
         env:
           LD_LIBRARY_PATH: ${{ env.LD_LIBRARY_PATH }}
         run: |
-          conda run -n "${CONDA_ENV_NAME}" --no-capture-output bash -lc "export LD_LIBRARY_PATH='${ENV_PREFIX}/lib:${LD_LIBRARY_PATH:-}'; python -c 'import sys,openmm; print(\"python\", sys.version.split()[0], \"openmm\", getattr(openmm, \"__file__\", None))'; if [ -x ./pytest.sh ]; then ./pytest.sh; else pytest -q; fi"
+          # Ensure runtime uses conda env lib dir and run tests inside the env.
+          # Use single-quoted bash -lc to avoid YAML/quote collisions.
+          conda run -n "${CONDA_ENV_NAME}" --no-capture-output bash -lc 'export LD_LIBRARY_PATH="${ENV_PREFIX}/lib:${LD_LIBRARY_PATH:-}"; python -c "import sys,openmm; print(\"python\", sys.version.split()[0], \"openmm\", getattr(openmm, \"__file__\", None))"; if [ -x ./pytest.sh ]; then ./pytest.sh; else pytest -q; fi'
