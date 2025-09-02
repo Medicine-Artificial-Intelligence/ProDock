@@ -1140,20 +1140,36 @@ class DockGUI:
             self._ui.layout = widgets.Layout(
                 padding="6px", border="1px solid transparent", background_color=t["bg"]
             )
-        css = f"""
-        <style id="dock-gui-theme">
-          .provis-root .provis-card {{
-            background: {t['card_bg']} !important;
-            border: 1px solid {t['card_border']} !important;
-            border-radius: 10px; box-shadow: 0 6px 18px rgba(0,0,0,0.06);
-          }}
-          .provis-root table.docktbl {{ width:100%; border-collapse:collapse; border:1px solid {t['table_border']}; }}
-          .provis-root table.docktbl th {{ background:{t['table_head_bg']}; text-align:left; padding:6px; border-bottom:1px solid {t['table_border']}; }}
-          .provis-root table.docktbl td {{ padding:6px; border-bottom:1px solid {t['table_border']}; font-family:ui-monospace; font-size:12px; }}
-          .provis-root .muted {{ color: {t['mute']}; }}
-          .provis-root a {{ color: {t['link']}; text-decoration:none; }}
-        </style>
-        """
+        css = (
+            '<style id="dock-gui-theme">\n'
+            "  .provis-root .provis-card {\n"
+            "    background: " + t["card_bg"] + " !important;\n"
+            "    border: 1px solid " + t["card_border"] + " !important;\n"
+            "    border-radius: 10px;\n"
+            "    box-shadow: 0 6px 18px rgba(0,0,0,0.06);\n"
+            "  }\n"
+            "  .provis-root table.docktbl {\n"
+            "    width: 100%;\n"
+            "    border-collapse: collapse;\n"
+            "    border: 1px solid " + t["table_border"] + ";\n"
+            "  }\n"
+            "  .provis-root table.docktbl th {\n"
+            "    background: " + t["table_head_bg"] + ";\n"
+            "    text-align: left;\n"
+            "    padding: 6px;\n"
+            "    border-bottom: 1px solid " + t["table_border"] + ";\n"
+            "  }\n"
+            "  .provis-root table.docktbl td {\n"
+            "    padding: 6px;\n"
+            "    border-bottom: 1px solid " + t["table_border"] + ";\n"
+            "    font-family: ui-monospace;\n"
+            "    font-size: 12px;\n"
+            "  }\n"
+            "  .provis-root .muted { color: " + t["mute"] + "; }\n"
+            "  .provis-root a { color: " + t["link"] + "; text-decoration: none; }\n"
+            "</style>\n"
+        )
+
         display(HTML(css))
 
     def _apply_layout(self, compact: bool) -> None:
@@ -1399,7 +1415,13 @@ class DockGUI:
         else:
             meta.append(f"<b>Box:</b> center={md._box_center}, size={md._box_size}")
         tbl = self._results_table_html(rows)
-        css = "<style>body{font-family:system-ui;padding:18px;}table{width:100%;border-collapse:collapse;border:1px solid #e5e7eb}th{background:#f3f4f6;padding:6px}</style>"
+        css = (
+            "<style>\n"
+            + "  body { font-family: system-ui; padding: 18px; }\n"
+            + "  table { width: 100%; border-collapse: collapse; border: 1px solid #e5e7eb; }\n"
+            + "  th { background: #f3f4f6; padding: 6px; }\n"
+            + "</style>"
+        )
         return (
             f"<!doctype html><html><head><meta charset='utf-8'><title>{title}"
             + f"</title>{css}</head><body><h1>{title}</h1><div>{' • '.join(meta)}"

@@ -35,9 +35,12 @@ class TestLigandProcess(unittest.TestCase):
         (to keep the test fast), ensure SDFs written, manifest saved & rows match.
         """
         lp = self.LigandClass(output_dir=str(self.tmp / "out"))
+        # Force SDF outputs to avoid Converter/meeko path in tests
+        lp.set_output_format("sdf")
+
         self.assertTrue(hasattr(lp, "from_smiles_list"))
         lp.from_smiles_list(["CCO", "CCC"])
-        # disable 3D embedding/optimization for a fast test run
+        # disable 3D embedding/optimization for a faster run (note: RDKit embed still used)
         lp.set_options(embed3d=False, add_hs=False, optimize=False)
         lp.process_all()
         # ensure records and outputs are present
@@ -90,6 +93,7 @@ class TestLigandProcess(unittest.TestCase):
         Invalid SMILES should not crash process_all; the record should be marked failed.
         """
         lp = self.LigandClass(output_dir=str(self.tmp / "out3"))
+        lp.set_output_format("sdf")
         lp.from_smiles_list(["NOTASMILES"])
         # disable embedding to ensure predictable failure handling
         lp.set_options(embed3d=False, add_hs=False, optimize=False)
@@ -107,6 +111,7 @@ class TestLigandProcess(unittest.TestCase):
 
     def test_set_output_dir_and_clear_records(self):
         lp = self.LigandClass(output_dir=str(self.tmp / "out4"))
+        lp.set_output_format("sdf")
         lp.from_smiles_list(["CCO"])
         self.assertEqual(len(lp.records), 1)
         lp.set_output_dir(self.tmp / "new_out")
@@ -118,6 +123,7 @@ class TestLigandProcess(unittest.TestCase):
 
     def test_process_all_with_names_and_sanitized_filenames(self):
         lp = self.LigandClass(output_dir=str(self.tmp / "out5"), name_key="name")
+        lp.set_output_format("sdf")
         lp.from_list_of_dicts(
             [
                 {"smiles": "CCO", "name": "My Molecule #1"},
@@ -141,6 +147,7 @@ class TestLigandProcess(unittest.TestCase):
         Conformer isn't present (we infer by attempting to enable embedding).
         """
         lp = self.LigandClass(output_dir=str(self.tmp / "out6"))
+        lp.set_output_format("sdf")
         lp.from_smiles_list(["CCO"])
         # enable embedding (may use Conformer or fallback RDKit)
         try:
@@ -156,7 +163,6 @@ class TestLigandProcess(unittest.TestCase):
         self.assertEqual(len(recs), 1)
         # if ok -> file exists; if failed -> error captured
         if recs[0]["status"] == "ok":
-            # out_path may be None if output_dir handling is different; check presence carefully
             outp = recs[0]["out_path"]
             if outp:
                 self.assertTrue(Path(outp).exists())
