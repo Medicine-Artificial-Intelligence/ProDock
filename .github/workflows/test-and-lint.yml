@@ -5,12 +5,6 @@ on:
     branches: ["refactor", "main", "staging"]
   pull_request:
     branches: ["main"]
-  workflow_dispatch:
-    inputs:
-      run_heavy:
-        description: "Ignored in this workflow (heavy job removed)"
-        required: false
-        default: "false"
 
 permissions:
   contents: read
@@ -84,5 +78,4 @@ jobs:
           LD_LIBRARY_PATH: ${{ env.LD_LIBRARY_PATH }}
         run: |
           # Ensure runtime uses conda env lib dir and run tests inside the env.
-          # Use single-quoted bash -lc to avoid YAML/quote collisions.
           conda run -n "${CONDA_ENV_NAME}" --no-capture-output bash -lc 'export LD_LIBRARY_PATH="${ENV_PREFIX}/lib:${LD_LIBRARY_PATH:-}"; python -c "import sys,openmm; print(\"python\", sys.version.split()[0], \"openmm\", getattr(openmm, \"__file__\", None))"; if [ -x ./pytest.sh ]; then ./pytest.sh; else pytest -q; fi'
