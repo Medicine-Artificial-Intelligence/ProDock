@@ -42,7 +42,7 @@ logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
 
 
-class ProteinProcess:
+class ReceptorProcess:
     """
     Fix and minimize proteins and prepare docking-ready artifacts.
 
@@ -360,7 +360,7 @@ class ProteinProcess:
         grid_min_size: float = 22.5,
         pad_angstrom: float = 4.0,
         enable_logging: bool = False,
-    ) -> "ProteinProcess":
+    ) -> "ReceptorProcess":
         """
         Fix a PDB (PDBFixer), minimize (OpenMM), and optionally prepare docking files.
 
@@ -377,7 +377,7 @@ class ProteinProcess:
         tmp_gas = out_dir / f"{base_name}_gas_tmp.pdb"
 
         logger.info(
-            "ProteinProcess: fixing %s -> %s (out_fmt=%s)", input_pdb, out_dir, out_fmt
+            "ReceptorProcess: fixing %s -> %s (out_fmt=%s)", input_pdb, out_dir, out_fmt
         )
 
         # Step 1: fix PDB
@@ -657,8 +657,8 @@ class ProteinProcess:
             "minimized_stage": minimized_stage,
             "grid_params": grid_params,
         }
-        logger.info("ProteinProcess finished. Artifact: %s", self.final_artifact)
+        logger.info("ReceptorProcess finished. Artifact: %s", self.final_artifact)
         return self
 
     def __repr__(self) -> str:
-        return f"<ProteinProcess final_artifact={self.final_artifact}>"
+        return f"<ReceptorProcess final_artifact={self.final_artifact}>"

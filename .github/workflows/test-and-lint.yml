@@ -50,6 +50,6 @@ jobs:
     # Test with pytest
     - name: Test with pytest
       run: |
-        conda activate synergy-env
+        conda activate prodock-env
         ./pytest.sh
       shell: bash -l {0}
