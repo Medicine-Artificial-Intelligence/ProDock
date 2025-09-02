@@ -71,7 +71,6 @@ class ProteinProcess:
     # -------------------------
     def enable_console_logging(self, level: int = logging.DEBUG) -> None:
         """Enable console logging for this module/instance."""
-        global logger
         logger.setLevel(level)
         if not any(isinstance(h, logging.StreamHandler) for h in logger.handlers):
             sh = logging.StreamHandler()

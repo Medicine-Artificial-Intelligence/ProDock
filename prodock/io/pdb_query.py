@@ -23,18 +23,18 @@ import gzip
 import os
 import shutil
 import subprocess
-import logging
+
 from pathlib import Path
 from typing import List, Optional, Sequence, Any, Dict, Union
 
+from prodock.io.logging import get_logger
+
+logger = get_logger(__name__)
 try:
     # PyMOL's cmd is required at runtime; import here to raise an informative error if missing
     from pymol import cmd  # type: ignore
 except Exception:
     cmd = None  # runtime validation will raise if missing
-
-logger = logging.getLogger(__name__)
-logger.addHandler(logging.NullHandler())
 
 
 class PDBQuery:

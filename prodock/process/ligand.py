@@ -24,12 +24,9 @@ import logging
 import re
 import tempfile
 from pathlib import Path
-from typing import Dict, List, Optional, Sequence, Union, Iterable
+from typing import Dict, List, Optional, Sequence, Union
 
-try:
-    import pandas as pd  # optional dependency for save_manifest/from_dataframe
-except Exception:
-    pd = None  # type: ignore
+import pandas as pd
 
 # logging adapter fallback
 try:
@@ -617,7 +614,11 @@ class LigandProcess:
         return len(self._records)
 
     def __repr__(self) -> str:
-        return f"<LigandProcess: {len(self)} entries, ok={self.summary['ok']}, failed={self.summary['failed']}, fmt={self._output_format}>"
+        return (
+            f"<LigandProcess: {len(self)} entries,"
+            + f" ok={self.summary['ok']}, failed={self.summary['failed']},"
+            + f" fmt={self._output_format}>"
+        )
 
     # convenience
     def set_output_dir(self, path: Optional[Union[str, Path]]) -> "LigandProcess":
