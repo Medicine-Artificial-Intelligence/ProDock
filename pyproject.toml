@@ -1,0 +1,37 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "template"
+version = "0.0.1"
+authors = [
+    {name="Tieu Long Phan", email="tieu@bioinf.uni-leipzig.de"}
+]
+description = "Utility for reaction modeling using graph grammar"
+readme = "README.md"
+long-description = {file = "CHANGELOG.md"}
+long-description-content-type = "text/markdown"
+requires-python = ">=3.11"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "rdkit>=2025.3.1",
+]
+
+[project.optional-dependencies]
+all = ["numpy>=2.2.0", "pandas>=1.5.3"]
+docs = [
+  "sphinx>=6.0",
+  "sphinx-rtd-theme",
+  "sphinxcontrib-bibtex",
+]
+
+[project.urls]
+homepage = "https://github.com/TieuLongPhan/template"
+source = "https://github.com/TieuLongPhan/template"
+issues = "https://github.com/TieuLongPhan/template/issues"
+documentation = "https://template.readthedocs.io/en/latest/"

@@ -34,7 +34,7 @@ jobs:
       run: |
         conda create --name prodock-env python=3.11 -y
         conda activate prodock-env
-        conda install -c conda-forge pdbfixer
+        conda install -c conda-forge openmm pdbfixer -y
         pip install flake8 pytest
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
       shell: bash -l {0}

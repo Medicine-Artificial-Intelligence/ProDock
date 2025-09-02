@@ -164,8 +164,9 @@ class TestConvertUnittest(unittest.TestCase):
             MolToPDBFile=fake_MolToPDBFile,
         )
 
-        with mock.patch.object(convert, "Chem", DummyChem), mock.patch.object(
-            convert, "_RDKIT_AVAILABLE", True
+        with (
+            mock.patch.object(convert, "Chem", DummyChem),
+            mock.patch.object(convert, "_RDKIT_AVAILABLE", True),
         ):
             out = Path(self.tmpdir) / "out.pdb"
             convert._tmp_sdf_to_pdb_with_rdkit(sdf, out)

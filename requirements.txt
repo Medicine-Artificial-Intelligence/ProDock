@@ -9,4 +9,3 @@ matplotlib
 pymol-open-source-whl>=3.1.0.4
 vina>=1.2.7
 ipywidgets>=8.1.7
-openmm==8.3.1
