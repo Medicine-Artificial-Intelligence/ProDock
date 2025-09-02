@@ -35,11 +35,9 @@ jobs:
       - name: Install mamba (fast resolver)
         run: |
           conda install -n base -c conda-forge mamba -y
-        shell: bash -l {0}
 
       - name: Create minimal conda env (openmm + pdbfixer)
         run: |
-          # create the environment (do not activate yet)
           mamba create -n ${CONDA_ENV_NAME} -c conda-forge -y \
             python=3.11 \
             openmm=8.3.1 \
@@ -50,7 +48,6 @@ jobs:
           source "$(conda info --base)/etc/profile.d/conda.sh"
           conda activate ${CONDA_ENV_NAME}
           echo "LD_LIBRARY_PATH=${CONDA_PREFIX}/lib:\$LD_LIBRARY_PATH" >> $GITHUB_ENV
-        shell: bash -l {0}
 
       - name: Install pip-only requirements (exclude heavy/conda-managed packages)
         run: |
@@ -62,7 +59,6 @@ jobs:
             grep -vE '^(rdkit|openmm|pdbfixer|openbabel|vina)' requirements.txt > reqs-pip.txt || true
             pip install -r reqs-pip.txt
           fi
-        shell: bash -l {0}
 
       - name: Diagnostic: verify OpenMM import & libstdc++ symbol
         run: |
@@ -85,7 +81,6 @@ except Exception as e:
     print("openmm import FAILED:", e)
     sys.exit(1)
 PY
-        shell: bash -l {0}
 
       - name: Lint with flake8
         run: |
@@ -94,7 +89,6 @@ PY
           pip install flake8
           flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics || true
           if [ -x ./lint.sh ]; then ./lint.sh || true; fi
-        shell: bash -l {0}
 
       - name: Run tests (pytest)
         env:
@@ -109,7 +103,6 @@ PY
           else
             pytest -q
           fi
-        shell: bash -l {0}
 
   heavy:
     name: Heavy tests (rdkit / openbabel / vina) — manual run only
@@ -128,7 +121,6 @@ PY
       - name: Install mamba
         run: |
           conda install -n base -c conda-forge mamba -y
-        shell: bash -l {0}
 
       - name: Create full conda env (includes rdkit, openbabel, vina)
         run: |
@@ -144,7 +136,6 @@ PY
           source "$(conda info --base)/etc/profile.d/conda.sh"
           conda activate ${CONDA_ENV_NAME}
           echo "LD_LIBRARY_PATH=${CONDA_PREFIX}/lib:\$LD_LIBRARY_PATH" >> $GITHUB_ENV
-        shell: bash -l {0}
 
       - name: Install pip requirements (filter same as above)
         run: |
@@ -155,7 +146,6 @@ PY
             grep -vE '^(rdkit|openmm|pdbfixer|openbabel|vina)' requirements.txt > reqs-pip.txt || true
             pip install -r reqs-pip.txt
           fi
-        shell: bash -l {0}
 
       - name: Diagnostic: verify imports
         run: |
@@ -171,7 +161,6 @@ for pkg in ("rdkit", "openmm", "pdbfixer", "openbabel", "vina"):
     except Exception as e:
         print(pkg, "import FAILED:", e)
 PY
-        shell: bash -l {0}
 
       - name: Run heavy tests
         env:
@@ -179,10 +168,4 @@ PY
         run: |
           source "$(conda info --base)/etc/profile.d/conda.sh"
           conda activate ${CONDA_ENV_NAME}
-          export LD_LIBRARY_PATH="${CONDA_PREFIX}/lib:${LD_LIBRARY_PATH:-}"
-          if [ -x ./pytest.sh ]; then
-            ./pytest.sh -k "not slow" || true
-          else
-            pytest -q
-          fi
-        shell: bash -l {0}
+          export LD_LIBRARY_PATH="${CONDA_PREFIX}/lib:${LD_LI
