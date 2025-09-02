@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
     inputs:
       run_heavy:
-        description: "Set to 'true' to run heavy tests (rdkit/openbabel/vina included)"
+        description: "Ignored in this workflow (heavy job removed)"
         required: false
         default: "false"
 
@@ -32,140 +32,55 @@ jobs:
           auto-update-conda: true
           python-version: 3.11.0
 
-      - name: Install mamba (fast resolver)
+      - name: Install mamba
         run: |
           conda install -n base -c conda-forge mamba -y
 
       - name: Create minimal conda env (openmm + pdbfixer)
         run: |
-          mamba create -n ${CONDA_ENV_NAME} -c conda-forge -y \
-            python=3.11 \
-            openmm=8.3.1 \
-            pdbfixer \
-            libstdcxx-ng \
-            libgcc-ng
-          # activate env so CONDA_PREFIX is set, then export LD_LIBRARY_PATH for later steps
-          source "$(conda info --base)/etc/profile.d/conda.sh"
-          conda activate ${CONDA_ENV_NAME}
-          echo "LD_LIBRARY_PATH=${CONDA_PREFIX}/lib:\$LD_LIBRARY_PATH" >> $GITHUB_ENV
+          # create env with required binary packages (minimal)
+          mamba create -n "${CONDA_ENV_NAME}" -c conda-forge -y \
+            python=3.11 openmm=8.3.1 pdbfixer libstdcxx-ng libgcc-ng
 
-      - name: Install pip-only requirements (exclude heavy/conda-managed packages)
+          # compute env prefix and publish to GITHUB_ENV so following steps can use it
+          CONDA_BASE=$(conda info --base)
+          ENV_PREFIX="${CONDA_BASE}/envs/${CONDA_ENV_NAME}"
+          echo "ENV_PREFIX=${ENV_PREFIX}" >> $GITHUB_ENV
+          # export LD_LIBRARY_PATH at runtime pointing to conda env lib dir
+          echo "LD_LIBRARY_PATH=${ENV_PREFIX}/lib:\$LD_LIBRARY_PATH" >> $GITHUB_ENV
+
+      - name: Install pip requirements (allow pip-install of rdkit/openbabel/vina)
         run: |
-          source "$(conda info --base)/etc/profile.d/conda.sh"
-          conda activate ${CONDA_ENV_NAME}
-          pip install --upgrade pip
           if [ -f requirements.txt ]; then
-            # Filter out packages installed via conda (and the heavy ones we omit)
-            grep -vE '^(rdkit|openmm|pdbfixer|openbabel|vina)' requirements.txt > reqs-pip.txt || true
-            pip install -r reqs-pip.txt
+            # Do NOT let pip overwrite openmm/pdbfixer installed by conda.
+            # We allow rdkit/openbabel/vina to be installed via pip from requirements.txt.
+            grep -vE '^(openmm|pdbfixer)' requirements.txt > reqs-pip.txt || true
+            conda run -n "${CONDA_ENV_NAME}" --no-capture-output python -m pip install --upgrade pip
+            conda run -n "${CONDA_ENV_NAME}" --no-capture-output python -m pip install -r reqs-pip.txt
           fi
 
       - name: Diagnostic: verify OpenMM import & libstdc++ symbol
         run: |
-          source "$(conda info --base)/etc/profile.d/conda.sh"
-          conda activate ${CONDA_ENV_NAME}
-          echo "CONDA_PREFIX=${CONDA_PREFIX}"
+          echo "ENV_PREFIX=${ENV_PREFIX}"
           echo "LD_LIBRARY_PATH=${LD_LIBRARY_PATH}"
-          if [ -f "${CONDA_PREFIX}/lib/libstdc++.so.6" ]; then
-            echo "conda libstdc++.so.6 present; checking symbols..."
-            strings "${CONDA_PREFIX}/lib/libstdc++.so.6" | grep GLIBCXX_3.4.30 || true
+          if [ -f "${ENV_PREFIX}/lib/libstdc++.so.6" ]; then
+            echo "conda libstdc++.so.6 present; checking symbols (GLIBCXX_3.4.30)..."
+            strings "${ENV_PREFIX}/lib/libstdc++.so.6" | grep GLIBCXX_3.4.30 || true
           else
-            echo "conda libstdc++.so.6 NOT found under ${CONDA_PREFIX}/lib"
+            echo "conda libstdc++.so.6 NOT found under ${ENV_PREFIX}/lib"
           fi
-          python - <<'PY'
-import sys
-try:
-    import openmm
-    print("openmm imported OK:", getattr(openmm, "__file__", None))
-except Exception as e:
-    print("openmm import FAILED:", e)
-    sys.exit(1)
-PY
+
+          # try importing openmm inside the conda env
+          conda run -n "${CONDA_ENV_NAME}" --no-capture-output python -c "import openmm; print('openmm imported OK', getattr(openmm,'__file__',None))"
 
       - name: Lint with flake8
         run: |
-          source "$(conda info --base)/etc/profile.d/conda.sh"
-          conda activate ${CONDA_ENV_NAME}
-          pip install flake8
-          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics || true
+          conda run -n "${CONDA_ENV_NAME}" --no-capture-output python -m pip install flake8
+          conda run -n "${CONDA_ENV_NAME}" --no-capture-output python -m flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics || true
           if [ -x ./lint.sh ]; then ./lint.sh || true; fi
 
       - name: Run tests (pytest)
         env:
           LD_LIBRARY_PATH: ${{ env.LD_LIBRARY_PATH }}
         run: |
-          source "$(conda info --base)/etc/profile.d/conda.sh"
-          conda activate ${CONDA_ENV_NAME}
-          export LD_LIBRARY_PATH="${CONDA_PREFIX}/lib:${LD_LIBRARY_PATH:-}"
-          python -c "import sys,openmm; print('python', sys.version.split()[0], 'openmm', getattr(openmm,'__file__',None))"
-          if [ -x ./pytest.sh ]; then
-            ./pytest.sh
-          else
-            pytest -q
-          fi
-
-  heavy:
-    name: Heavy tests (rdkit / openbabel / vina) — manual run only
-    runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.run_heavy == 'true' }}
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up Miniconda
-        uses: conda-incubator/setup-miniconda@v2
-        with:
-          auto-update-conda: true
-          python-version: 3.11.0
-
-      - name: Install mamba
-        run: |
-          conda install -n base -c conda-forge mamba -y
-
-      - name: Create full conda env (includes rdkit, openbabel, vina)
-        run: |
-          mamba create -n ${CONDA_ENV_NAME} -c conda-forge -y \
-            python=3.11 \
-            rdkit \
-            openmm=8.3.1 \
-            pdbfixer \
-            openbabel \
-            vina \
-            libstdcxx-ng \
-            libgcc-ng
-          source "$(conda info --base)/etc/profile.d/conda.sh"
-          conda activate ${CONDA_ENV_NAME}
-          echo "LD_LIBRARY_PATH=${CONDA_PREFIX}/lib:\$LD_LIBRARY_PATH" >> $GITHUB_ENV
-
-      - name: Install pip requirements (filter same as above)
-        run: |
-          source "$(conda info --base)/etc/profile.d/conda.sh"
-          conda activate ${CONDA_ENV_NAME}
-          pip install --upgrade pip
-          if [ -f requirements.txt ]; then
-            grep -vE '^(rdkit|openmm|pdbfixer|openbabel|vina)' requirements.txt > reqs-pip.txt || true
-            pip install -r reqs-pip.txt
-          fi
-
-      - name: Diagnostic: verify imports
-        run: |
-          source "$(conda info --base)/etc/profile.d/conda.sh"
-          conda activate ${CONDA_ENV_NAME}
-          export LD_LIBRARY_PATH="${CONDA_PREFIX}/lib:${LD_LIBRARY_PATH:-}"
-          python - <<'PY'
-import sys
-for pkg in ("rdkit", "openmm", "pdbfixer", "openbabel", "vina"):
-    try:
-        __import__(pkg)
-        print(pkg, "import OK")
-    except Exception as e:
-        print(pkg, "import FAILED:", e)
-PY
-
-      - name: Run heavy tests
-        env:
-          LD_LIBRARY_PATH: ${{ env.LD_LIBRARY_PATH }}
-        run: |
-          source "$(conda info --base)/etc/profile.d/conda.sh"
-          conda activate ${CONDA_ENV_NAME}
-          export LD_LIBRARY_PATH="${CONDA_PREFIX}/lib:${LD_LI
+          conda run -n "${CONDA_ENV_NAME}" --no-capture-output bash -lc "export LD_LIBRARY_PATH='${ENV_PREFIX}/lib:${LD_LIBRARY_PATH:-}'; python -c 'import sys,openmm; print(\"python\", sys.version.split()[0], \"openmm\", getattr(openmm, \"__file__\", None))'; if [ -x ./pytest.sh ]; then ./pytest.sh; else pytest -q; fi"
