@@ -22,7 +22,7 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v3
 
-      - name: Set up QEMU (optional, for multi‑arch)
+      - name: Set up QEMU (optional, for multi-arch)
         uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
@@ -42,5 +42,5 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |
-            Medicine-Artificial-Intelligence/ProDock:${{ github.ref_name }}
-            Medicine-Artificial-Intelligence/ProDock:latest
+            tieulongphan/prodock:${{ github.ref_name }}
+            tieulongphan/prodock:latest
