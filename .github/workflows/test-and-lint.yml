@@ -82,6 +82,7 @@ jobs:
           conda run -n "${CONDA_ENV_NAME}" --no-capture-output bash -lc '
             export LD_LIBRARY_PATH="${ENV_PREFIX}/lib:${LD_LIBRARY_PATH:-}"
             python -m pip install --upgrade pip pytest
+            python -m pip install -r requirements.txt
             echo "Running tests with: $(python -V) at $(which python)"
             python -m pytest -q
           '
