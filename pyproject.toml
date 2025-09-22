@@ -1,0 +1,56 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "prodock"
+version = "0.0.1"
+description = "ProDock — automation utilities for Molecular Docking workflows."
+readme = "README.md"
+long-description = { file = "CHANGELOG.md" }
+long-description-content-type = "text/markdown"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+license-files = ["LICENSE"]
+authors = [
+  { name = "Hoang-Son Lai Le", email = "minh@lelaihoangson@gmail.com" },
+  { name = "Thanh-An Pham", email = "thanh-an.pham@etu.unistra.fr" },
+  { name = "Tieu Long Phan", email = "tieu@bioinf.uni-leipzig.de" }
+]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Science/Research",
+  "Topic :: Scientific/Engineering :: Bio-Informatics",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent"
+]
+
+# Pinned runtime dependencies you provided
+dependencies = [
+  "rdkit>=2025.3.5",
+  "prolif>=2.0.3",
+  "openbabel-wheel>=3.1.1.21",
+  "meeko>=0.6.1",
+  "py3Dmol>=2.5.2",
+  "pandas",
+  "tqdm",
+  "matplotlib",
+  "pymol-open-source-whl>=3.1.0.4",
+  "vina>=1.2.7",
+  "ipywidgets>=8.1.7"
+]
+
+[project.optional-dependencies]
+docs = [
+  "sphinx>=6.0",
+  "sphinx-rtd-theme",
+  "sphinxcontrib-bibtex"
+]
+
+[project.urls]
+homepage      = "https://github.com/Medicine-Artificial-Intelligence/ProDock"
+source        = "https://github.com/Medicine-Artificial-Intelligence/ProDock"
+issues        = "https://github.com/Medicine-Artificial-Intelligence/ProDock/issues"
+documentation = "https://prodock.readthedocs.io/en/latest/"
