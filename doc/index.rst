@@ -1,6 +1,6 @@
 Welcome to template documentation!
 =================================
-This is documentation for **proqsar** version |version| (release |release|).
+This is documentation for **prodock** version |version| (release |release|).
 
 .. toctree::
    :caption: Contents
