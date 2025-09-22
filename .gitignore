@@ -1,0 +1,5 @@
+*.pyc
+dev/*
+logs/*
+*.dat
+docs/*
