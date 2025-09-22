@@ -15,7 +15,7 @@ license = { text = "MIT" }
 license-files = ["LICENSE"]
 
 authors = [
-  { name = "Hoang-Son Lai Le", email = "lelaihoangson@gmail.com" },
+  { name = "Hoang-Son Lai Le", email = "lelaihoangson@tamu.edu" },
   { name = "Thanh-An Pham",    email = "thanh-an.pham@etu.unistra.fr" },
   { name = "Tieu Long Phan",   email = "tieu@bioinf.uni-leipzig.de" }
 ]
