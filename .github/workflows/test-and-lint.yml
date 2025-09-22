@@ -77,13 +77,13 @@ jobs:
           if [ -x ./lint.sh ]; then ./lint.sh || true; fi
         shell: bash -l {0}
 
-      - name: Run tests (pytest)
-        run: |
-          conda run -n "${CONDA_ENV_NAME}" --no-capture-output bash -lc '
-            export LD_LIBRARY_PATH="${ENV_PREFIX}/lib:${LD_LIBRARY_PATH:-}"
-            python -m pip install --upgrade pip pytest
-            python -m pip install -r requirements.txt
-            echo "Running tests with: $(python -V) at $(which python)"
-            python -m pytest -q
-          '
+      - name: Run tests (conda run per command)
         shell: bash -l {0}
+        run: |
+          conda run -n "${CONDA_ENV_NAME}" --no-capture-output python -c "import sys, importlib; print('python=',sys.executable); print('pdbfixer=', importlib.util.find_spec('pdbfixer'))"
+          conda run -n "${CONDA_ENV_NAME}" --no-capture-output python -m pip install --upgrade pip pytest
+          if [ -f requirements.txt ]; then
+            conda run -n "${CONDA_ENV_NAME}" --no-capture-output python -m pip install -r requirements.txt
+          fi
+          conda run -n "${CONDA_ENV_NAME}" --no-capture-output python -m pytest -q
+      
