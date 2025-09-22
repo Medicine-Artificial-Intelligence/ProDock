@@ -7,7 +7,7 @@ name = "prodock"
 version = "0.0.1"
 description = "ProDock — automation utilities for Molecular Docking workflows."
 readme = "README.md"
-# long-description references a file; ensure CHANGELOG.md exists or change this to README.md
+# Ensure CHANGELOG.md exists or change the file referenced below
 long-description = { file = "CHANGELOG.md" }
 long-description-content-type = "text/markdown"
 requires-python = ">=3.11"
@@ -16,13 +16,13 @@ license-files = ["LICENSE"]
 
 authors = [
   { name = "Hoang-Son Lai Le", email = "lelaihoangson@gmail.com" },
-  { name = "Thanh-An Pham",       email = "thanh-an.pham@etu.unistra.fr" },
-  { name = "Tieu Long Phan",      email = "tieu@bioinf.uni-leipzig.de" }
+  { name = "Thanh-An Pham",    email = "thanh-an.pham@etu.unistra.fr" },
+  { name = "Tieu Long Phan",   email = "tieu@bioinf.uni-leipzig.de" }
 ]
 
-# optional: add maintainers if you want a separate contact list
+# Optional maintainers block (uncomment if you want separate maintainers)
 # maintainers = [
-#   { name = "Project Maintainer", email = "tieu@bioinf.uni-leipzig.de" }
+#   { name = "Maintainer Name", email = "maintainer@example.com" }
 # ]
 
 classifiers = [
@@ -35,8 +35,9 @@ classifiers = [
   "Operating System :: OS Independent"
 ]
 
-# Pinned runtime dependencies you provided (note: heavy packages like RDKit/OpenBabel
-# may not have manylinux wheels and can be troublesome in isolated build/test envs)
+keywords = ["docking", "molecular-docking", "bioinformatics", "rdkit", "vina"]
+
+# Runtime dependencies (note: some heavy packages may require platform-specific wheels)
 dependencies = [
   "rdkit>=2025.3.5",
   "prolif>=2.0.3",
@@ -63,3 +64,24 @@ homepage      = "https://github.com/Medicine-Artificial-Intelligence/ProDock"
 source        = "https://github.com/Medicine-Artificial-Intelligence/ProDock"
 issues        = "https://github.com/Medicine-Artificial-Intelligence/ProDock/issues"
 documentation = "https://prodock.readthedocs.io/en/latest/"
+
+# ------------------------------
+# Hatch build configuration
+# ------------------------------
+
+[tool.hatch.build.targets.wheel]
+packages = ["prodock"]
+# include extra top-level files in the wheel (useful when metadata references them)
+include = [
+  "README.md",
+  "CHANGELOG.md",
+  "LICENSE"
+]
+
+[tool.hatch.build.targets.sdist]
+include = [
+  "prodock",
+  "README.md",
+  "CHANGELOG.md",
+  "LICENSE"
+]
