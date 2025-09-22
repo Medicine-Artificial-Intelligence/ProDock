@@ -2,3 +2,4 @@
 dev/*
 logs/*
 *.dat
+docs/*

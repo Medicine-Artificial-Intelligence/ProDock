@@ -42,8 +42,7 @@ jobs:
           ENV_PREFIX="${CONDA_BASE}/envs/${CONDA_ENV_NAME}"
           echo "ENV_PREFIX=${ENV_PREFIX}" >> $GITHUB_ENV
 
-          # export LD_LIBRARY_PATH at runtime pointing to conda env lib dir
-          # write it to GITHUB_ENV so subsequent steps can pick it up
+          # publish LD_LIBRARY_PATH fragment referencing the env lib dir
           echo "LD_LIBRARY_PATH=${ENV_PREFIX}/lib:\$LD_LIBRARY_PATH" >> $GITHUB_ENV
         shell: bash -l {0}
 
@@ -58,16 +57,17 @@ jobs:
           fi
         shell: bash -l {0}
 
-      - name: Install test dependencies (pytest / requirements-dev.txt)
+      - name: Install pytest (minimal test dependency)
         run: |
-          # Install test dependencies inside the conda env.
+          # Ensure pip is up-to-date inside the conda env and install pytest
           conda run -n "${CONDA_ENV_NAME}" --no-capture-output python -m pip install --upgrade pip
-          if [ -f requirements-dev.txt ]; then
-            conda run -n "${CONDA_ENV_NAME}" --no-capture-output python -m pip install -r requirements-dev.txt
-          else
-            # Minimal fallback: ensure pytest is present
-            conda run -n "${CONDA_ENV_NAME}" --no-capture-output python -m pip install pytest
-          fi
+          conda run -n "${CONDA_ENV_NAME}" --no-capture-output python -m pip install pytest
+        shell: bash -l {0}
+
+      - name: Verify python & pytest inside conda env (debug)
+        run: |
+          echo "ENV_PREFIX=$ENV_PREFIX"
+          conda run -n "${CONDA_ENV_NAME}" --no-capture-output bash -lc 'echo "python -> $(which python)"; python -V; echo "pytest -> $(which pytest 2>/dev/null || true)"; python -m pytest --version || true'
         shell: bash -l {0}
 
       - name: Lint with flake8
@@ -77,11 +77,11 @@ jobs:
           if [ -x ./lint.sh ]; then ./lint.sh || true; fi
         shell: bash -l {0}
 
-      - name: Run tests (pytest)
+      - name: Run tests (pytest) — robust: use env python
         run: |
-          conda run -n "${CONDA_ENV_NAME}" --no-capture-output python -m pip install pytest
           # Ensure runtime uses conda env lib dir and run tests inside the env.
-          # ENV_PREFIX and LD_LIBRARY_PATH have been written to $GITHUB_ENV in an earlier step,
-          # so they are available as environment variables here.
-          conda run -n "${CONDA_ENV_NAME}" --no-capture-output bash -lc 'export LD_LIBRARY_PATH="${ENV_PREFIX}/lib:${LD_LIBRARY_PATH:-}"; if [ -x ./pytest.sh ]; then ./pytest.sh; else python -m pytest -q; fi'
+          # Use python -m pytest to avoid relying on the pytest executable being on PATH.
+          conda run -n "${CONDA_ENV_NAME}" --no-capture-output bash -lc 'export LD_LIBRARY_PATH="${ENV_PREFIX}/lib:${LD_LIBRARY_PATH:-}"; \
+            echo "Running tests with: $(python -V) at $(which python)"; \
+            python -m pytest -q'
         shell: bash -l {0}

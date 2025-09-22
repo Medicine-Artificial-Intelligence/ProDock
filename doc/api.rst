@@ -2,82 +2,84 @@
 API
 ====
 
-Pipeline
-========
-
-Complete Pipeline
------------------
-.. automodule:: proqsar.qsar.ProQSAR
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-Data Generator
---------------
-.. automodule:: proqsar.data_generator.DataGenerator
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-Data Preprocessor
------------------
-.. automodule:: proqsar.data_preprocessor.DataPreprocessor
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-Optimal data selection
-----------------------
-.. automodule:: proqsar.data_preprocessor.DataPreprocessor
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-Data
+Chem
 ====
 
-Standardizer
-------------
-
-Smiles Standardizer
-~~~~~~~~~~~~~~~~~~~
-.. automodule:: proqsar.Data.Standardizer.smiles_standardizer.SMILESStandardizer
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-Utilities
-~~~~~~~~~
-.. automodule:: proqsar.Data.Standardizer.standardizer_wrapper
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-Featurizer
+Embeddings
 ----------
-
-Feature Generator
-~~~~~~~~~~~~~~~~~
-.. automodule:: proqsar.Data.Featurizer.feature_generator.FeatureGenerator
+.. automodule:: prodock.chem.embed
    :members:
    :undoc-members:
    :show-inheritance:
 
-Utilities
-~~~~~~~~~
-.. automodule:: proqsar.Data.Featurizer.featurizer_wrapper
+Embeddings
+----------
+.. automodule:: prodock.chem.conformer
    :members:
    :undoc-members:
    :show-inheritance:
 
-Splitter
+Optimize
 --------
-
-.. automodule:: proqsar.Data.Splitter.data_splitter.Splitter
+.. automodule:: prodock.chem.optimize
    :members:
    :undoc-members:
    :show-inheritance:
 
-Preprocessor
-============
+Engine
+======
 
+Autodock Vina
+--------------
+.. automodule:: prodock.engine.vina
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Binary
+------
+.. automodule:: prodock.engine.binary
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Multiple
+--------
+.. automodule:: prodock.engine.multiple
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Process
+=======
+
+GridBox
+--------
+.. automodule:: prodock.process.gridbox
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Ligand
+------
+.. automodule:: prodock.process.ligand
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Receptor
+--------
+.. automodule:: prodock.process.receptor
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Visualization
+=============
+
+ProVis
+------
+.. automodule:: prodock.vis.provis
+   :members:
+   :undoc-members:
+   :show-inheritance:
