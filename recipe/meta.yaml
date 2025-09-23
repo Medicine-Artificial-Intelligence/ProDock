@@ -1,0 +1,63 @@
+{% set name = "prodock" %}
+{% set version = "0.0.5" %}
+
+package:
+  name: {{ name | lower }}
+  version: {{ version }}
+
+source:
+  # build from the repository root (adjust if your recipe is elsewhere)
+  path: ..
+
+build:
+  number: 0
+  # do not mark as noarch because we include compiled/binary runtime deps
+  # install the package wheel into the build PREFIX using pip / hatchling
+  script: |
+    {{ PYTHON }} -m pip install . --no-deps --ignore-installed -vv
+
+requirements:
+  host:
+    - python >=3.11,<3.12
+    - pip
+    - setuptools
+    - wheel
+    - hatchling
+
+  run:
+    # core python
+    - python >=3.11,<3.12
+
+    # Libraries you listed in requirements.txt (install via conda-forge)
+    - rdkit >=2025.3.5
+    - prolif >=2.0.3
+    - meeko >=0.6.1
+    - py3dmol >=2.5.2
+    - pandas
+    - tqdm
+    - matplotlib
+    - vina
+    - ipywidgets >=8.1.7
+
+    # Heavy runtime (compiled) packages: install from conda-forge
+    - mdanalysis
+    - openbabel
+    - pymol-open-source
+    - pdbfixer
+    - openmm
+
+about:
+  home: https://github.com/Medicine-Artificial-Intelligence/ProDock
+  license: MIT
+  license_file: LICENSE
+  summary: "Automatic pipeline for molecular modeling"
+
+test:
+  requires:
+    - pytest
+  commands:
+    - python -c "import prodock; print('prodock import ok')"
+
+extra:
+  recipe-maintainers:
+    - TieuLongPhan
