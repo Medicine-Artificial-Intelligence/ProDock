@@ -74,6 +74,31 @@ Receptor
    :undoc-members:
    :show-inheritance:
 
+IO
+==
+
+rdkit
+-----
+.. automodule:: prodock.io.rdkit_io
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+parser
+------
+.. automodule:: prodock.io.parser
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Query
+-----
+.. automodule:: prodock.io.pdb_query
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+
 Visualization
 =============
 
