@@ -11,79 +11,153 @@ permissions:
 
 env:
   CONDA_ENV_NAME: prodock-env
+  PYTHON_VERSION: "3.11"
+  # change OpenMM / pdbfixer versions here if needed
+  OPENMM_PACKAGE: "openmm=8.3.1"
+  PDBFIXER_PACKAGE: "pdbfixer"
 
 jobs:
   build:
-    name: Build, lint, test (minimal)
+    name: Build, lint, test (single conda env)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Miniconda
+      - name: Set up Miniconda (for conda / mamba)
         uses: conda-incubator/setup-miniconda@v2
         with:
           auto-update-conda: true
-          python-version: 3.11.0
+          python-version: ${{ env.PYTHON_VERSION }}
 
-      - name: Install mamba
+      - name: Install mamba (conda-forge) to base
         run: |
           conda install -n base -c conda-forge mamba -y
         shell: bash -l {0}
 
-      - name: Create minimal conda env (openmm + pdbfixer)
+      - name: Create conda env with binary packages (mamba)
+        id: create_env
         run: |
-          # create env with required binary packages (minimal)
-          mamba create -n "${CONDA_ENV_NAME}" -c conda-forge -y \
-            python=3.11 openmm=8.3.1 pdbfixer libstdcxx-ng libgcc-ng
+          set -euxo pipefail
 
-          # compute env prefix and publish to GITHUB_ENV so following steps can use it
+          # make sure conda commands are available in this shell
           CONDA_BASE=$(conda info --base)
+          echo "CONDA_BASE=${CONDA_BASE}" >> $GITHUB_ENV
+
+          # create environment with mamba (conda-forge channel)
+          mamba create -n "${CONDA_ENV_NAME}" -c conda-forge -y \
+            python=${PYTHON_VERSION} ${OPENMM_PACKAGE} ${PDBFIXER_PACKAGE} libstdcxx-ng libgcc-ng || true
+
+          # publish env paths for later steps
           ENV_PREFIX="${CONDA_BASE}/envs/${CONDA_ENV_NAME}"
           echo "ENV_PREFIX=${ENV_PREFIX}" >> $GITHUB_ENV
 
-          # export LD_LIBRARY_PATH at runtime pointing to conda env lib dir
-          # write it to GITHUB_ENV so subsequent steps can pick it up
+          # add runtime LD_LIBRARY_PATH for conda env libs
           echo "LD_LIBRARY_PATH=${ENV_PREFIX}/lib:\$LD_LIBRARY_PATH" >> $GITHUB_ENV
+
+          # show what was installed (sanity)
+          echo "=== Conda env created: ${ENV_PREFIX} ==="
+          "${ENV_PREFIX}/bin/python" -V || true
         shell: bash -l {0}
 
-      - name: Install pip requirements (allow pip-install of rdkit/openbabel/vina)
+      - name: Activate conda env and install pip requirements
+        id: pip_install
         run: |
+          set -euxo pipefail
+
+          # Source conda and activate the created env so subsequent commands run inside it
+          source "${{ env.CONDA_BASE }}/etc/profile.d/conda.sh"
+          conda activate "${CONDA_ENV_NAME}"
+
+          # Upgrade pip in env
+          python -m pip install --upgrade pip
+
+          # If requirements.txt exists, install via pip *inside env*.
+          # Do not pip-overwrite openmm/pdbfixer installed via conda.
           if [ -f requirements.txt ]; then
-            # Do NOT let pip overwrite openmm/pdbfixer installed by conda.
-            # We allow rdkit/openbabel/vina to be installed via pip from requirements.txt.
-            grep -vE '^(openmm|pdbfixer)' requirements.txt > reqs-pip.txt || true
-            conda run -n "${CONDA_ENV_NAME}" --no-capture-output python -m pip install --upgrade pip
-            conda run -n "${CONDA_ENV_NAME}" --no-capture-output python -m pip install -r reqs-pip.txt
-          fi
-        shell: bash -l {0}
-
-      - name: Install test dependencies (pytest / requirements-dev.txt)
-        run: |
-          # Install test dependencies inside the conda env.
-          conda run -n "${CONDA_ENV_NAME}" --no-capture-output python -m pip install --upgrade pip
-          if [ -f requirements-dev.txt ]; then
-            conda run -n "${CONDA_ENV_NAME}" --no-capture-output python -m pip install -r requirements-dev.txt
+            # Remove conda-managed packages from pip list (safe filter)
+            grep -vE '^(openmm|pdbfixer|OpenMM|PDBFixer)' requirements.txt > reqs-pip.txt || true
+            if [ -s reqs-pip.txt ]; then
+              python -m pip install -r reqs-pip.txt
+            else
+              echo "No pip requirements after filtering conda-managed packages."
+            fi
           else
-            # Minimal fallback: ensure pytest is present
-            conda run -n "${CONDA_ENV_NAME}" --no-capture-output python -m pip install pytest
+            echo "No requirements.txt found — skipping pip install."
           fi
         shell: bash -l {0}
+        env:
+          CONDA_BASE: ${{ env.CONDA_BASE }}
 
-      - name: Lint with flake8
+      - name: Install test/dev dependencies (requirements-dev.txt or minimal pytest)
         run: |
-          conda run -n "${CONDA_ENV_NAME}" --no-capture-output python -m pip install flake8
-          conda run -n "${CONDA_ENV_NAME}" --no-capture-output python -m flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics || true
-          if [ -x ./lint.sh ]; then ./lint.sh || true; fi
-        shell: bash -l {0}
+          set -euxo pipefail
+          source "${{ env.CONDA_BASE }}/etc/profile.d/conda.sh"
+          conda activate "${CONDA_ENV_NAME}"
 
-      - name: Run tests (conda run per command)
+          if [ -f requirements-dev.txt ]; then
+            python -m pip install -r requirements-dev.txt
+          else
+            python -m pip install pytest flake8
+          fi
         shell: bash -l {0}
+        env:
+          CONDA_BASE: ${{ env.CONDA_BASE }}
+
+      - name: Cache pip wheel cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements*.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Lint with flake8 (inside conda env)
         run: |
-          conda run -n "${CONDA_ENV_NAME}" --no-capture-output python -c "import sys, importlib; print('python=',sys.executable); print('pdbfixer=', importlib.util.find_spec('pdbfixer'))"
-          conda run -n "${CONDA_ENV_NAME}" --no-capture-output python -m pip install --upgrade pip pytest
+          set -euxo pipefail
+          source "${{ env.CONDA_BASE }}/etc/profile.d/conda.sh"
+          conda activate "${CONDA_ENV_NAME}"
+
+          # Ensure flake8 installed (from dev deps or install minimally)
+          python -m pip install --upgrade pip
+          python -m pip install flake8 || true
+
+          # quick fail-only check then full lint via lint.sh if present
+          python -m flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics || true
+          if [ -x ./lint.sh ]; then
+            ./lint.sh || true
+          fi
+        shell: bash -l {0}
+        env:
+          CONDA_BASE: ${{ env.CONDA_BASE }}
+
+      - name: Run tests (inside conda env)
+        run: |
+          set -euxo pipefail
+          source "${{ env.CONDA_BASE }}/etc/profile.d/conda.sh"
+          conda activate "${CONDA_ENV_NAME}"
+
+          # show which python is used
+          python -c "import sys, importlib; print('python=',sys.executable); print('pdbfixer=', importlib.util.find_spec('pdbfixer'))"
+          python -m pip install --upgrade pip pytest
+          # Re-install requirements if the repo expects freshly installed packages (optional)
           if [ -f requirements.txt ]; then
-            conda run -n "${CONDA_ENV_NAME}" --no-capture-output python -m pip install -r requirements.txt
+            grep -vE '^(openmm|pdbfixer|OpenMM|PDBFixer)' requirements.txt > reqs-pip.txt || true
+            if [ -s reqs-pip.txt ]; then
+              python -m pip install -r reqs-pip.txt
+            fi
           fi
-          conda run -n "${CONDA_ENV_NAME}" --no-capture-output python -m pytest -q
-      
+
+          # run pytest (fail the job on test failures)
+          python -m pytest -q
+        shell: bash -l {0}
+        env:
+          CONDA_BASE: ${{ env.CONDA_BASE }}
+
+      - name: Print summary info (optional)
+        if: always()
+        run: |
+          echo "ENV_PREFIX = $ENV_PREFIX"
+          echo "LD_LIBRARY_PATH = $LD_LIBRARY_PATH"
+          python -c "import sys; print('python:', sys.version)"
+        shell: bash -l {0}
