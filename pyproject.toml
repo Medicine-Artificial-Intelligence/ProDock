@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "prodock"
-version = "0.0.5"
+version = "0.0.7"
 description = "ProDock — automation utilities for Molecular Docking workflows."
 readme = "README.md"
 # Ensure CHANGELOG.md exists or change the file referenced below
