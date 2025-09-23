@@ -1,0 +1,111 @@
+name: Publish to Anaconda (conda)
+
+on:
+  release:
+    types: [published]
+  push:
+    branches: [conda]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Miniconda
+        uses: conda-incubator/setup-miniconda@v2
+        with:
+          channels: conda-forge
+          auto-update-conda: true
+          auto-activate-base: true
+
+      - name: Create build environment (conda-build + anaconda-client)
+        run: |
+          # Source conda shell functions so `conda activate` works
+          source "$(conda info --base)/etc/profile.d/conda.sh"
+          conda create -n build -y -c conda-forge python=3.11 "conda-build>=3.21" anaconda-client
+          conda activate build
+          conda info --envs
+
+      - name: Build conda package(s)
+        run: |
+          source "$(conda info --base)/etc/profile.d/conda.sh"
+          conda activate build
+          rm -rf conda-bld || true
+          mkdir -p conda-bld
+
+          # Build from recipe/ if present, otherwise build from repo root
+          if [ -d recipe ]; then
+            conda-build recipe --output-folder ./conda-bld
+          else
+            conda-build . --output-folder ./conda-bld
+          fi
+
+          echo "Built files:"
+          find conda-bld -type f \( -name "*.conda" -o -name "*.tar.bz2" \) -print
+
+      - name: Upload built packages as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: conda-packages
+          path: conda-bld/
+
+  publish_release:
+    needs: build
+    if: github.event_name == 'release'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download built packages
+        uses: actions/download-artifact@v4
+        with:
+          name: conda-packages
+          path: conda-bld
+
+      - name: Install/upgrade Anaconda client
+        run: python3 -m pip install --upgrade anaconda-client
+
+      - name: Upload packages to Anaconda.org (label: main)
+        env:
+          ANACONDA_TOKEN: ${{ secrets.ANACONDA_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ -z "${ANACONDA_TOKEN:-}" ]; then
+            echo "ANACONDA_TOKEN is not set"; exit 1
+          fi
+
+          # find packages and upload; uses xargs to handle arbitrary filenames
+          find conda-bld -type f \( -name "*.conda" -o -name "*.tar.bz2" \) -print0 | \
+            xargs -0 -r -n1 sh -c 'pkg="$0"; echo "Uploading $pkg"; anaconda -t "${ANACONDA_TOKEN}" upload --user tieulongphan --label main --no-progress "$pkg"'
+
+  publish_beta:
+    needs: build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/conda'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download built packages
+        uses: actions/download-artifact@v4
+        with:
+          name: conda-packages
+          path: conda-bld
+
+      - name: Install/upgrade Anaconda client
+        run: python3 -m pip install --upgrade anaconda-client
+
+      - name: Upload packages to Anaconda.org (label: beta)
+        env:
+          ANACONDA_TOKEN: ${{ secrets.ANACONDA_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ -z "${ANACONDA_TOKEN:-}" ]; then
+            echo "ANACONDA_TOKEN is not set"; exit 1
+          fi
+
+          # upload as 'beta' label
+          find conda-bld -type f \( -name "*.conda" -o -name "*.tar.bz2" \) -print0 | \
+            xargs -0 -r -n1 sh -c 'pkg="$0"; echo "Uploading $pkg"; anaconda -t "${ANACONDA_TOKEN}" upload --user tieulongphan --label beta --no-progress "$pkg"'
