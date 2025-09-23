@@ -1,20 +1,47 @@
 """
 prodock.io.pdb_query
-----------------------------
+====================
 
 Robust PDBQuery for ProDock.
 
 Features
-- fetch PDB (robust to case / alternate names produced by PyMOL, auto-decompress .gz)
+--------
+- fetch PDB (robust to case / alternate names produced by PyMOL, auto-decompress ``.gz``)
 - filter chains, remove solvents (preserve cofactors)
-- extract ligand into `reference_ligand/{ligand_code}.sdf` (if ligand_code provided)
-- create `cocrystal/{pdb_id}.sdf` (via Open Babel if available, otherwise fallback copy)
+- extract ligand into ``reference_ligand/{ligand_code}.sdf`` (if ``ligand_code`` provided)
+- create ``cocrystal/{pdb_id}.sdf`` (via Open Babel if available, otherwise fallback copy)
 - save filtered protein (no ligand inside)
-- fluent API (methods return self), Sphinx-style docstrings, properties, batch helper
+- fluent API (methods return ``self``), Sphinx-style docstrings, properties, batch helper
 
 Notes
 -----
-- PyMOL's `cmd` must be importable at runtime. Open Babel (`obabel`) is optional but used if present.
+- PyMOL's ``cmd`` must be importable at runtime. Open Babel (``obabel``) is optional but used if present.
+
+Examples
+--------
+Basic single PDB usage::
+
+    from prodock.io.pdb_query import PDBQuery
+    pq = PDBQuery(
+        pdb_id="5N2F",
+        output_dir="./out/5N2F",
+        chains=["A"],
+        ligand_code="LIG",
+        cofactors=["HEM"],
+    )
+    pq.run_all()
+
+Batch usage (list of dicts)::
+
+    items = [
+        {"pdb_id": "5N2F", "ligand_code": "LIG", "chains": ["A"]},
+        {"pdb_id": "1ABC", "ligand_code": "ABC", "chains": []},
+    ]
+    results = PDBQuery.process_batch(items, output_dir="./out/batch")
+
+The implementation attempts the following for each canonical output:
+obabel conversion -> temporary PDB conversion -> fallback copy, so a file
+is created for inspection even if Open Babel is not available.
 """
 
 from __future__ import annotations
@@ -41,7 +68,7 @@ class PDBQuery:
     """
     Fetch, filter and export PDB-derived files using PyMOL and Open Babel.
 
-    Produces canonical outputs when `ligand_code` is provided:
+    Produces canonical outputs when ``ligand_code`` is provided:
 
     - reference ligand: ``reference_ligand/{ligand_code}.sdf``
     - cocrystal ligand: ``cocrystal/{pdb_id}.sdf``
@@ -49,13 +76,17 @@ class PDBQuery:
     The implementation guarantees that a file exists for inspection by attempting:
     obabel conversion -> temporary PDB conversion -> fallback copy.
 
-    :param pdb_id: PDB identifier (e.g. "5N2F"). Case-insensitive.
-    :param output_dir: Base output directory where subfolders will be created.
-    :param chains: Sequence of chain identifiers to keep (e.g. ["A","B"]). If empty/None, keep all chains.
-    :param ligand_code: Three-letter ligand residue name to extract (e.g. "LIG" or hetero code like "8HW").
-    :param ligand_name: Friendly ligand name (kept for compatibility; filenames use ligand_code).
-    :param cofactors: Optional list of residue names to preserve as cofactors (e.g. ["HEM","NAD"]).
-    :param protein_name: Friendly protein name used when naming intermediate files (defaults to pdb_id).
+    :param str pdb_id: PDB identifier (e.g. ``"5N2F"``). Case-insensitive.
+    :param str output_dir: Base output directory where subfolders will be created.
+    :param Sequence[str] chains: Sequence of chain identifiers to keep (e.g. ``["A","B"]``).
+        If ``None`` or empty, keep all chains.
+    :param str ligand_code: Three-letter ligand residue name to extract (e.g. ``"LIG"`` or hetero code like ``"8HW"``).
+    :param Optional[str] ligand_name: Friendly ligand name (kept for compatibility; filenames use ``ligand_code``).
+    :param Optional[Sequence[str]] cofactors: Optional list of residue names to preserve as cofactors
+    (e.g. ``["HEM","NAD"]``).
+    :param Optional[str] protein_name: Friendly protein name used when naming intermediate files
+    (defaults to ``pdb_id``).
+    :returns: None
     """
 
     DEFAULT_SOLVENTS = [
@@ -106,16 +137,16 @@ class PDBQuery:
         protein_name: Optional[str] = None,
     ) -> None:
         """
-        Initialize a PDBQuery helper.
+        Initialize a :class:`PDBQuery` helper.
 
-        :param pdb_id: PDB identifier (case-insensitive).
-        :param output_dir: Base directory where subfolders will be created.
-        :param chains: Sequence of chain identifiers to keep (if None, all chains are kept).
-        :param ligand_code: Three-letter ligand residue name to extract.
-        :param ligand_name: Friendly ligand name (optional).
-        :param cofactors: Optional list of residue names to preserve.
-        :param protein_name: Friendly protein name (defaults to pdb_id).
-        :returns: None
+        :param str pdb_id: PDB identifier (case-insensitive).
+        :param str output_dir: Base directory where subfolders will be created.
+        :param Sequence[str] chains: Sequence of chain identifiers to keep (if ``None``, all chains are kept).
+        :param str ligand_code: Three-letter ligand residue name to extract.
+        :param Optional[str] ligand_name: Friendly ligand name (optional).
+        :param Optional[Sequence[str]] cofactors: Optional list of residue names to preserve.
+        :param Optional[str] protein_name: Friendly protein name (defaults to ``pdb_id``).
+        :rtype: None
         """
         # core metadata
         self.pdb_id: str = str(pdb_id)
@@ -161,11 +192,12 @@ class PDBQuery:
     @staticmethod
     def _join_selection(prefix: str, tokens: Sequence[str]) -> str:
         """
-        Build a PyMOL selection string like "chain A or chain B" or "resn HOH or resn DOD".
+        Build a PyMOL selection string like ``"chain A or chain B"`` or ``"resn HOH or resn DOD"``.
 
-        :param prefix: selection prefix, e.g. "chain" or "resn".
-        :param tokens: sequence of tokens to join.
-        :returns: selection string
+        :param str prefix: selection prefix, e.g. ``"chain"`` or ``"resn"``.
+        :param Sequence[str] tokens: sequence of tokens to join.
+        :returns: selection string.
+        :rtype: str
         """
         return " or ".join(f"{prefix} {t}" for t in tokens)
 
@@ -174,11 +206,12 @@ class PDBQuery:
     # ----------------------------
     def _decompress_gz(self, gz_path: Path) -> Path:
         """
-        Decompress a .gz file next to the original file and return the decompressed Path.
+        Decompress a ``.gz`` file next to the original file and return the decompressed :class:`Path`.
 
-        :param gz_path: Path to the .gz file.
+        :param Path gz_path: Path to the ``.gz`` file.
         :returns: Path to decompressed file.
-        :raises FileNotFoundError: if gz_path doesn't exist.
+        :rtype: Path
+        :raises FileNotFoundError: if ``gz_path`` doesn't exist.
         """
         if not gz_path.exists():
             raise FileNotFoundError(gz_path)
@@ -201,10 +234,11 @@ class PDBQuery:
         """
         Convert a source file to destination using Open Babel.
 
-        :param src: source Path (e.g. ligand PDB or SDF).
-        :param dst: destination Path.
-        :param extra_args: extra command-line args to obabel (e.g. ['-h']).
+        :param Path src: source Path (e.g. ligand PDB or SDF).
+        :param Path dst: destination Path.
+        :param Optional[Sequence[str]] extra_args: extra command-line args to obabel (e.g. ['-h']).
         :returns: True if dst exists after this call, False otherwise.
+        :rtype: bool
         """
         obabel_bin = shutil.which("obabel")
         if obabel_bin is None:
@@ -252,9 +286,9 @@ class PDBQuery:
     def _cleanup_reference_sdfs(self, keep: Path) -> None:
         """
         Remove any SDF files in reference_ligand that match the ligand_code prefix
-        except the `keep` path. This ensures only the canonical file remains.
+        except the ``keep`` path. This ensures only the canonical file remains.
 
-        :param keep: Path to the canonical file to keep.
+        :param Path keep: Path to the canonical file to keep.
         :returns: None
         """
         if not self._reference_ligand_dir.exists() or not self.ligand_code:
@@ -277,7 +311,8 @@ class PDBQuery:
         and set derived file paths.
 
         :returns: self
-        :raises RuntimeError: if PyMOL cmd is not importable.
+        :rtype: PDBQuery
+        :raises RuntimeError: if PyMOL ``cmd`` is not importable.
         """
         if cmd is None:
             raise RuntimeError(
@@ -315,13 +350,16 @@ class PDBQuery:
         Fetch the PDB using PyMOL and load it into the session.
 
         Behavior:
-          - calls cmd.fetch(...)
+          - calls ``cmd.fetch(...)``
           - searches fetch_dir for files containing pdb id case-insensitively
-          - prefers extensions in order: .pdb, .ent, .cif, .mmcif, .pdb.gz, .ent.gz
-          - decompresses .gz into the same directory (if necessary)
-          - sets self._pdb_path to the discovered file and loads it via cmd.load(...)
+          - prefers extensions in order: ``.pdb``, ``.ent``, ``.cif``, ``.mmcif``, ``.pdb.gz``, ``.ent.gz``
+          - decompresses ``.gz`` into the same directory (if necessary)
+          - sets ``self._pdb_path`` to the discovered file and loads it via ``cmd.load(...)``
 
         :returns: self
+        :rtype: PDBQuery
+        :raises RuntimeError: If PyMOL ``cmd`` is not available.
+        :raises FileNotFoundError: If no suitable fetched file is found.
         """
         if cmd is None:
             raise RuntimeError("PyMOL cmd is not available. Cannot fetch PDB.")
@@ -399,6 +437,7 @@ class PDBQuery:
         Keep only requested chains (if provided). Removes everything else from the PyMOL session.
 
         :returns: self
+        :rtype: PDBQuery
         """
         if not self.chains:
             logger.debug("No chains provided; keeping all chains.")
@@ -416,14 +455,15 @@ class PDBQuery:
         Save ligand selection into reference and cocrystal destinations.
 
         Flow:
-         - create a single temporary PDB in reference_ligand: "{ligand_code}_tmp.pdb"
-         - convert tmp_pdb -> reference_ligand/{ligand_code}.sdf via obabel (preferred)
-         - fallback to copy tmp_pdb -> reference_ligand/{ligand_code}.sdf if obabel missing/fails
-         - convert reference -> cocrystal/{pdb_id}.sdf via obabel or copy fallback
+         - create a single temporary PDB in reference_ligand: ``{ligand_code}_tmp.pdb``
+         - convert ``tmp_pdb -> reference_ligand/{ligand_code}.sdf`` via obabel (preferred)
+         - fallback to copy ``tmp_pdb -> reference_ligand/{ligand_code}.sdf`` if obabel missing/fails
+         - convert reference -> ``cocrystal/{pdb_id}.sdf`` via obabel or copy fallback
          - remove tmp_pdb and delete any stray SDFs in reference_ligand that do not match canonical filename
          - remove ligand atoms from session
 
         :returns: self
+        :rtype: PDBQuery
         :raises RuntimeError: if ligand selection is empty or reference SDF cannot be produced
         """
         if not self.ligand_code:
@@ -561,6 +601,7 @@ class PDBQuery:
         Remove common solvents while optionally preserving cofactors.
 
         :returns: self
+        :rtype: PDBQuery
         """
         solvent_sel = self._join_selection("resn", self.DEFAULT_SOLVENTS)
         cmd.select("solvents", solvent_sel)
@@ -582,6 +623,7 @@ class PDBQuery:
         Save the remaining protein (no ligand) to filtered_protein path and clear the PyMOL session.
 
         :returns: self
+        :rtype: PDBQuery
         """
         self._filtered_protein_dir.mkdir(parents=True, exist_ok=True)
         try:
@@ -600,8 +642,10 @@ class PDBQuery:
         Execute the full pipeline: validate -> fetch -> filter_chains -> extract_ligand ->
         clean_solvents_and_cofactors -> save_filtered_protein.
 
-        :param obabel_args: args passed to obabel for processed output (kept for API compatibility).
+        :param Optional[Sequence[str]] obabel_args: args passed to obabel for
+        processed output (kept for API compatibility).
         :returns: self
+        :rtype: PDBQuery
         """
         return (
             self.validate()
@@ -619,7 +663,8 @@ class PDBQuery:
         """
         Return a dict with files currently present in reference_ligand and cocrystal directories.
 
-        :returns: { 'reference': [...], 'cocrystal': [...] }
+        :returns: dict with keys ``'reference'`` and ``'cocrystal'`` mapping to filename lists.
+        :rtype: Dict[str, List[str]]
         """
         ref_list: List[str] = []
         coco_list: List[str] = []
@@ -640,6 +685,7 @@ class PDBQuery:
         Path to fetched PDB file (string) or None.
 
         :returns: path or None
+        :rtype: Optional[str]
         """
         return str(self._pdb_path) if self._pdb_path else None
 
@@ -649,6 +695,7 @@ class PDBQuery:
         Path to the saved filtered protein PDB file (string) or None.
 
         :returns: path or None
+        :rtype: Optional[str]
         """
         return str(self._filtered_protein_path) if self._filtered_protein_path else None
 
@@ -657,9 +704,10 @@ class PDBQuery:
         """
         Path to the reference ligand SDF: reference_ligand/{ligand_code}.sdf (string) or None.
 
-        Note: if `ligand_code` was not provided at construction, this will be None.
+        Note: if ``ligand_code`` was not provided at construction, this will be ``None``.
 
         :returns: path or None
+        :rtype: Optional[str]
         """
         return str(self._reference_ligand_path) if self._reference_ligand_path else None
 
@@ -669,6 +717,7 @@ class PDBQuery:
         Path to the cocrystal ligand SDF: cocrystal/{pdb_id}.sdf (string) or None.
 
         :returns: path or None
+        :rtype: Optional[str]
         """
         return str(self._cocrystal_ligand_path) if self._cocrystal_ligand_path else None
 
@@ -676,18 +725,20 @@ class PDBQuery:
     @property
     def ligand_path(self) -> Optional[str]:
         """
-        Alias -> reference_ligand_path
+        Alias -> :py:meth:`reference_ligand_path`
 
         :returns: path or None
+        :rtype: Optional[str]
         """
         return self.reference_ligand_path
 
     @property
     def ligand2_path(self) -> Optional[str]:
         """
-        Alias -> cocrystal_ligand_path
+        Alias -> :py:meth:`cocrystal_ligand_path`
 
         :returns: path or None
+        :rtype: Optional[str]
         """
         return self.cocrystal_ligand_path
 
@@ -707,14 +758,15 @@ class PDBQuery:
         Returns a list of result dicts for each row/item with `success` and path info.
 
         :param items: list of dicts or pandas.DataFrame containing records to process.
-        :param output_dir: base output directory for all items.
-        :param keys: mapping of expected keys in each item -> {
+        :param str output_dir: base output directory for all items.
+        :param Optional[Dict[str, str]] keys: mapping of expected keys in each item -> {
             'pdb_id_key', 'protein_name_key', 'ligand_key', 'chains_key', 'cofactors_key'
         } (optional).
-        :param default_kwargs: extra kwargs passed to each PDBQuery constructor.
+        :param Optional[Dict[str, Any]] default_kwargs: extra kwargs passed to each PDBQuery constructor.
         :returns: list of dicts: {
             'pdb_id', 'protein_name', 'reference', 'cocrystal', 'filtered_protein', 'success', 'error'
         }
+        :rtype: List[Dict[str, Any]]
         """
         # lazy-import pandas to avoid forcing it for simple usage
         try:
