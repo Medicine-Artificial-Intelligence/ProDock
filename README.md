@@ -1,6 +1,18 @@
 # ProDock
-ProDock
+Automatic pipeline for molecular modeling
 
+[![PyPI version](https://img.shields.io/pypi/v/prodock.svg)](https://pypi.org/project/prodock/)
+[![License](https://img.shields.io/github/license/Medicine-Artificial-Intelligence/prodock.svg)](https://github.com/Medicine-Artificial-Intelligence/prodock/blob/main/LICENSE)
+[![Release](https://img.shields.io/github/v/release/Medicine-Artificial-Intelligence/prodock.svg)](https://github.com/Medicine-Artificial-Intelligence/prodock/releases)
+[![Last Commit](https://img.shields.io/github/last-commit/Medicine-Artificial-Intelligence/prodock.svg)](https://github.com/Medicine-Artificial-Intelligence/prodock/commits)
+[![CI](https://github.com/Medicine-Artificial-Intelligence/prodock/actions/workflows/test-and-lint.yml/badge.svg?branch=main)](https://github.com/Medicine-Artificial-Intelligence/prodock/actions/workflows/test-and-lint.yml)
+[![Dependency PRs](https://img.shields.io/github/issues-pr-raw/Medicine-Artificial-Intelligence/prodock?label=dependency%20PRs)](https://github.com/Medicine-Artificial-Intelligence/prodock/pulls?q=is%3Apr+label%3Adependencies)
+[![Stars](https://img.shields.io/github/stars/Medicine-Artificial-Intelligence/prodock.svg?style=social&label=Star)](https://github.com/Medicine-Artificial-Intelligence/prodock/stargazers)
+
+
+**Toolkit for molecular modeling**
+![ProDock](https://raw.githubusercontent.com/Medicine-Artificial-Intelligence/ProDock/main/doc/fig/prodock.png)
+For more details on each utility within the repository, please refer to the documentation provided in the respective folders.
 
 ## Step-by-Step Installation Guide
 
