@@ -23,13 +23,15 @@ class PDBQTSanitizer:
 
     Save as: prodock/io/pdbqt_sanitizer.py
 
-    Typical usage:
-      s = PDBQTSanitizer(path)
-      warnings = s.validate(strict=True)
-      s.sanitize(rebuild=True, aggressive=False)
-      s.write(out_path)
+    Typical usage::
 
-    :param path: optional path to PDBQT to read immediately (if provided)
+        s = PDBQTSanitizer("ligand.pdbqt")
+        warnings = s.validate(strict=True)
+        s.sanitize(rebuild=True, aggressive=False)
+        s.write("ligand.sanitized.pdbqt")
+
+    :param path: optional path to PDBQT to read immediately (if provided).
+    :type path: Optional[str | pathlib.Path]
     """
 
     # conservative list of element symbols acceptable in element column
@@ -92,8 +94,15 @@ class PDBQTSanitizer:
         """
         Create sanitizer instance and optionally load file.
 
-        :param path: optional path to PDBQT to read now
+        :param path: optional path to PDBQT to read now.
+        :type path: Optional[str | pathlib.Path]
         :returns: None
+        :rtype: None
+        :example:
+
+        >>> s = PDBQTSanitizer("ligand.pdbqt")
+        >>> isinstance(s, PDBQTSanitizer)
+        True
         """
         self._path: Optional[Path] = None if path is None else Path(path)
         self.lines: List[str] = []
@@ -110,8 +119,16 @@ class PDBQTSanitizer:
         """
         Load a PDBQT file into memory.
 
-        :param path: path to PDBQT file
+        :param path: path to PDBQT file.
+        :type path: str | pathlib.Path
         :returns: self
+        :rtype: PDBQTSanitizer
+        :raises FileNotFoundError: if the provided path does not exist
+        :example:
+
+        >>> s = PDBQTSanitizer()
+        >>> s.read("ligand.pdbqt")
+        <PDBQTSanitizer ...>
         """
         p = Path(path)
         if not p.exists():
@@ -128,8 +145,17 @@ class PDBQTSanitizer:
         """
         Write sanitized content (must call sanitize() first).
 
-        :param out_path: file path to write sanitized file
-        :returns: Path to written file
+        :param out_path: file path to write sanitized file.
+        :type out_path: str | pathlib.Path
+        :returns: Path to written file.
+        :rtype: pathlib.Path
+        :raises RuntimeError: if sanitize() has not been called
+        :example:
+
+        >>> s = PDBQTSanitizer("ligand.pdbqt")
+        >>> s.sanitize()
+        >>> s.write("ligand.sanitized.pdbqt")
+        PosixPath('ligand.sanitized.pdbqt')
         """
         if not self._sanitized:
             raise RuntimeError("Call sanitize(rebuild=True/False) before write().")
@@ -145,10 +171,20 @@ class PDBQTSanitizer:
         """
         Sanitize and overwrite original file.
 
-        :param rebuild: if True, rebuild ATOM/HETATM into fixed-width PDB format
-        :param aggressive: if True, apply aggressive alias heuristics (e.g. NA -> Na)
-        :param backup: if True, create .bak copy before overwrite
-        :returns: Path to overwritten file
+        :param rebuild: if True, rebuild ATOM/HETATM into fixed-width PDB format.
+        :type rebuild: bool
+        :param aggressive: if True, apply aggressive alias heuristics (e.g. NA -> Na).
+        :type aggressive: bool
+        :param backup: if True, create .bak copy before overwrite.
+        :type backup: bool
+        :returns: Path to overwritten file.
+        :rtype: pathlib.Path
+        :raises RuntimeError: if no file has been loaded via read() or constructor.
+        :example:
+
+        >>> s = PDBQTSanitizer("ligand.pdbqt")
+        >>> s.sanitize_inplace(rebuild=True, aggressive=False, backup=True)
+        PosixPath('ligand.pdbqt')
         """
         if self._path is None:
             raise RuntimeError("No file loaded. Call read(path) first.")
@@ -168,8 +204,10 @@ class PDBQTSanitizer:
         """
         Normalize capitalization of element token (e.g. 'cl'->'Cl').
 
-        :param token: raw token
-        :returns: canonicalized token or empty string
+        :param token: raw token.
+        :type token: str
+        :returns: canonicalized token or empty string.
+        :rtype: str
         """
         t = (token or "").strip()
         if not t:
@@ -184,7 +222,9 @@ class PDBQTSanitizer:
         Remove digits from string (used to map tokens like CG0 -> CG).
 
         :param s: string
+        :type s: str
         :returns: string without digits
+        :rtype: str
         """
         return re.sub(r"\d+", "", s)
 
@@ -192,9 +232,16 @@ class PDBQTSanitizer:
         """
         Map a raw token to a likely element using alias map and heuristics.
 
-        :param raw: raw trailing token or atomname
-        :param atomname: atom name (fallback)
-        :returns: element symbol or empty string
+        The mapping uses the conservative _COMMON_ALIAS_MAP, numeric-stripping,
+        capitalization heuristics, and finally a fallback to the first letter of
+        the atom name when reasonable.
+
+        :param raw: raw trailing token or atomname.
+        :type raw: str
+        :param atomname: atom name (fallback).
+        :type atomname: str
+        :returns: element symbol or empty string if none found.
+        :rtype: str
         """
         r = (raw or "").strip()
         if not r:
@@ -224,7 +271,9 @@ class PDBQTSanitizer:
         Exact check if token is an allowed element symbol.
 
         :param token: token
+        :type token: str
         :returns: True if token exactly matches allowed element
+        :rtype: bool
         """
         if not token:
             return False
@@ -244,7 +293,16 @@ class PDBQTSanitizer:
           - strange atom names and unknown top-level tags
 
         :param strict: if True, warn on any non-canonical trailing token (audit mode).
-        :returns: list of warning strings
+        :type strict: bool
+        :returns: list of warning strings (may be empty).
+        :rtype: List[str]
+        :raises RuntimeError: if no file has been loaded via read() or constructor.
+        :example:
+
+        >>> s = PDBQTSanitizer("ligand.pdbqt")
+        >>> warnings = s.validate(strict=True)
+        >>> isinstance(warnings, list)
+        True
         """
         if not self.lines:
             raise RuntimeError("No file loaded. Call read(path) first.")
@@ -365,13 +423,24 @@ class PDBQTSanitizer:
         self, rebuild: bool = True, aggressive: bool = False
     ) -> "PDBQTSanitizer":
         """
-        Produce sanitized content. If `rebuild` is True the sanitizer reconstructs
-        ATOM/HETATM lines into fixed-column PDB format placing the element in
-        cols 77-78. If `rebuild` is False, only whitespace-token trailing mapping is applied.
+        Produce sanitized content.
 
-        :param rebuild: if True rebuild ATOM/HETATM into fixed-width form
-        :param aggressive: if True apply aggressive heuristics (e.g. NA->Na)
+        If ``rebuild`` is True the sanitizer reconstructs ATOM/HETATM lines into fixed-column PDB
+        format placing the element in cols 77-78. If ``rebuild`` is False, only whitespace-token
+        trailing mapping is applied.
+
+        :param rebuild: if True rebuild ATOM/HETATM into fixed-width form.
+        :type rebuild: bool
+        :param aggressive: if True apply aggressive heuristics (e.g. NA->Na).
+        :type aggressive: bool
         :returns: self
+        :rtype: PDBQTSanitizer
+        :example:
+
+        >>> s = PDBQTSanitizer("ligand.pdbqt")
+        >>> s.validate()
+        >>> s.sanitize(rebuild=True)
+        <PDBQTSanitizer ...>
         """
         out_lines: List[str] = []
         self.warnings = []
@@ -505,12 +574,23 @@ class PDBQTSanitizer:
         """
         Convenience: sanitize a file and write output.
 
-        :param path: input path
-        :param out_path: if None overwrite original (create .bak when backup=True)
-        :param rebuild: if True rebuild ATOM/HETATM into fixed-width PDB form
-        :param aggressive: if True apply aggressive heuristics
-        :param backup: if True when overwriting create .bak copy
-        :returns: Path to sanitized file
+        :param path: input path.
+        :type path: str | pathlib.Path
+        :param out_path: if None overwrite original (create .bak when backup=True).
+        :type out_path: Optional[str | pathlib.Path]
+        :param rebuild: if True rebuild ATOM/HETATM into fixed-width PDB form.
+        :type rebuild: bool
+        :param aggressive: if True apply aggressive heuristics.
+        :type aggressive: bool
+        :param backup: if True when overwriting create .bak copy.
+        :type backup: bool
+        :returns: Path to sanitized file.
+        :rtype: pathlib.Path
+        :raises FileNotFoundError: if input path does not exist.
+        :example:
+
+        >>> PDBQTSanitizer.sanitize_file("ligand.pdbqt", out_path="ligand.sanitized.pdbqt")
+        PosixPath('ligand.sanitized.pdbqt')
         """
         p = Path(path)
         s = cls(p)
@@ -538,7 +618,8 @@ class PDBQTSanitizer:
         """
         Short help text.
 
-        :returns: help text string
+        :returns: help text string.
+        :rtype: str
         """
         return (
             "PDBQTSanitizer(path).validate(strict=False) -> warnings; "

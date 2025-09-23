@@ -54,7 +54,42 @@ class Optimizer:
 
     Methods are chainable (return self). Use properties to access results.
 
-    :param max_iters: maximum iterations for minimizer calls (default 200).
+    Example
+    -------
+    A minimal example showing how to create an Optimizer, load MolBlocks, run optimization
+    and export results to an SDF:
+
+    .. code-block:: python
+
+        from prodock.chem.optimize import Optimizer
+        from rdkit import Chem
+        from rdkit.Chem import AllChem
+
+        # create a simple molecule and embed into 1 conformer, then convert to MolBlock
+        mol = Chem.AddHs(Chem.MolFromSmiles("CCO"))
+        AllChem.EmbedMolecule(mol)
+        molblock = Chem.MolToMolBlock(mol)
+
+        opt = Optimizer(max_iters=250)
+        opt.load_molblocks([molblock]) \\
+           .optimize_all(method="UFF") \\
+           .write_sdf("out_folder", per_mol_folder=False, write_energy_tags=True)
+
+    Parameters
+    ----------
+    :param max_iters:
+        Maximum number of iterations for internal minimizer calls (passed to RDKit
+        force-field minimizers). Defaults to ``200``.
+    :type max_iters: int
+
+    Attributes
+    ----------
+    _molblocks_in : List[str]
+        Internal list of input MolBlock strings loaded via :meth:`load_molblocks`.
+    _optimized_blocks : List[str]
+        MolBlock strings after optimization (updated in-place by :meth:`optimize_all`).
+    _energies : List[Dict[int, float]]
+        Per-molecule mapping of conformer id -> energy (filled by :meth:`optimize_all`).
     """
 
     def __init__(self, max_iters: int = 200) -> None:
@@ -72,14 +107,42 @@ class Optimizer:
     # ---------------- properties ----------------
     @property
     def optimized_molblocks(self) -> List[str]:
+        """
+        Return a shallow copy of the optimized MolBlock strings.
+
+        :return: list of MolBlock strings representing optimized molecules
+        :rtype: List[str]
+        """
         return list(self._optimized_blocks)
 
     @property
     def energies(self) -> List[Dict[int, float]]:
+        """
+        Return a deep-ish copy of stored per-molecule energies.
+
+        Each list element corresponds to one input molecule and is a mapping:
+        conformer id (int) -> energy (float).
+
+        :return: list of energy dictionaries
+        :rtype: List[Dict[int, float]]
+        """
         return [dict(e) for e in self._energies]
 
     # ---------------- loading ----------------
     def load_molblocks(self, molblocks: Iterable[str]) -> "Optimizer":
+        """
+        Load MolBlock strings for subsequent optimization.
+
+        Each MolBlock is validated via RDKit parsing (``Chem.MolFromMolBlock``). Invalid
+        or empty entries are skipped and a warning is emitted.
+
+        :param molblocks: An iterable of MolBlock strings (RDKit MolBlock format).
+        :type molblocks: Iterable[str]
+        :returns: self (chainable)
+        :rtype: Optimizer
+        :raises TypeError: If the provided ``molblocks`` is not iterable of strings (standard
+            Python TypeError will propagate).
+        """
         blocks = []
         for mb in molblocks:
             if not mb:
@@ -99,6 +162,20 @@ class Optimizer:
 
     # ---------------- single-molecule optimizers ----------------
     def _optimize_uff_single(self, mol: Chem.Mol) -> Dict[int, float]:
+        """
+        Optimize a single RDKit Mol using the UFF force field.
+
+        The function handles molecules with zero, one or multiple conformers:
+        - If zero conformers are present, an empty dict is returned.
+        - If a single conformer is present, it is minimized in-place.
+        - If multiple conformers are present, ``AllChem.UFFOptimizeMoleculeConfs`` is
+          attempted and fallbacks are used if needed.
+
+        :param mol: RDKit molecule object (may contain 0..N conformers)
+        :type mol: rdkit.Chem.rdchem.Mol
+        :return: mapping conformer id -> energy (in RDKit energy units)
+        :rtype: Dict[int, float]
+        """
         energies: Dict[int, float] = {}
         try:
             nconf = mol.GetNumConformers()
@@ -133,7 +210,18 @@ class Optimizer:
         self, mol: Chem.Mol, variant: str = "MMFF94"
     ) -> Dict[int, float]:
         """
-        :param variant: 'MMFF94' or 'MMFF94S' (case-insensitive). 'MMFF' is treated as 'MMFF94'.
+        Optimize a single RDKit Mol using the MMFF force field.
+
+        The ``variant`` may be provided in different casings. The alias ``'MMFF'``
+        is treated as ``'MMFF94'``.
+
+        :param mol: RDKit molecule object (may contain 0..N conformers)
+        :type mol: rdkit.Chem.rdchem.Mol
+        :param variant: Variant string for MMFF: ``'MMFF94'`` or ``'MMFF94S'``.
+                        ``'MMFF'`` is accepted as an alias for ``'MMFF94'``.
+        :type variant: str
+        :return: mapping conformer id -> energy (in RDKit energy units)
+        :rtype: Dict[int, float]
         """
         v = (variant or "MMFF94").upper()
         if v == "MMFF":
@@ -177,8 +265,18 @@ class Optimizer:
         """
         Optimize all loaded MolBlocks with the requested method/variant.
 
-        :param method: 'UFF' | 'MMFF' | 'MMFF94' | 'MMFF94S'
-        :return: self
+        The method operates in-place on loaded MolBlocks and fills
+        :pyattr:`_optimized_blocks` and :pyattr:`_energies`.
+
+        :param method:
+            One of: ``'UFF'``, ``'MMFF'``, ``'MMFF94'``, ``'MMFF94S'``.
+            Case-insensitive. ``'MMFF'`` is treated as ``'MMFF94'``.
+        :type method: str
+        :returns: self (chainable)
+        :rtype: Optimizer
+        :raises RuntimeError: if no MolBlocks were loaded prior to calling this method
+            (call :meth:`load_molblocks` first).
+        :raises ValueError: if an unsupported method string is provided.
         """
         if not self._molblocks_in:
             raise RuntimeError("Optimizer: no MolBlocks loaded (call load_molblocks).")
@@ -223,12 +321,31 @@ class Optimizer:
         write_energy_tags: bool = True,
     ) -> "Optimizer":
         """
-        Write optimized molecules to SDF. Optionally add CONF_ENERGY_<id> tags.
+        Write optimized molecules to SDF files.
 
-        :param out_folder: destination folder
-        :param per_mol_folder: if True, write to ligand_i/ligand_i.sdf
-        :param write_energy_tags: include per-conformer energies as properties
-        :return: self
+        If ``write_energy_tags`` is True, per-conformer energies saved in
+        :pyattr:`_energies` will be attached to each RDKit Mol as properties named
+        ``CONF_ENERGY_<confId>`` (stringified floats).
+
+        Files are written either as one SDF per-molecule in individual folders
+        (``out_folder/ligand_i/ligand_i.sdf``) when ``per_mol_folder=True``, or as
+        flat SDF files in ``out_folder`` (``out_folder/ligand_i.sdf``) when False.
+
+        :param out_folder: destination folder where SDF(s) will be written.
+        :type out_folder: str
+        :param per_mol_folder:
+            If True (default), create a folder per molecule and write the SDF inside
+            as ``<folder>/<folder>.sdf``. If False, write ``ligand_<i>.sdf`` directly
+            into ``out_folder``.
+        :type per_mol_folder: bool
+        :param write_energy_tags:
+            If True (default) attach per-conformer energies to each RDKit Mol as
+            properties named ``CONF_ENERGY_<confId>`` before writing the SDF.
+        :type write_energy_tags: bool
+        :returns: self (chainable)
+        :rtype: Optimizer
+        :raises OSError: if the output folder cannot be created due to filesystem errors
+            (the underlying Path.mkdir will raise).
         """
         out = Path(out_folder)
         out.mkdir(parents=True, exist_ok=True)

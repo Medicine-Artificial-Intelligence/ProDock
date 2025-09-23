@@ -14,9 +14,28 @@ Key points
 - Clear errors are raised if GridBox cannot compute a box (prevents calling mk_prepare_receptor.py without box).
 - Detailed mekoo/ADT stdout+stderr are stored in last_simulation_report.
 
-Usage example:
-    pp = ProteinProcess(enable_logging=True)
-    pp.fix_and_minimize_pdb(..., out_fmt='gpf', input_ligand='ligand.sdf')
+Dependencies
+------------
+- pdbfixer
+- openmm
+- pymol (optional for postprocessing)
+- prodock.process.gridbox.GridBox
+
+Example
+-------
+Minimal example that fixes & prepares a receptor and requests a GPF file (requires a ligand file):
+
+.. code-block:: python
+
+    from protein_process import ReceptorProcess
+    pp = ReceptorProcess(enable_logging=True)
+    pp.fix_and_minimize_pdb(
+        input_pdb="receptor_input.pdb",
+        output_dir="out",
+        out_fmt="gpf",
+        input_ligand="ligand.sdf",
+        minimize_in_water=False
+    )
     print(pp.last_simulation_report)
 """
 
@@ -46,11 +65,27 @@ class ReceptorProcess:
     """
     Fix and minimize proteins and prepare docking-ready artifacts.
 
-    :param mekoo_cmd: path/command for mk_prepare_receptor.py (mekoo wrapper).
-    :param adt_cmd: path/command for AutoDockTools prepare_receptor4.py (fallback).
-    :param enable_logging: default logging behaviour for this instance (console debug).
-    :ivar final_artifact: path to final produced artifact (PDB / PDBQT / GPF).
-    :ivar last_simulation_report: dict with details (mekoo_info, adt_info, grid_params, ...).
+    The class provides a fluent primary method :meth:`fix_and_minimize_pdb` which:
+      - applies PDBFixer repairs,
+      - runs an OpenMM minimization (gas-phase and optionally in explicit water),
+      - computes a docking grid box via :class:`prodock.process.gridbox.GridBox` when needed,
+      - attempts to generate PDBQT/GPF artifacts via `mk_prepare_receptor.py` (mekoo),
+        falling back to AutoDockTools (ADT) if mekoo is not available,
+      - stores verbose tool output in :pyattr:`last_simulation_report`.
+
+    :param mekoo_cmd: Path or command name for mk_prepare_receptor.py (mekoo wrapper).
+    :type mekoo_cmd: str
+    :param adt_cmd: Path or command name for AutoDockTools prepare_receptor4.py (fallback).
+    :type adt_cmd: str
+    :param enable_logging: If True, enable console logging for this instance.
+    :type enable_logging: bool
+
+    Attributes
+    ----------
+    final_artifact : Optional[pathlib.Path]
+        Path to the final produced artifact (PDB / PDBQT / GPF) after the run.
+    last_simulation_report : Optional[Dict[str, Any]]
+        Dictionary containing details about the run (mekoo_info, adt_info, grid_params, ...)
     """
 
     def __init__(
@@ -70,7 +105,12 @@ class ReceptorProcess:
     # Logging helpers
     # -------------------------
     def enable_console_logging(self, level: int = logging.DEBUG) -> None:
-        """Enable console logging for this module/instance."""
+        """
+        Enable console logging for this module/instance.
+
+        :param level: logging level to set for the instance logger.
+        :type level: int
+        """
         logger.setLevel(level)
         if not any(isinstance(h, logging.StreamHandler) for h in logger.handlers):
             sh = logging.StreamHandler()
@@ -84,6 +124,14 @@ class ReceptorProcess:
     # -------------------------
     @staticmethod
     def _choose_platform() -> Tuple[Platform, Dict[str, str]]:
+        """
+        Select the best-available OpenMM platform.
+
+        Tries CUDA, then OpenCL, and falls back to CPU.
+
+        :returns: (Platform object, platform property dict)
+        :rtype: tuple
+        """
         for name in ("CUDA", "OpenCL", "CPU"):
             try:
                 plat = Platform.getPlatformByName(name)
@@ -97,7 +145,15 @@ class ReceptorProcess:
 
     @staticmethod
     def _pos_to_nm(pos) -> Tuple[float, float, float]:
-        """Return (x,y,z) in nanometers from an OpenMM position object."""
+        """
+        Return (x,y,z) in nanometers from an OpenMM position object.
+
+        This helper normalizes multiple position representations.
+
+        :param pos: position object or sequence from OpenMM state
+        :returns: tuple of floats (x, y, z) in nanometers
+        :rtype: tuple
+        """
         try:
             vals = pos.value_in_unit(nanometer)
             return float(vals[0]), float(vals[1]), float(vals[2])
@@ -128,13 +184,19 @@ class ReceptorProcess:
           3. If preset missing/fails, try gb.from_ligand_pad_adv(...) or gb.from_ligand_pad(...)
           4. If still failing, try gb.from_ligand_scale(...)
 
-        :param ligand_path: path to ligand (SDF/PDB/etc).
-        :param scale: multiplier used by from_ligand_scale fallback.
-        :param min_size: minimal axis size in Å.
-        :param pad: padding in Å for pad builder.
-        :param isotropic: whether to force isotropic box when using pad builder.
-        :returns: dict with center_x, center_y, center_z, size_x, size_y, size_z
-        :raises RuntimeError: if GridBox cannot compute a box
+        :param ligand_path: Path to ligand file (SDF/PDB/etc) used to compute box.
+        :type ligand_path: str
+        :param scale: multiplier used by from_ligand_scale fallback (default 1.25).
+        :type scale: float
+        :param min_size: minimal axis size in Å (default 22.5).
+        :type min_size: float
+        :param pad: padding in Å for pad builder (default 4.0).
+        :type pad: float
+        :param isotropic: whether to force isotropic/cubic box in pad/scale builders.
+        :type isotropic: bool
+        :returns: dictionary with keys center_x, center_y, center_z, size_x, size_y, size_z
+        :rtype: dict
+        :raises RuntimeError: if GridBox cannot compute a box after all fallbacks
         """
         try:
             gb = GridBox().load_ligand(ligand_path)
@@ -221,6 +283,21 @@ class ReceptorProcess:
     ) -> Dict[str, Any]:
         """
         Call mk_prepare_receptor.py with correct flags and capture output.
+
+        :param input_pdb: input PDB path to hand to mekoo.
+        :type input_pdb: pathlib.Path
+        :param out_basename: base path for outputs (without extension).
+        :type out_basename: pathlib.Path
+        :param write_pdbqt: optional path to request that mekoo writes a PDBQT.
+        :type write_pdbqt: pathlib.Path or None
+        :param write_gpf: optional path to request that mekoo writes a GPF.
+        :type write_gpf: pathlib.Path or None
+        :param box_center: optional (x,y,z) center to pass to mekoo.
+        :type box_center: tuple or None
+        :param box_size: optional (sx,sy,sz) size to pass to mekoo.
+        :type box_size: tuple or None
+        :return: info dict with keys 'called','rc','stdout','stderr','produced'
+        :rtype: dict
         """
         exe = shutil.which(self.mekoo_cmd) or (
             self.mekoo_cmd if Path(self.mekoo_cmd).exists() else None
@@ -296,6 +373,16 @@ class ReceptorProcess:
         return info
 
     def _call_adt(self, input_pdb: Path, out_pdbqt: Path) -> Dict[str, Any]:
+        """
+        Call AutoDockTools prepare_receptor4.py as a fallback to produce PDBQT.
+
+        :param input_pdb: input PDB path
+        :type input_pdb: pathlib.Path
+        :param out_pdbqt: desired output pdbqt path
+        :type out_pdbqt: pathlib.Path
+        :return: info dict similar to :meth:`_call_mekoo`
+        :rtype: dict
+        """
         exe = shutil.which(self.adt_cmd) or (
             self.adt_cmd if Path(self.adt_cmd).exists() else None
         )
@@ -364,8 +451,66 @@ class ReceptorProcess:
         """
         Fix a PDB (PDBFixer), minimize (OpenMM), and optionally prepare docking files.
 
-        :raises RuntimeError: if out_fmt == 'gpf' but input_ligand is not provided or GridBox cannot compute box.
+        The method performs the following high-level steps:
+          - run PDBFixer repairs and add missing atoms/hydrogens,
+          - run a gas-phase OpenMM minimization with backbone restraints,
+          - optionally add solvent and minimize in water if minimize_in_water=True,
+          - compute docking grid (if out_fmt == 'gpf' or to pass to mekoo),
+          - call mekoo (mk_prepare_receptor.py) to create PDBQT/GPF, fallback to ADT.
+
+        :param input_pdb: path to input PDB file.
+        :type input_pdb: str
+        :param output_dir: directory to write output artifacts.
+        :type output_dir: str
+        :param energy_diff: convergence tolerance for minimizer (OpenMM units).
+        :type energy_diff: float
+        :param max_minimization_steps: maximum iterations for minimization.
+        :type max_minimization_steps: int
+        :param start_at: residue renumbering start index (used in PyMOL postprocessing).
+        :type start_at: int
+        :param ion_conc: ionic strength (molar) used when solvating (if requested).
+        :type ion_conc: float
+        :param cofactors: list of residue names to treat as cofactors (kept in selection).
+        :type cofactors: list[str] or None
+        :param pdb_id: optional PDB id used for naming output.
+        :type pdb_id: str or None
+        :param protein_name: optional name used for output basename (overrides pdb_id).
+        :type protein_name: str or None
+        :param minimize_in_water: if True, perform an explicit-water minimization after gas-phase.
+        :type minimize_in_water: bool
+        :param backbone_k_kcal_per_A2: backbone restraint force constant (kcal / A^2).
+        :type backbone_k_kcal_per_A2: float
+        :param out_fmt: desired final artifact format: 'pdb', 'pdbqt', or 'gpf'.
+        :type out_fmt: str
+        :param input_ligand: required when out_fmt == 'gpf' to compute box via GridBox.
+        :type input_ligand: str or None
+        :param grid_scale: scale fallback for grid computation if pad-based builders fail.
+        :type grid_scale: float
+        :param grid_min_size: minimum grid axis size in Å when constructing GPF fallback.
+        :type grid_min_size: float
+        :param pad_angstrom: padding used for pad builders in Å.
+        :type pad_angstrom: float
+        :param enable_logging: enable console logging for the duration of this call.
+        :type enable_logging: bool
+
         :returns: self (fluent)
+        :rtype: ReceptorProcess
+
+        :raises RuntimeError:
+            - if out_fmt == 'gpf' but input_ligand is not provided
+            - or if GridBox cannot compute a box when required
+            - or if gas/solvent minimization fails (OpenMM exceptions are raised as RuntimeError)
+
+        Example
+        -------
+
+        .. code-block:: python
+
+            rp = ReceptorProcess(enable_logging=True)
+            rp.fix_and_minimize_pdb(
+                "receptor.pdb", "outdir", out_fmt="pdbqt"
+            )
+            print(rp.last_simulation_report)
         """
         if enable_logging:
             self.enable_console_logging()

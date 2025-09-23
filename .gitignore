@@ -3,3 +3,4 @@ dev/*
 logs/*
 *.dat
 docs/*
+*.html

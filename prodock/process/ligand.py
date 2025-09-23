@@ -1,4 +1,3 @@
-# prodock/process/ligand.py
 """
 LigandProcess
 =============
@@ -79,6 +78,23 @@ except Exception:  # pragma: no cover
 
 
 def _sanitize_filename(name: str, max_len: int = 120) -> str:
+    """
+    Make a filesystem-friendly filename from an arbitrary string.
+
+    Non-alphanumeric characters are replaced by underscores and the result is
+    truncated to ``max_len`` characters.
+
+    :param name: input name to sanitize.
+    :type name: str
+    :param max_len: maximum allowed filename length (default 120).
+    :type max_len: int
+    :returns: sanitized filename (never empty; returns "molecule" if input becomes empty).
+    :rtype: str
+    :example:
+
+    >>> _sanitize_filename("My molecule (test).smi")
+    'My_molecule__test_.smi'
+    """
     cleaned = re.sub(r"[^\w\-.]+", "_", str(name).strip())
     if len(cleaned) > max_len:
         cleaned = cleaned[:max_len].rstrip("_")
@@ -100,6 +116,15 @@ class LigandProcess:
             "error": Optional[str],
             "molblock": Optional[str],
         }
+
+    Usage example
+    -------------
+    Convert an in-memory list of SMILES and write SDF outputs::
+
+        >>> lp = LigandProcess(output_dir="outdir")
+        >>> lp.from_smiles_list(["CCO", "c1ccccc1"], names=["ethanol", "benzene"])
+        >>> lp.process_all()
+        >>> lp.save_manifest("outdir/manifest.csv")
     """
 
     # Supported mapping to file extensions
@@ -119,10 +144,23 @@ class LigandProcess:
         index_pad: int = 4,
     ) -> None:
         """
-        :param output_dir: directory to write outputs. None disables file writing.
-        :param smiles_key: dict / DataFrame key for SMILES.
-        :param name_key: dict / DataFrame key for name.
-        :param index_pad: zero-pad width for index-based fallback filenames.
+        Initialize a LigandProcess instance.
+
+        :param output_dir: directory to write outputs. If None, file writing is disabled.
+        :type output_dir: Optional[str | pathlib.Path]
+        :param smiles_key: key name to locate SMILES in input dicts/DataFrame.
+        :type smiles_key: str
+        :param name_key: key name to locate molecule name in input dicts/DataFrame.
+        :type name_key: str
+        :param index_pad: zero-pad width when falling back to numeric names (default 4).
+        :type index_pad: int
+        :returns: None
+        :rtype: None
+        :example:
+
+        >>> lp = LigandProcess(output_dir=None)
+        >>> len(lp)
+        0
         """
         self.output_dir: Optional[Path] = (
             Path(output_dir) if output_dir is not None else None
@@ -169,6 +207,23 @@ class LigandProcess:
         add_hs: Optional[bool] = None,
         optimize: Optional[bool] = None,
     ) -> "LigandProcess":
+        """
+        Set simple boolean options.
+
+        :param embed3d: enable/disable 3D embedding (if None leave unchanged).
+        :type embed3d: Optional[bool]
+        :param add_hs: add explicit hydrogens before embedding (if None leave unchanged).
+        :type add_hs: Optional[bool]
+        :param optimize: run optimization after embedding (if None leave unchanged).
+        :type optimize: Optional[bool]
+        :returns: self
+        :rtype: LigandProcess
+        :example:
+
+        >>> lp = LigandProcess()
+        >>> lp.set_options(embed3d=True, add_hs=False, optimize=True)
+        <LigandProcess ...>
+        """
         if embed3d is not None:
             self._embed3d = bool(embed3d)
         if add_hs is not None:
@@ -184,29 +239,85 @@ class LigandProcess:
         return self
 
     def set_embed_method(self, embed_algorithm: Optional[str]) -> "LigandProcess":
+        """
+        Set the embedding algorithm used by Conformer / RDKit.
+
+        :param embed_algorithm: algorithm name (e.g. "ETKDGv3") or None.
+        :type embed_algorithm: Optional[str]
+        :returns: self
+        :rtype: LigandProcess
+        """
         self._embed_algorithm = embed_algorithm
         logger.debug("Embed algorithm -> %r", embed_algorithm)
         return self
 
     def set_opt_method(self, method: str) -> "LigandProcess":
+        """
+        Set the optimization method (used by Conformer / RDKit fallback).
+
+        :param method: optimizer name (e.g. "MMFF94" or "UFF").
+        :type method: str
+        :returns: self
+        :rtype: LigandProcess
+        """
         self._opt_method = str(method)
         logger.debug("Opt method -> %r", self._opt_method)
         return self
 
     def set_conformer_seed(self, seed: int) -> "LigandProcess":
+        """
+        Set RNG seed for conformer generation.
+
+        :param seed: integer seed.
+        :type seed: int
+        :returns: self
+        :rtype: LigandProcess
+        """
         self._conformer_seed = int(seed)
         return self
 
     def set_conformer_jobs(self, n_jobs: int) -> "LigandProcess":
+        """
+        Set number of parallel jobs for Conformer (if available).
+
+        :param n_jobs: number of jobs (int).
+        :type n_jobs: int
+        :returns: self
+        :rtype: LigandProcess
+        """
         self._conformer_n_jobs = int(n_jobs)
         return self
 
     def set_opt_max_iters(self, max_iters: int) -> "LigandProcess":
+        """
+        Set maximum iterations for the optimizer.
+
+        :param max_iters: maximum number of iterations (int).
+        :type max_iters: int
+        :returns: self
+        :rtype: LigandProcess
+        """
         self._opt_max_iters = int(max_iters)
         return self
 
     # Output configuration (you asked default to be pdbqt/meeko; still exposed)
     def set_output_format(self, fmt: str) -> "LigandProcess":
+        """
+        Configure output format.
+
+        Supported formats are: ``sdf``, ``pdb``, ``mol2``, ``pdbqt``, ``mol``.
+
+        :param fmt: requested format string (case-insensitive).
+        :type fmt: str
+        :returns: self
+        :rtype: LigandProcess
+        :raises ValueError: if the format is unsupported.
+        :example:
+
+        >>> lp = LigandProcess()
+        >>> lp.set_output_format("sdf")
+        <LigandProcess ...>
+        """
         key = (fmt or "").lower()
         if key not in self._EXT_MAP:
             raise ValueError(
@@ -220,16 +331,40 @@ class LigandProcess:
         return self
 
     def set_converter_backend(self, backend: Optional[str]) -> "LigandProcess":
+        """
+        Set backend name for Converter (if available), e.g. "meeko".
+
+        :param backend: backend name or None.
+        :type backend: Optional[str]
+        :returns: self
+        :rtype: LigandProcess
+        """
         self._converter_backend = backend
         logger.debug("Converter backend -> %r", backend)
         return self
 
     def set_tmp_from_sdf_backend(self, backend: Optional[str]) -> "LigandProcess":
+        """
+        Set temporary-from-SDF backend used by Converter (if available).
+
+        :param backend: backend name or None.
+        :type backend: Optional[str]
+        :returns: self
+        :rtype: LigandProcess
+        """
         self._tmp_from_sdf_backend = backend
         logger.debug("tmp_from_sdf_backend -> %r", backend)
         return self
 
     def set_keep_intermediate(self, keep: bool) -> "LigandProcess":
+        """
+        Keep intermediate SDF files instead of removing them.
+
+        :param keep: boolean flag to keep intermediates.
+        :type keep: bool
+        :returns: self
+        :rtype: LigandProcess
+        """
         self._keep_intermediate = bool(keep)
         return self
 
@@ -237,6 +372,22 @@ class LigandProcess:
     def from_smiles_list(
         self, smiles: Sequence[str], names: Optional[Sequence[str]] = None
     ) -> "LigandProcess":
+        """
+        Load records from a list of SMILES with optional names.
+
+        :param smiles: sequence of SMILES strings.
+        :type smiles: Sequence[str]
+        :param names: optional sequence of names matching the length of smiles.
+        :type names: Optional[Sequence[str]]
+        :returns: self
+        :rtype: LigandProcess
+        :raises ValueError: if ``names`` is provided but length mismatches ``smiles``.
+        :example:
+
+        >>> lp = LigandProcess()
+        >>> lp.from_smiles_list(['CCO'], names=['ethanol'])
+        <LigandProcess ...>
+        """
         if names is not None and len(names) != len(smiles):
             raise ValueError("names (if provided) must match smiles length")
         entries = []
@@ -249,10 +400,40 @@ class LigandProcess:
         return self
 
     def from_list_of_dicts(self, rows: Sequence[Dict]) -> "LigandProcess":
+        """
+        Load records from a sequence of dict-like rows.
+
+        :param rows: sequence of dictionaries containing at least the SMILES key.
+        :type rows: Sequence[Dict]
+        :returns: self
+        :rtype: LigandProcess
+        :example:
+
+        >>> lp = LigandProcess()
+        >>> lp.from_list_of_dicts([{'smiles': 'CCO', 'name': 'ethanol'}])
+        <LigandProcess ...>
+        """
         self._load_entries(list(rows))
         return self
 
     def from_dataframe(self, df: "pd.DataFrame") -> "LigandProcess":
+        """
+        Load records from a pandas DataFrame.
+
+        :param df: pandas DataFrame containing the SMILES column (self.smiles_key).
+        :type df: pandas.DataFrame
+        :returns: self
+        :rtype: LigandProcess
+        :raises RuntimeError: if pandas is not available.
+        :raises KeyError: if required SMILES column is missing.
+        :example:
+
+        >>> import pandas as pd
+        >>> df = pd.DataFrame({'smiles': ['CCO'], 'name': ['ethanol']})
+        >>> lp = LigandProcess()
+        >>> lp.from_dataframe(df)
+        <LigandProcess ...>
+        """
         if pd is None:
             raise RuntimeError("pandas is required for from_dataframe")
         if self.smiles_key not in df.columns:
@@ -262,6 +443,13 @@ class LigandProcess:
         return self
 
     def _load_entries(self, entries: List[Dict]) -> None:
+        """
+        Internal loader that normalizes entries into the internal record structure.
+
+        :param entries: list of mapping-like objects with at least the SMILES key.
+        :type entries: List[Dict]
+        :raises KeyError: if an entry lacks the SMILES key.
+        """
         self._records = []
         for i, row in enumerate(entries):
             smi = row.get(self.smiles_key) or row.get(self.smiles_key.lower())
@@ -284,6 +472,28 @@ class LigandProcess:
 
     # ----------------------------- RDKit fallback ---------------------------- #
     def _embed_with_rdkit_inmemory(self, smiles: str) -> str:
+        """
+        Embed a single SMILES into 3D coordinates using RDKit (in-memory).
+
+        This fallback is used when Conformer is not available. The method will:
+          - parse SMILES
+          - optionally add Hs
+          - embed using a best-available ETKDG variant
+          - run UFF or MMFF optimization if requested
+          - return a MolBlock string
+
+        :param smiles: SMILES string to embed.
+        :type smiles: str
+        :returns: MolBlock string with 3D coordinates.
+        :rtype: str
+        :raises RuntimeError: if RDKit is not available or embedding fails.
+        :example:
+
+        >>> lp = LigandProcess()
+        >>> mb = lp._embed_with_rdkit_inmemory('CCO')
+        >>> isinstance(mb, str)
+        True
+        """
         if Chem is None or AllChem is None:
             raise RuntimeError("RDKit not available for in-memory embedding")
         mol = Chem.MolFromSmiles(smiles, sanitize=True)
@@ -334,6 +544,16 @@ class LigandProcess:
 
     # ----------------------------- filename helper -------------------------- #
     def _make_unique_base(self, base: str, ext: str) -> str:
+        """
+        Make a filesystem-unique base filename in the output directory.
+
+        :param base: desired base name (without extension).
+        :type base: str
+        :param ext: extension (without dot), e.g. "sdf".
+        :type ext: str
+        :returns: a base name unique inside the output directory and among already used records.
+        :rtype: str
+        """
         if self.output_dir is None:
             return base
         out_dir = Path(self.output_dir)
@@ -354,6 +574,24 @@ class LigandProcess:
     def process_all(
         self, start: int = 0, stop: Optional[int] = None
     ) -> "LigandProcess":
+        """
+        Process all loaded records between ``start`` (inclusive) and ``stop`` (exclusive).
+
+        This iterates over internal records and calls ``_process_one`` for each.
+
+        :param start: start index (default 0).
+        :type start: int
+        :param stop: exclusive stop index; if None process all remaining records.
+        :type stop: Optional[int]
+        :returns: self
+        :rtype: LigandProcess
+        :example:
+
+        >>> lp = LigandProcess(output_dir=None)
+        >>> lp.from_smiles_list(['CCO'])
+        >>> lp.process_all()
+        <LigandProcess ...>
+        """
         if not self._records:
             logger.warning("No records to process.")
             return self
@@ -363,6 +601,19 @@ class LigandProcess:
         return self
 
     def _process_one(self, rec: Dict) -> None:
+        """
+        Internal: process a single record.
+
+        The method produces a MolBlock (via Conformer or RDKit fallback), writes
+        an intermediate SDF and (optionally) converts it to the configured final format
+        using Converter. It updates the record in-place with status/out_path/error.
+
+        :param rec: record dictionary (must follow internal record schema).
+        :type rec: Dict
+        :returns: None
+        :rtype: None
+        :notes: Exceptions are caught and converted to record['status']='failed'.
+        """
         idx = rec["index"]
         smi = rec["smiles"]
         name = rec.get("name", "") or ""
@@ -511,11 +762,21 @@ class LigandProcess:
     ) -> "LigandProcess":
         """
         Convert many intermediate SDFs to the configured output format in a single
-        Converter invocation. Useful if you prefer bulk conversion (e.g. dirname/*.sdf -> dirname/*.pdbqt).
+        Converter invocation (bulk conversion).
 
         :param input_glob: glob pattern for existing SDFs (relative to output_dir if set).
+        :type input_glob: str
         :param output_pattern: output pattern (Converter-specific). Example: "out/*.pdbqt"
+        :type output_pattern: str
         :param mode: Converter mode, default "ligand".
+        :type mode: str
+        :returns: self
+        :rtype: LigandProcess
+        :raises RuntimeError: if Converter is not available.
+        :example:
+
+        >>> lp.finalize_batch_conversion("*.sdf", "*.pdbqt", mode="ligand")
+        <LigandProcess ...>
         """
         if not _HAS_CONVERTER:
             raise RuntimeError("Converter not available for batch conversion.")
@@ -538,6 +799,20 @@ class LigandProcess:
     def save_manifest(
         self, path: Union[str, Path] = "ligands_manifest.csv"
     ) -> "LigandProcess":
+        """
+        Save a CSV manifest describing processed records.
+
+        If pandas is available it will be used, otherwise a csv.DictWriter fallback is used.
+
+        :param path: destination CSV path.
+        :type path: str | pathlib.Path
+        :returns: self
+        :rtype: LigandProcess
+        :example:
+
+        >>> lp.save_manifest("outdir/manifest.csv")
+        <LigandProcess ...>
+        """
         path = Path(path)
         rows = []
         for r in self._records:
@@ -569,22 +844,52 @@ class LigandProcess:
     # ----------------------------- properties & helpers -------------------- #
     @property
     def records(self) -> List[Dict]:
+        """
+        Return a shallow copy of internal records.
+
+        :returns: list of record dicts
+        :rtype: List[Dict]
+        """
         return list(self._records)
 
     @property
     def output_paths(self) -> List[Optional[Path]]:
+        """
+        Return a list of output Path objects (or None) corresponding to records.
+
+        :returns: list of Paths or None
+        :rtype: List[Optional[pathlib.Path]]
+        """
         return [r["out_path"] for r in self._records]
 
     @property
     def failed(self) -> List[Dict]:
+        """
+        Return records that failed processing.
+
+        :returns: list of failed record dicts
+        :rtype: List[Dict]
+        """
         return [r for r in self._records if r.get("status") == "failed"]
 
     @property
     def ok(self) -> List[Dict]:
+        """
+        Return records processed successfully.
+
+        :returns: list of successful record dicts
+        :rtype: List[Dict]
+        """
         return [r for r in self._records if r.get("status") == "ok"]
 
     @property
     def summary(self) -> Dict[str, int]:
+        """
+        Return a summary of total/ok/failed/pending counts.
+
+        :returns: dict with keys 'total', 'ok', 'failed', 'pending'
+        :rtype: Dict[str, int]
+        """
         total = len(self._records)
         ok = len(self.ok)
         failed = len(self.failed)
@@ -593,6 +898,12 @@ class LigandProcess:
 
     @property
     def sdf_strings(self) -> List[str]:
+        """
+        Return MolBlock strings (SDF-like) for successfully processed records.
+
+        :returns: list of MolBlock strings
+        :rtype: List[str]
+        """
         return [
             r["molblock"]
             for r in self._records
@@ -601,6 +912,13 @@ class LigandProcess:
 
     @property
     def mols(self) -> List:
+        """
+        Return RDKit Mol objects parsed from stored MolBlock strings.
+
+        :returns: list of RDKit Mol objects
+        :rtype: List[rdkit.Chem.Mol]
+        :raises RuntimeError: if RDKit is not available.
+        """
         if Chem is None:
             raise RuntimeError("RDKit not available to build RDKit Mol objects")
         out = []
@@ -622,11 +940,25 @@ class LigandProcess:
 
     # convenience
     def set_output_dir(self, path: Optional[Union[str, Path]]) -> "LigandProcess":
+        """
+        Set or clear the output directory used for writing files.
+
+        :param path: new output directory path or None to disable writing.
+        :type path: Optional[str | pathlib.Path]
+        :returns: self
+        :rtype: LigandProcess
+        """
         self.output_dir = Path(path) if path is not None else None
         if self.output_dir is not None:
             self.output_dir.mkdir(parents=True, exist_ok=True)
         return self
 
     def clear_records(self) -> "LigandProcess":
+        """
+        Remove all loaded records.
+
+        :returns: self
+        :rtype: LigandProcess
+        """
         self._records = []
         return self

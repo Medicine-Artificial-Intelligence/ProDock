@@ -19,7 +19,45 @@ class VinaDock:
     """
     Object-oriented wrapper for AutoDock Vina (Python API).
 
-    See inline examples below for one-shot and staged usage.
+    This class provides a convenient, chainable interface around the `vina.Vina`
+    Python bindings. It supports one-shot configuration (provide receptor/box/
+    ligand to ``__init__`` with ``autorun=True``) or staged usage where you call
+    setters and then :meth:`dock`.
+
+    Example (one-shot, autorun + autowrite)
+    --------------------------------------
+    .. code-block:: python
+
+        vd = VinaDock(
+            sf_name="vina",
+            cpu=4,
+            seed=42,
+            receptor="rec.pdbqt",
+            center=(32.5, 13.0, 133.75),
+            size=(22.5, 23.5, 22.5),
+            ligand="lig.pdbqt",
+            exhaustiveness=8,
+            n_poses=9,
+            out_poses="out/poses.pdbqt",
+            log_path="out/log.txt",
+            autorun=True,
+            autowrite=True,
+        )
+        print(vd.scores)
+        print(vd.best_score)
+
+    Example (staged)
+    -----------------
+    .. code-block:: python
+
+        vd = VinaDock(sf_name="vina", cpu=4, seed=42)
+        (vd.set_receptor("rec.pdbqt")
+           .define_box(center=(32.5,13,133.75), size=(22.5,23.5,22.5))
+           .set_ligand("lig.pdbqt")
+           .dock(exhaustiveness=8, n_poses=9)
+           .write_poses("out/poses.pdbqt")
+           .write_log("out/log.txt"))
+        print(vd.best_score)
 
     Parameters
     ----------
@@ -64,36 +102,11 @@ class VinaDock:
     autowrite : bool, optional
         If True and output paths are provided, write poses and log after autorun.
 
-    Examples
-    --------
-    One-shot configuration (autorun + autowrite):
-    >>> vd = VinaDock(
-    ...     sf_name="vina",
-    ...     cpu=4,
-    ...     seed=42,
-    ...     receptor="Data/testcase/filtered_protein/5N2F.pdbqt",
-    ...     center=(32.5, 13.0, 133.75),
-    ...     size=(22.5, 23.5, 22.5),
-    ...     ligand="Data/testcase/reference_ligand/8HW.pdbqt",
-    ...     exhaustiveness=8,
-    ...     n_poses=9,
-    ...     out_poses="./Data/testcase/vina/vina_out.pdbqt",
-    ...     log_path="./Data/testcase/vina/log.txt",
-    ...     autorun=True,
-    ...     autowrite=True,
-    ... )
-    >>> print(vd.scores)         # doctest: +SKIP
-    >>> print(vd.best_score)     # doctest: +SKIP
-
-    Staged chaining (configure then run):
-    >>> vd = VinaDock(sf_name="vina", cpu=4, seed=42)
-    >>> (vd.set_receptor("Data/testcase/filtered_protein/5N2F.pdbqt")
-    ...    .define_box(center=(32.5, 13.0, 133.75), size=(22.5, 23.5, 22.5))
-    ...    .set_ligand("Data/testcase/reference_ligand/8HW.pdbqt")
-    ...    .dock(exhaustiveness=8, n_poses=9)
-    ...    .write_poses("./Data/testcase/vina/vina_out.pdbqt")
-    ...    .write_log("./Data/testcase/vina/log.txt"))
-    >>> print(vd.scores)         # doctest: +SKIP
+    Notes
+    -----
+    - This wrapper intentionally keeps ``__init__`` small and delegates parsing/validation
+      to helper methods to reduce cyclomatic complexity.
+    - Methods are chainable where it makes sense (return ``self``).
     """
 
     DEFAULTS: Dict[str, Any] = {
@@ -108,7 +121,6 @@ class VinaDock:
         "validate_pdbqt": False,
     }
 
-    # keep __init__ short — helpers do the heavy lifting to reduce cyclomatic complexity
     def __init__(
         self,
         *,
@@ -181,7 +193,12 @@ class VinaDock:
 
     # -------------------- small helper methods (reduce complexity in __init__) -------------------- #
     def _merge_config_and_args(self, **kwargs) -> None:
-        """Merge DEFAULTS, optional config file/dict and explicit args into self._config."""
+        """
+        Merge defaults, optional config (file or dict) and explicit args into ``self._config``.
+
+        :param kwargs: expects keys compatible with parameters documented in the class.
+        :raises TypeError: if provided config is neither a dict nor a path-like string/Path.
+        """
         base_cfg = dict(self.DEFAULTS)
         config = kwargs.pop("config", None)
         if config is not None:
@@ -209,7 +226,11 @@ class VinaDock:
         self._config = base_cfg
 
     def _setup_logger(self) -> None:
-        """Create and configure instance logger."""
+        """
+        Create and configure the instance logger.
+
+        Sets a console handler and adjusts level according to ``self._config['verbosity']``.
+        """
         self._logger = logging.getLogger(self.__class__.__name__)
         if not self._logger.handlers:
             handler = logging.StreamHandler()
@@ -220,7 +241,11 @@ class VinaDock:
         self.set_verbosity(self._config["verbosity"])
 
     def _init_vina(self) -> None:
-        """Instantiate the Vina binding with sanitized kwargs."""
+        """
+        Instantiate the underlying Vina object with sanitized kwargs.
+
+        The Vina object is stored in ``self._vina``.
+        """
         vina_kwargs = {
             "sf_name": self._config["sf_name"],
             "cpu": int(self._config["cpu"]),
@@ -242,7 +267,13 @@ class VinaDock:
         ligand_from_string: Optional[str],
         ligand_rdkit: Optional[Any],
     ) -> None:
-        """Apply initial receptor/box/ligand inputs passed to __init__."""
+        """
+        Apply initial receptor/box/ligand inputs passed to ``__init__``.
+
+        Accepts only one ligand source among ``ligand``, ``ligand_from_string``, ``ligand_rdkit``.
+
+        :raises ValueError: if more than one ligand source is provided.
+        """
         if receptor is not None:
             self.set_receptor(receptor, validate=self._config["validate_pdbqt"])
         if center is not None and size is not None:
@@ -259,7 +290,11 @@ class VinaDock:
             self.set_ligand_rdkit(ligand_rdkit)
 
     def _autorun_pipeline(self, *, autowrite: bool) -> None:
-        """If inputs are ready, compute maps and run docking (called from __init__)."""
+        """
+        If inputs are ready, compute maps and run docking (called from ``__init__``).
+
+        :param autowrite: if True, write poses and log after docking when output paths are set.
+        """
         self.build()
         if self._ready_to_dock():
             self.dock(
@@ -279,15 +314,29 @@ class VinaDock:
     # -------------------- config helpers -------------------- #
     @staticmethod
     def _load_config_file(path: Path) -> Dict[str, Any]:
+        """
+        Load JSON config from path.
+
+        :param path: path to JSON config file
+        :raises FileNotFoundError: if the file does not exist
+        :return: parsed config dict
+        """
         if not path.exists():
             raise FileNotFoundError(f"Config file not found: {path}")
         with open(path, "r") as fh:
             return json.load(fh)
 
     def to_dict(self) -> Dict[str, Any]:
+        """Return a shallow copy of the active configuration dictionary."""
         return dict(self._config)
 
     def save_config(self, out_path: Union[str, Path]) -> "VinaDock":
+        """
+        Save active configuration to a JSON file.
+
+        :param out_path: destination path for config JSON
+        :return: self (chainable)
+        """
         p = Path(out_path)
         p.parent.mkdir(parents=True, exist_ok=True)
         with open(p, "w") as fh:
@@ -297,6 +346,13 @@ class VinaDock:
 
     @classmethod
     def from_config(cls, cfg: Union[str, Path, Dict[str, Any]]) -> "VinaDock":
+        """
+        Create an instance from a config dict or JSON file path.
+
+        :param cfg: config dict or path to JSON file
+        :raises TypeError: if the loaded cfg is not a dict
+        :return: VinaDock instance
+        """
         if isinstance(cfg, (str, Path)):
             cfg = cls._load_config_file(Path(cfg))
         if not isinstance(cfg, dict):
@@ -304,6 +360,12 @@ class VinaDock:
         return cls(**cfg)
 
     def update_config(self, **kwargs) -> "VinaDock":
+        """
+        Update the active configuration dictionary.
+
+        :param kwargs: config keys/values to update
+        :return: self (chainable)
+        """
         self._config.update(kwargs)
         if "verbosity" in kwargs:
             self.set_verbosity(self._config["verbosity"])
@@ -311,6 +373,12 @@ class VinaDock:
 
     # -------------------- logging -------------------- #
     def set_verbosity(self, verbosity: int) -> "VinaDock":
+        """
+        Set instance verbosity and (if supported) propagate to the underlying Vina object.
+
+        :param verbosity: integer verbosity level (0 -> ERROR, 1 -> INFO, 2+ -> DEBUG)
+        :return: self (chainable)
+        """
         level = (
             logging.ERROR
             if verbosity <= 0
@@ -320,17 +388,23 @@ class VinaDock:
         self._config["verbosity"] = int(verbosity)
         try:
             if hasattr(self, "_vina"):
-                # Vina may or may not have set_verbosity — guard it
                 _ = getattr(self._vina, "set_verbosity", None)
                 if callable(_):
                     self._vina.set_verbosity(int(verbosity))
         except Exception:
+            # Non-fatal: some vina builds may not expose set_verbosity
             pass
         return self
 
     # -------------------- validators & small helpers -------------------- #
     @staticmethod
     def _pdbqt_quick_check(path: Path) -> None:
+        """
+        Perform a quick sanity check on a PDBQT file by scanning header tokens.
+
+        :param path: path to PDBQT file
+        :raises ValueError: if basic PDBQT tokens are missing
+        """
         with open(path, "r", errors="ignore") as fh:
             head = [next(fh, "") for _ in range(50)]
         text = "".join(head)
@@ -344,6 +418,15 @@ class VinaDock:
     def set_receptor(
         self, receptor_path: Union[str, Path], *, validate: bool = False
     ) -> "VinaDock":
+        """
+        Set receptor from a PDBQT file.
+
+        :param receptor_path: path to receptor PDBQT
+        :param validate: if True, run basic PDBQT quick check
+        :return: self
+        :raises FileNotFoundError: if receptor file not found
+        :raises ValueError: if validation fails (when validate=True)
+        """
         p = Path(receptor_path)
         if not p.exists():
             raise FileNotFoundError(f"Receptor file not found: {p}")
@@ -356,6 +439,12 @@ class VinaDock:
         return self
 
     def set_receptor_from_string(self, pdbqt_str: str) -> "VinaDock":
+        """
+        Set receptor from an in-memory PDBQT string.
+
+        :param pdbqt_str: PDBQT content as string
+        :return: self
+        """
         self._vina.set_receptor_from_string(pdbqt_str)
         self.receptor = "<pdbqt-string>"
         self._maps_ready = False
@@ -365,6 +454,15 @@ class VinaDock:
     def set_ligand(
         self, ligand_path: Union[str, Path], *, validate: bool = False
     ) -> "VinaDock":
+        """
+        Load ligand from a PDBQT file for docking.
+
+        :param ligand_path: path to ligand PDBQT
+        :param validate: if True, run quick PDBQT check
+        :return: self
+        :raises FileNotFoundError: if ligand path not found
+        :raises ValueError: if validation fails (when validate=True)
+        """
         p = Path(ligand_path)
         if not p.exists():
             raise FileNotFoundError(f"Ligand file not found: {p}")
@@ -376,12 +474,24 @@ class VinaDock:
         return self
 
     def set_ligand_from_string(self, pdbqt_str: str) -> "VinaDock":
+        """
+        Load ligand from an in-memory PDBQT string.
+
+        :param pdbqt_str: ligand PDBQT content as string
+        :return: self
+        """
         self._vina.set_ligand_from_string(pdbqt_str)
         self.ligand = "<pdbqt-string>"
         self._logger.debug("Ligand loaded from string")
         return self
 
     def set_ligand_rdkit(self, rdkit_mol: Any) -> "VinaDock":
+        """
+        Load ligand from an RDKit molecule (if supported by the installed Vina binding).
+
+        :param rdkit_mol: RDKit Mol object
+        :return: self
+        """
         self._vina.set_ligand_from_rdkit(rdkit_mol)
         self.ligand = "<rdkit-mol>"
         self._logger.debug("Ligand set from RDKit object")
@@ -390,6 +500,14 @@ class VinaDock:
     def define_box(
         self, center: Tuple[float, float, float], size: Tuple[float, float, float]
     ) -> "VinaDock":
+        """
+        Define the docking box and (if receptor present) compute maps immediately.
+
+        :param center: (x,y,z) center tuple
+        :param size: (sx,sy,sz) size tuple
+        :raises ValueError: if center/size are not 3-tuples
+        :return: self
+        """
         if len(center) != 3 or len(size) != 3:
             raise ValueError("center and size must be 3-tuples")
         centerf = tuple(map(float, center))
@@ -408,6 +526,11 @@ class VinaDock:
         return self
 
     def build(self) -> "VinaDock":
+        """
+        Ensure maps are computed if receptor/box are set but maps are not yet ready.
+
+        :return: self
+        """
         if not self._maps_ready and self.receptor and self.center and self.size:
             self._vina.compute_vina_maps(center=self.center, box_size=self.size)
             self._maps_ready = True
@@ -417,6 +540,16 @@ class VinaDock:
     # -------------------- scoring / dock / IO -------------------- #
     @staticmethod
     def _normalize_scores(raw_scores: Iterable) -> List[Tuple[float, float, float]]:
+        """
+        Normalize raw Vina score outputs into a list of (energy, rmsd_lb, rmsd_ub) triples.
+
+        Accepts several possible raw shapes (Nx3 arrays, flattened 1D arrays with length
+        divisible by 3, or iterables of sequences).
+
+        :param raw_scores: raw scores as returned by ``Vina.energies``
+        :return: list of 3-tuples (energy, rmsd_lb, rmsd_ub)
+        :raises ValueError: if items cannot be parsed into numeric triples
+        """
         try:
             arr = np.asarray(list(raw_scores))
         except Exception:
@@ -444,6 +577,14 @@ class VinaDock:
     def dock(
         self, *, exhaustiveness: Optional[int] = None, n_poses: Optional[int] = None
     ) -> "VinaDock":
+        """
+        Run docking with current receptor, box and ligand.
+
+        :param exhaustiveness: override exhaustiveness for this run
+        :param n_poses: override number of poses to request
+        :raises RuntimeError: if receptor/box are not defined
+        :return: self
+        """
         self.build()
         if not (self.receptor and self.center and self.size):
             raise RuntimeError(
@@ -477,6 +618,11 @@ class VinaDock:
         return self
 
     def score(self) -> "VinaDock":
+        """
+        Call Vina.score() and store last score on the instance.
+
+        :return: self
+        """
         s = self._vina.score()
         self._last_score = (
             float(np.asarray(s).flat[0])
@@ -487,6 +633,11 @@ class VinaDock:
         return self
 
     def optimize(self) -> "VinaDock":
+        """
+        Call Vina.optimize() and store optimized score.
+
+        :return: self
+        """
         s = self._vina.optimize()
         self._last_optimized_score = (
             float(np.asarray(s).flat[0])
@@ -503,6 +654,14 @@ class VinaDock:
         n_poses: Optional[int] = None,
         overwrite: Optional[bool] = None,
     ) -> "VinaDock":
+        """
+        Write poses to a PDBQT file via the Vina API.
+
+        :param out_path: target path to write poses
+        :param n_poses: number of poses to write (falls back to config)
+        :param overwrite: whether to overwrite existing file (falls back to config)
+        :return: self
+        """
         npz = int(n_poses if n_poses is not None else self._config["n_poses"])
         ovw = bool(self._config["overwrite"] if overwrite is None else overwrite)
         p = Path(out_path)
@@ -514,6 +673,14 @@ class VinaDock:
     def write_log(
         self, log_path: Union[str, Path], *, human_readable: bool = True
     ) -> "VinaDock":
+        """
+        Write a human-readable log summarizing the docking results.
+
+        :param log_path: destination path for the log file
+        :param human_readable: if True, also print lines to stdout while writing file
+        :raises RuntimeError: if no docking results exist (no .dock() run)
+        :return: self
+        """
         if self._scores is None:
             raise RuntimeError("No docking results to log. Run .dock() first.")
         p = Path(log_path)
@@ -546,30 +713,41 @@ class VinaDock:
     # -------------------- properties -------------------- #
     @property
     def scores(self) -> Optional[List[Tuple[float, float, float]]]:
+        """Return the list of docking scores (energy, rmsd_lb, rmsd_ub) or None."""
         return None if self._scores is None else list(self._scores)
 
     @property
     def best_score(self) -> Optional[Tuple[float, float, float]]:
+        """Return the best (first) score triple or None."""
         return None if not self._scores else self._scores[0]
 
     @property
     def n_modes(self) -> int:
+        """Return number of returned docking modes (0 if none)."""
         return 0 if not self._scores else len(self._scores)
 
     @property
     def last_poses(self) -> Optional[str]:
+        """Return the last raw poses string (if available) or None."""
         return self._last_poses
 
     @property
     def last_score(self) -> Optional[float]:
+        """Return last score from :meth:`score` or None."""
         return self._last_score
 
     @property
     def last_optimized_score(self) -> Optional[float]:
+        """Return last optimized score from :meth:`optimize` or None."""
         return self._last_optimized_score
 
     # -------------------- misc -------------------- #
     def _ready_to_dock(self) -> bool:
+        """
+        Simple readiness check for autorun.
+
+        :return: True if receptor, box and ligand are present
+        """
         return bool(
             self.receptor
             and self.center
@@ -578,6 +756,7 @@ class VinaDock:
         )
 
     def help(self) -> None:
+        """Print a short usage example to stdout."""
         print(
             "Example — fully configured in __init__ with autorun & autowrite:\n"
             "  vd = VinaDock(\n"
@@ -602,6 +781,10 @@ class VinaDock:
         return self
 
     def __exit__(self, exc_type, exc, tb) -> None:
+        """
+        Context manager teardown: attempt to call Vina.cleanup() if available.
+        Exceptions during cleanup are suppressed.
+        """
         self._logger.debug("Exiting context")
         cleanup = getattr(self._vina, "cleanup", None)
         if callable(cleanup):

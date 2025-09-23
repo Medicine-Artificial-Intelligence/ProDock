@@ -1,45 +1,75 @@
-############################################
-# STAGE 1: Build your package wheel
-############################################
+# ----------------------------
+# Stage 1: build wheel (pip available here)
+# ----------------------------
 FROM python:3.11-slim AS builder
 
-# 1. Install system build tools (for any C extensions)
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends build-essential \
-    && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential git ca-certificates \
+ && rm -rf /var/lib/apt/lists/*
 
-# 2. Upgrade pip/setuptools/wheel and install PEP 517 tooling + Hatchling backend
-RUN pip install --upgrade pip setuptools wheel \
-    && pip install --no-cache-dir build hatchling
-
-# 3. Set working directory inside builder
 WORKDIR /build
+RUN python -m pip install --upgrade pip setuptools wheel build hatchling
 
-# 4. Copy project metadata (including README so Hatchling can find it)
-COPY pyproject.toml README.md ./
-# If you have a lockfile, uncomment:
-# COPY poetry.lock ./
-
-# 5. Copy your library source
+COPY pyproject.toml README.md CHANGELOG.md ./
 COPY prodock/ ./prodock
+COPY requirements.txt ./requirements.txt
 
-# 6. Build the wheel
 RUN python -m build --wheel --no-isolation
 
-############################################
-# STAGE 2: Create the “release” image
-############################################
-FROM python:3.11-slim
+# ----------------------------
+# Stage 2: runtime (micromamba + conda env)
+# ----------------------------
+FROM mambaorg/micromamba:1.4.0 AS runtime
 
-# 7. Set a clean workdir
+ARG CONDA_ENV=prodock
+ARG PYTHON_VERSION=3.11
+ARG OPENMM_PACKAGE="openmm=8.3.1"
+ARG PDBFIXER_PACKAGE="pdbfixer"
+ARG CONDA_CHANNEL=conda-forge
+
 WORKDIR /opt/prodock
 
-# 8. Copy in the built wheel from the builder stage
+# Copy artifacts from builder
 COPY --from=builder /build/dist/*.whl ./
+COPY --from=builder /build/requirements.txt ./requirements.txt
 
-# 9. Install your package (and its dependencies), then remove the wheel
-RUN pip install --no-cache-dir *.whl \
-    && rm *.whl
+# ---- RUN APT AS ROOT (needed for permissions) ----
+USER root
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends \
+      build-essential git pkg-config \
+      libblas-dev liblapack-dev gfortran ca-certificates \
+ && rm -rf /var/lib/apt/lists/*
+# Switch back to the default micromamba user
+USER $MAMBA_USER
 
-# 10. Sanity check: print the installed prodock version
-CMD ["python", "-c", "import importlib.metadata as m; print(m.version('prodock'))"]
+# Create conda env and install heavy binary deps from conda-forge
+RUN micromamba create -n ${CONDA_ENV} -y -c ${CONDA_CHANNEL} \
+      python=${PYTHON_VERSION} \
+      rdkit openbabel pymol-open-source vina py3Dmol mdanalysis \
+      ${OPENMM_PACKAGE} ${PDBFIXER_PACKAGE} \
+      libstdcxx-ng libgcc-ng \
+  && micromamba clean --all --yes
+
+# Make env the default PATH
+ENV CONDA_BASE=/opt/conda
+ENV CONDA_ENV_PREFIX=${CONDA_BASE}/envs/${CONDA_ENV}
+ENV PATH=${CONDA_ENV_PREFIX}/bin:${PATH}
+
+# Filter out conda-installed packages so pip doesn't try to (re)build them
+RUN set -eux; \
+  grep -v -E '^(rdkit|openbabel-wheel|openbabel|pymol-open-source-whl|pymol-open-source|vina|py3Dmol|openmm|pdbfixer|mdanalysis)' requirements.txt > reqs-pip.txt || true; \
+  echo "== pip reqs to install (filtered) =="; cat reqs-pip.txt || true
+
+# Install pip-only deps inside env, then install your wheel without resolving heavy deps
+RUN set -eux; \
+  micromamba run -n ${CONDA_ENV} python -m pip install --upgrade pip setuptools wheel; \
+  if [ -s reqs-pip.txt ]; then \
+    micromamba run -n ${CONDA_ENV} pip install --no-cache-dir -r reqs-pip.txt; \
+  else \
+    echo "No pip requirements after filtering."; \
+  fi; \
+  micromamba run -n ${CONDA_ENV} pip install --no-cache-dir --no-deps ./*.whl; \
+  rm -f ./*.whl
+
+CMD ["micromamba","run","-n","prodock","python","-c","import importlib.metadata as m; print('prodock==', m.version('prodock'))"]
