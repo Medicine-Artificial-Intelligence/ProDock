@@ -138,7 +138,6 @@ jobs:
           conda activate "${CONDA_ENV_NAME}"
 
           # show which python is used
-          python -c "import sys, importlib; print('python=',sys.executable); print('pdbfixer=', importlib.util.find_spec('pdbfixer'))"
           python -m pip install --upgrade pip pytest
           # Re-install requirements if the repo expects freshly installed packages (optional)
           if [ -f requirements.txt ]; then
