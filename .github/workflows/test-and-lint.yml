@@ -18,54 +18,29 @@ env:
 
 jobs:
   build:
-    name: Build, lint, test (matrix: linux / macos / windows)
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-
-    defaults:
-      run:
-        # default for POSIX steps (Windows steps explicitly set pwsh where needed)
-        shell: bash -l {0}
-
+    name: Build, lint, test (single conda env)
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # Install or ensure Miniforge/Miniconda is present on the runner.
-      # We request miniforge to cover macOS (and ensure conda exists everywhere).
-      - name: Set up Miniconda / Miniforge
+      - name: Set up Miniconda (for conda / mamba)
         uses: conda-incubator/setup-miniconda@v2
         with:
-          # prefer Miniforge for cross-platform installer on macOS; it's fine on linux/windows too
-          miniforge-version: "latest"
           auto-update-conda: true
           python-version: ${{ env.PYTHON_VERSION }}
 
-      # Install mamba into base environment (POSIX)
-      - name: Install mamba into base (POSIX)
-        if: runner.os != 'Windows'
+      - name: Install mamba (conda-forge) to base
         run: |
-          set -euxo pipefail
           conda install -n base -c conda-forge mamba -y
         shell: bash -l {0}
 
-      # Install mamba into base (Windows PowerShell)
-      - name: Install mamba into base (Windows)
-        if: runner.os == 'Windows'
-        run: |
-          conda install -n base -c conda-forge mamba -y
-        shell: pwsh
-
-      # Create conda env with needed binary packages (POSIX)
-      - name: Create conda env with binary packages (POSIX)
-        if: runner.os != 'Windows'
-        id: create_env_posix
+      - name: Create conda env with binary packages (mamba)
+        id: create_env
         run: |
           set -euxo pipefail
 
-          # get CONDA_BASE and expose for later steps
+          # make sure conda commands are available in this shell
           CONDA_BASE=$(conda info --base)
           echo "CONDA_BASE=${CONDA_BASE}" >> $GITHUB_ENV
 
@@ -73,53 +48,34 @@ jobs:
           mamba create -n "${CONDA_ENV_NAME}" -c conda-forge -y \
             python=${PYTHON_VERSION} ${OPENMM_PACKAGE} ${PDBFIXER_PACKAGE} libstdcxx-ng libgcc-ng || true
 
+          # publish env paths for later steps
           ENV_PREFIX="${CONDA_BASE}/envs/${CONDA_ENV_NAME}"
           echo "ENV_PREFIX=${ENV_PREFIX}" >> $GITHUB_ENV
 
-          # add runtime LD_LIBRARY_PATH for conda env libs (POSIX)
+          # add runtime LD_LIBRARY_PATH for conda env libs
           echo "LD_LIBRARY_PATH=${ENV_PREFIX}/lib:\$LD_LIBRARY_PATH" >> $GITHUB_ENV
 
+          # show what was installed (sanity)
           echo "=== Conda env created: ${ENV_PREFIX} ==="
           "${ENV_PREFIX}/bin/python" -V || true
         shell: bash -l {0}
 
-      # Create conda env with needed binary packages (Windows)
-      - name: Create conda env with binary packages (Windows)
-        if: runner.os == 'Windows'
-        id: create_env_win
-        run: |
-          # powershell
-          $condaBase = conda info --base
-          Add-Content -Path $env:GITHUB_ENV -Value "CONDA_BASE=$condaBase"
-
-          # create env using mamba
-          mamba create -n "${{ env.CONDA_ENV_NAME }}" -c conda-forge -y `
-            python=${{ env.PYTHON_VERSION }} ${{ env.OPENMM_PACKAGE }} ${{ env.PDBFIXER_PACKAGE }} || true
-
-          $envPrefix = Join-Path $condaBase "envs/${{ env.CONDA_ENV_NAME }}"
-          Add-Content -Path $env:GITHUB_ENV -Value "ENV_PREFIX=$envPrefix"
-          Add-Content -Path $env:GITHUB_ENV -Value "LD_LIBRARY_PATH=$envPrefix\Lib:$env:LD_LIBRARY_PATH"
-
-          Write-Host "=== Conda env created: $envPrefix ==="
-          & "$envPrefix\python.exe" -V
-        shell: pwsh
-
-      # Activate and pip install requirements (POSIX)
-      - name: Activate conda env and install pip requirements (POSIX)
-        if: runner.os != 'Windows'
-        id: pip_install_posix
+      - name: Activate conda env and install pip requirements
+        id: pip_install
         run: |
           set -euxo pipefail
 
-          # load conda functions and activate
-          source "${CONDA_BASE}/etc/profile.d/conda.sh"
+          # Source conda and activate the created env so subsequent commands run inside it
+          source "${{ env.CONDA_BASE }}/etc/profile.d/conda.sh"
           conda activate "${CONDA_ENV_NAME}"
 
-          # upgrade pip
+          # Upgrade pip in env
           python -m pip install --upgrade pip
 
-          # install pip requirements but skip conda-provided packages
+          # If requirements.txt exists, install via pip *inside env*.
+          # Do not pip-overwrite openmm/pdbfixer installed via conda.
           if [ -f requirements.txt ]; then
+            # Remove conda-managed packages from pip list (safe filter)
             grep -vE '^(openmm|pdbfixer|OpenMM|PDBFixer)' requirements.txt > reqs-pip.txt || true
             if [ -s reqs-pip.txt ]; then
               python -m pip install -r reqs-pip.txt
@@ -133,36 +89,10 @@ jobs:
         env:
           CONDA_BASE: ${{ env.CONDA_BASE }}
 
-      # Activate and pip install requirements (Windows)
-      - name: Activate conda env and install pip requirements (Windows)
-        if: runner.os == 'Windows'
-        id: pip_install_win
-        run: |
-          # Initialize conda for PowerShell and activate
-          & conda init powershell | Out-Null
-          conda activate "${{ env.CONDA_ENV_NAME }}"
-
-          python -m pip install --upgrade pip
-
-          if (Test-Path -Path requirements.txt) {
-            # Filter out conda-managed packages before pip installing
-            Select-String -Path requirements.txt -Pattern '^(openmm|pdbfixer|OpenMM|PDBFixer)' -NotMatch | ForEach-Object { $_.Line } > reqs-pip.txt
-            if ((Get-Item reqs-pip.txt).Length -gt 0) {
-              python -m pip install -r reqs-pip.txt
-            } else {
-              Write-Host "No pip requirements after filtering conda-managed packages."
-            }
-          } else {
-            Write-Host "No requirements.txt found — skipping pip install."
-          }
-        shell: pwsh
-
-      # Install test/dev dependencies (POSIX)
-      - name: Install test/dev dependencies (POSIX)
-        if: runner.os != 'Windows'
+      - name: Install test/dev dependencies (requirements-dev.txt or minimal pytest)
         run: |
           set -euxo pipefail
-          source "${CONDA_BASE}/etc/profile.d/conda.sh"
+          source "${{ env.CONDA_BASE }}/etc/profile.d/conda.sh"
           conda activate "${CONDA_ENV_NAME}"
 
           if [ -f requirements-dev.txt ]; then
@@ -174,23 +104,7 @@ jobs:
         env:
           CONDA_BASE: ${{ env.CONDA_BASE }}
 
-      # Install test/dev dependencies (Windows)
-      - name: Install test/dev dependencies (Windows)
-        if: runner.os == 'Windows'
-        run: |
-          & conda init powershell | Out-Null
-          conda activate "${{ env.CONDA_ENV_NAME }}"
-
-          if (Test-Path -Path requirements-dev.txt) {
-            python -m pip install -r requirements-dev.txt
-          } else {
-            python -m pip install pytest flake8
-          }
-        shell: pwsh
-
-      # Cache pip wheel cache (POSIX)
-      - name: Cache pip wheel cache (POSIX)
-        if: runner.os != 'Windows'
+      - name: Cache pip wheel cache
         uses: actions/cache@v4
         with:
           path: ~/.cache/pip
@@ -198,56 +112,34 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-pip-
 
-      # Cache pip wheel cache (Windows)
-      - name: Cache pip wheel cache (Windows)
-        if: runner.os == 'Windows'
-        uses: actions/cache@v4
-        with:
-          path: ${{ env.LOCALAPPDATA }}\pip\Cache
-          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements*.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-
-
-      # Lint with flake8 (POSIX)
-      - name: Lint with flake8 (POSIX)
-        if: runner.os != 'Windows'
+      - name: Lint with flake8 (inside conda env)
         run: |
           set -euxo pipefail
-          source "${CONDA_BASE}/etc/profile.d/conda.sh"
+          source "${{ env.CONDA_BASE }}/etc/profile.d/conda.sh"
           conda activate "${CONDA_ENV_NAME}"
 
+          # Ensure flake8 installed (from dev deps or install minimally)
           python -m pip install --upgrade pip
           python -m pip install flake8 || true
 
+          # quick fail-only check then full lint via lint.sh if present
           python -m flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics || true
-          if [ -x ./lint.sh ]; then ./lint.sh || true; fi
+          if [ -x ./lint.sh ]; then
+            ./lint.sh || true
+          fi
         shell: bash -l {0}
         env:
           CONDA_BASE: ${{ env.CONDA_BASE }}
 
-      # Lint with flake8 (Windows)
-      - name: Lint with flake8 (Windows)
-        if: runner.os == 'Windows'
-        run: |
-          & conda init powershell | Out-Null
-          conda activate "${{ env.CONDA_ENV_NAME }}"
-
-          python -m pip install --upgrade pip
-          python -m pip install flake8 || Write-Host "flake8 install failed, continuing..."
-
-          python -m flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics || $LASTEXITCODE = 0
-          if (Test-Path -Path "./lint.sh") { ./lint.sh || Write-Host "lint.sh failed, continuing..." }
-        shell: pwsh
-
-      # Run tests (POSIX)
-      - name: Run tests (POSIX)
-        if: runner.os != 'Windows'
+      - name: Run tests (inside conda env)
         run: |
           set -euxo pipefail
-          source "${CONDA_BASE}/etc/profile.d/conda.sh"
+          source "${{ env.CONDA_BASE }}/etc/profile.d/conda.sh"
           conda activate "${CONDA_ENV_NAME}"
 
+          # show which python is used
           python -m pip install --upgrade pip pytest
+          # Re-install requirements if the repo expects freshly installed packages (optional)
           if [ -f requirements.txt ]; then
             grep -vE '^(openmm|pdbfixer|OpenMM|PDBFixer)' requirements.txt > reqs-pip.txt || true
             if [ -s reqs-pip.txt ]; then
@@ -255,57 +147,18 @@ jobs:
             fi
           fi
 
+          # run pytest (fail the job on test failures)
           if [ -x ./pytest.sh ]; then
             ./pytest.sh || true
-          else
-            python -m pytest -q
           fi
         shell: bash -l {0}
         env:
           CONDA_BASE: ${{ env.CONDA_BASE }}
 
-      # Run tests (Windows)
-      - name: Run tests (Windows)
-        if: runner.os == 'Windows'
-        run: |
-          & conda init powershell | Out-Null
-          conda activate "${{ env.CONDA_ENV_NAME }}"
-
-          python -m pip install --upgrade pip pytest
-          if (Test-Path -Path requirements.txt) {
-            Select-String -Path requirements.txt -Pattern '^(openmm|pdbfixer|OpenMM|PDBFixer)' -NotMatch | ForEach-Object { $_.Line } > reqs-pip.txt
-            if ((Get-Item reqs-pip.txt).Length -gt 0) {
-              python -m pip install -r reqs-pip.txt
-            }
-          }
-
-          if (Test-Path -Path "./pytest.sh") {
-            ./pytest.sh || Write-Host "pytest.sh failed, continuing..."
-          } else {
-            python -m pytest -q
-          }
-        shell: pwsh
-
-      # Print summary info (POSIX)
-      - name: Print summary info (POSIX)
-        if: runner.os != 'Windows'
+      - name: Print summary info (optional)
         if: always()
         run: |
-          echo "RUNNER_OS = $RUNNER_OS"
-          echo "CONDA_BASE = $CONDA_BASE"
           echo "ENV_PREFIX = $ENV_PREFIX"
           echo "LD_LIBRARY_PATH = $LD_LIBRARY_PATH"
           python -c "import sys; print('python:', sys.version)"
         shell: bash -l {0}
-
-      # Print summary info (Windows)
-      - name: Print summary info (Windows)
-        if: runner.os == 'Windows'
-        if: always()
-        run: |
-          Write-Host "RUNNER_OS = $env:RUNNER_OS"
-          Write-Host "CONDA_BASE = $env:CONDA_BASE"
-          Write-Host "ENV_PREFIX = $env:ENV_PREFIX"
-          Write-Host "LD_LIBRARY_PATH = $env:LD_LIBRARY_PATH"
-          & python -c "import sys; print('python:', sys.version)"
-        shell: pwsh
