@@ -95,59 +95,6 @@ class MultipleDock:
        ... )
        >>> print(len(md.ok_results))  # doctest: +SKIP
 
-    Parameters
-    ----------
-    receptor : str | Path
-        Receptor **PDBQT** path (required).
-    ligand_dir : str | Path, optional
-        Directory with ligands (discovery per `ligand_format` + `filter_pattern`).
-    ligands : sequence of paths, optional
-        Explicit ligands list (overrides folder discovery).
-    backend : str | Callable[[], Any] | VinaDock | BinaryDock, optional
-        "vina" | "smina" | "qvina" | "qvina-w" | "binary" | "<custom exe>" |
-        factory callable returning a backend instance | prebuilt backend instance.
-    ligand_format : {"pdbqt","sdf","mol2","auto","any"}, optional
-        Default "pdbqt". Use "sdf"/"mol2" with smina.
-    filter_pattern : str, optional
-        Glob (e.g., "LIG_*") without extension, default "*".
-    center, size : tuple, optional
-        Docking box; required if `autobox=False`.
-    autobox : bool, optional
-        If True, use autobox with `autobox_ref` and `autobox_padding` (BinaryDock/smina).
-        VinaDock does **not** support autobox.
-    autobox_ref : str | Path, optional
-        Reference file for autobox.
-    autobox_padding : float, optional
-        Padding Å for autobox (default 4.0).
-    exhaustiveness : int, optional
-        Search exhaustiveness (default 8).
-    n_poses : int, optional
-        Number of poses (default 9).
-    cpu : int, optional
-        Worker CPU threads to request (if supported).
-    seed : int, optional
-        RNG seed (if supported).
-    out_dir, log_dir : str | Path, optional
-        Output root and logs directory (defaults: "./docked" and "<out_dir>/logs").
-    pose_suffix, log_suffix : str, optional
-        Filenames suffixes (defaults: "_docked.pdbqt", ".log").
-    n_workers : int, optional
-        Thread workers (default 1). For Vina, each worker builds one maps cache.
-    skip_existing : bool, optional
-        Skip ligands whose output already exists (default True).
-    max_retries : int, optional
-        Retries on failure (default 2).
-    retry_backoff : float, optional
-        Exponential backoff base (default 1.5).
-    timeout : float, optional
-        Per-run timeout for BinaryDock subprocesses.
-    verbose : int, optional
-        0 silent, 1 tqdm, 2+ per-ligand prints.
-    cache_per_worker : bool, optional
-        Cache a prepared backend per worker (default True).
-    autorun, autowrite : bool, optional
-        Convenience flags: run on construction and write summary CSV.
-
     Notes
     -----
     - For Vina + `n_workers=1`, maps are computed **once total**; for `n_workers>1`,
@@ -186,6 +133,75 @@ class MultipleDock:
         autorun: bool = False,
         autowrite: bool = False,
     ):
+        """
+        Initialize a MultipleDock batch-run controller.
+
+        :param receptor: Path to receptor PDBQT file. Required and must be a .pdbqt file.
+        :type receptor: str or pathlib.Path
+        :param ligand_dir: Directory containing ligand files (optional if `ligands` provided).
+        :type ligand_dir: str or pathlib.Path or None
+        :param ligands: Explicit sequence of ligand paths to use (overrides ligand_dir).
+        :type ligands: sequence of str/path or None
+        :param backend:
+            Backend specification. One of:
+              - "vina", "smina", "qvina", "qvina-w" (strings)
+              - callable factory returning a backend instance (recommended for parallel)
+              - an existing VinaDock or BinaryDock instance (safe for sequential use)
+              - custom binary name (string)
+        :type backend: str | callable | VinaDock | BinaryDock
+        :param ligand_format:
+            Ligand file format for discovery: "pdbqt", "sdf", "mol2", "auto" (prefer pdbqt), or "any".
+        :type ligand_format: str
+        :param filter_pattern: Glob pattern (without extension) used to filter ligand files.
+        :type filter_pattern: str
+        :param center: Optional docking box center (x,y,z). Required if autobox=False.
+        :type center: tuple[float, float, float] or None
+        :param size: Optional docking box size (sx,sy,sz). Required if autobox=False.
+        :type size: tuple[float, float, float] or None
+        :param autobox: If True, enable autobox mode (BinaryDock only). VinaDock does not support autobox.
+        :type autobox: bool
+        :param autobox_ref: Reference ligand path for autobox (when autobox=True).
+        :type autobox_ref: str or pathlib.Path or None
+        :param autobox_padding: Padding in Å used by autobox (default 4.0).
+        :type autobox_padding: float
+        :param exhaustiveness: Docking exhaustiveness (default 8).
+        :type exhaustiveness: int
+        :param n_poses: Number of poses / modes to request per ligand (default 9).
+        :type n_poses: int
+        :param cpu: Number of CPU threads to request for backends that support it (optional).
+        :type cpu: int or None
+        :param seed: RNG seed propagated to backends when supported.
+        :type seed: int or None
+        :param out_dir: Root output directory where per-ligand pose files are written.
+        :type out_dir: str or pathlib.Path
+        :param log_dir: Directory for per-ligand logs (defaults to "<out_dir>/logs").
+        :type log_dir: str or pathlib.Path or None
+        :param pose_suffix: Suffix appended to ligand stem for pose filenames (default "_docked.pdbqt").
+        :type pose_suffix: str
+        :param log_suffix: Suffix appended to ligand stem for log filenames (default ".log").
+        :type log_suffix: str
+        :param n_workers: Number of worker threads for parallel docking (default 1).
+        :type n_workers: int
+        :param skip_existing: If True, skip ligands for which output pose already exists (default True).
+        :type skip_existing: bool
+        :param max_retries: Maximum retries per ligand on failure (default 2).
+        :type max_retries: int
+        :param retry_backoff: Backoff factor used to compute sleep between retries (default 1.5).
+        :type retry_backoff: float
+        :param timeout: Per-run timeout for binary backends (seconds, optional).
+        :type timeout: float or None
+        :param verbose: Verbosity level: 0 silent, 1 tqdm progress, 2+ per-ligand prints.
+        :type verbose: int
+        :param cache_per_worker:
+            If True (default) cache a prepared backend per worker to reuse precomputed state
+            (Vina maps, Binary options). Set False to create fresh backend per ligand.
+        :type cache_per_worker: bool
+        :param autorun: If True, run the batch immediately on construction.
+        :type autorun: bool
+        :param autowrite:
+            If True and autorun is True, write a CSV summary after run.
+        :type autowrite: bool
+        """
         # Receptor
         self.receptor = Path(receptor)
         if not self.receptor.exists():
@@ -655,17 +671,13 @@ class MultipleDock:
         """
         Execute docking for all discovered/explicit ligands.
 
-        Parameters
-        ----------
-        n_workers : int, optional
-            Thread count (defaults to configured value).
-        ligands : sequence of paths, optional
-            Override the ligands set for this run.
-
-        Returns
-        -------
-        MultipleDock
-            self (inspect :pyattr:`results`, :pyattr:`best_per_ligand`).
+        :param n_workers: Thread count to use for this run (overrides configured value).
+        :type n_workers: int or None
+        :param ligands: Optional explicit list of ligands to use for this run (overrides discovery).
+        :type ligands: sequence of str/path or None
+        :returns: self (inspect :pyattr:`results`, :pyattr:`best_per_ligand`)
+        :rtype: MultipleDock
+        :raises RuntimeError: if docking box not defined or no ligands discovered
         """
         if ligands is not None:
             self.set_ligands(ligands)
@@ -739,6 +751,12 @@ class MultipleDock:
     def write_summary(self, path: Optional[Union[str, Path]] = None) -> Path:
         """
         Write a CSV summary of results. Returns the written path.
+
+        :param path: Optional path where summary CSV will be written. If None, defaults to
+                     "<out_dir>/docking_summary.csv".
+        :type path: str or pathlib.Path or None
+        :returns: path to the written summary CSV
+        :rtype: pathlib.Path
         """
         path = (
             Path(path) if path is not None else (self.out_dir / "docking_summary.csv")
