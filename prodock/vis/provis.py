@@ -1,15 +1,17 @@
+# provis.py
 """
-provis.py
-
 A thin wrapper around py3Dmol to provide convenient receptor/ligand
-display and gridbox visualization helpers.
+display and GridBox visualization helpers.
 
 Dependencies
 ------------
 - py3Dmol
 - pathlib
-"""
 
+This module exposes :class:`ProVis`, a small, chainable convenience wrapper
+around py3Dmol.view that captures loaded ligand metadata and provides a few
+helpers for drawing GridBox instances computed externally (see prodock.process.gridbox.GridBox).
+"""
 from __future__ import annotations
 
 from pathlib import Path
@@ -23,20 +25,31 @@ class ProVis:
     """
     ProDock visualization wrapper around py3Dmol.
 
-    Usage example:
+    The class intentionally uses a small, chainable API so calls can be composed:
+    ``ProVis().load_receptor(...).load_ligand(...).style_preset(...).show()``.
+
+    Example
+    -------
     >>> viz = ProVis(800, 600)
     >>> viz.load_receptor("protein.pdb").load_ligand("lig.sdf", fmt="sdf")
     >>> viz.set_receptor_style("cartoon", "white").highlight_ligand("stick", "cyan")
     >>> viz.show()
+
+    Parameters
+    ----------
+    vw : int, optional
+        Viewer width in pixels. Defaults to 700.
+    vh : int, optional
+        Viewer height in pixels. Defaults to 500.
     """
 
     def __init__(self, vw: int = 700, vh: int = 500) -> None:
         """
         Create a ProVis viewer.
 
-        :param vw: viewer width in pixels
+        :param vw: viewer width in pixels.
         :type vw: int
-        :param vh: viewer height in pixels
+        :param vh: viewer height in pixels.
         :type vh: int
         """
         self._viewer = py3Dmol.view(width=vw, height=vh)
@@ -48,17 +61,23 @@ class ProVis:
     # -------------------------
     @staticmethod
     def _read_file(inpt_file: Union[str, Path]) -> str:
-        """Read text from a file path."""
+        """Read text from a file path.
+
+        :param inpt_file: Path-like or string path to read.
+        :type inpt_file: str | pathlib.Path
+        :return: File contents as a string.
+        :rtype: str
+        """
         with open(inpt_file, "r") as f:
             return f.read()
 
     def load_receptor(self, inpt_file: Union[str, Path]) -> "ProVis":
         """
-        Load receptor PDB (model 0).
+        Load receptor PDB (added as model 0).
 
-        :param inpt_file: path to PDB file
-        :type inpt_file: str or pathlib.Path
-        :return: self
+        :param inpt_file: Path to a receptor PDB file.
+        :type inpt_file: str | pathlib.Path
+        :return: self (chainable).
         :rtype: ProVis
         """
         data = self._read_file(inpt_file)
@@ -68,13 +87,13 @@ class ProVis:
 
     def load_ligand(self, inpt_file: Union[str, Path], fmt: str = "sdf") -> "ProVis":
         """
-        Load ligand from a file path (and remember raw data).
+        Load a ligand from a file path and remember its metadata.
 
-        :param inpt_file: path to ligand file
-        :type inpt_file: str or pathlib.Path
-        :param fmt: ligand format ('sdf','pdb','mol2','xyz')
+        :param inpt_file: Path to ligand file.
+        :type inpt_file: str | pathlib.Path
+        :param fmt: Format of the ligand file (e.g., 'sdf','pdb','mol2','xyz').
         :type fmt: str
-        :return: self
+        :return: self (chainable).
         :rtype: ProVis
         """
         data = self._read_file(inpt_file)
@@ -94,15 +113,15 @@ class ProVis:
         self, text: str, name: str = "ligand", fmt: str = "sdf"
     ) -> "ProVis":
         """
-        Load ligand from a raw text block (useful for pasted SDF/PDB).
+        Load ligand from a raw text block (useful for pasted SDF/PDB data).
 
-        :param text: ligand content
+        :param text: Ligand content as a string.
         :type text: str
-        :param name: display name for ligand
+        :param name: Display name for the ligand (used in metadata).
         :type name: str
-        :param fmt: format
+        :param fmt: Format of the ligand text ('sdf', 'pdb', 'mol2', 'xyz').
         :type fmt: str
-        :return: self
+        :return: self (chainable).
         :rtype: ProVis
         """
         self._viewer.addModel(text, fmt)
@@ -119,13 +138,13 @@ class ProVis:
         self, style: str = "cartoon", color: str = "spectrum"
     ) -> "ProVis":
         """
-        Apply a style to receptor (model 0).
+        Apply a style to the receptor model (model 0).
 
-        :param style: representation style like 'cartoon', 'stick'
+        :param style: Representation style ('cartoon','stick', etc.).
         :type style: str
-        :param color: color string or scheme
+        :param color: Color or color scheme to apply.
         :type color: str
-        :return: self
+        :return: self (chainable).
         :rtype: ProVis
         """
         self._viewer.setStyle({"model": 0}, {style: {"color": color}})
@@ -139,17 +158,17 @@ class ProVis:
         opacity: float = 1.0,
     ) -> "ProVis":
         """
-        Apply a style to all loaded ligands.
+        Apply a visual style to all loaded ligand models.
 
-        :param style: 'stick','sphere','line','cartoon'
+        :param style: One of 'stick','sphere','line','cartoon'. Falls back to 'stick'.
         :type style: str
-        :param color: color string
+        :param color: Color string (e.g., 'cyan' or '0x00ffff').
         :type color: str
-        :param radius: radius for sticks/spheres
+        :param radius: Radius for stick/sphere representations.
         :type radius: float
-        :param opacity: opacity for cartoons
+        :param opacity: Opacity used for cartoon representation.
         :type opacity: float
-        :return: self
+        :return: self (chainable).
         :rtype: ProVis
         """
         for meta in self._ligands_meta:
@@ -169,13 +188,13 @@ class ProVis:
 
     def add_surface(self, opacity: float = 0.35, color: str = "lightgray") -> "ProVis":
         """
-        Add SES surface around model 0.
+        Add a solvent-excluded surface (SES) around the receptor model.
 
-        :param opacity: surface opacity
+        :param opacity: Surface opacity in range [0,1].
         :type opacity: float
-        :param color: surface color
+        :param color: Surface color string.
         :type color: str
-        :return: self
+        :return: self (chainable).
         :rtype: ProVis
         """
         self._viewer.addSurface(
@@ -194,17 +213,17 @@ class ProVis:
         opacity: float = 0.6,
     ) -> "ProVis":
         """
-        Draw a numeric box by center and size.
+        Draw a numeric box specified by center and size.
 
-        :param center: (x,y,z)
-        :type center: tuple
-        :param size: (w,h,d)
-        :type size: tuple
-        :param color: box color
+        :param center: Tuple (x, y, z) specifying the box center.
+        :type center: tuple[float, float, float]
+        :param size: Tuple (w, h, d) specifying box dimensions (Å).
+        :type size: tuple[float, float, float]
+        :param color: Box color name or hex string.
         :type color: str
-        :param opacity: box opacity
+        :param opacity: Box face opacity.
         :type opacity: float
-        :return: self
+        :return: self (chainable).
         :rtype: ProVis
         """
         self._viewer.addBox(
@@ -229,25 +248,25 @@ class ProVis:
         label_offset_factor: float = 0.05,
     ) -> "ProVis":
         """
-        Draw a GridBox and add textual labels for center and sizes.
+        Draw a GridBox and add textual labels for center coordinates and sizes.
 
-        :param grid: GridBox instance (center/size must be computed)
+        :param grid: GridBox instance providing `.center` and `.size` attributes.
         :type grid: GridBox
-        :param color: box color
+        :param color: Box color.
         :type color: str
-        :param opacity: box opacity
+        :param opacity: Box opacity.
         :type opacity: float
-        :param show_center: whether to show the center label
+        :param show_center: Whether to show a center coordinate label.
         :type show_center: bool
-        :param show_sizes: whether to show size labels
+        :param show_sizes: Whether to show per-axis size labels.
         :type show_sizes: bool
-        :param label_fontsize: font size for labels
+        :param label_fontsize: Font size for labels (px).
         :type label_fontsize: int
-        :param label_bg: show label background
+        :param label_bg: Whether to draw a label background rectangle.
         :type label_bg: bool
-        :param label_offset_factor: fraction of edge to offset labels by
+        :param label_offset_factor: Fraction of axis length used to offset size labels away from the box.
         :type label_offset_factor: float
-        :return: self
+        :return: self (chainable).
         :rtype: ProVis
         """
         # draw box
@@ -292,11 +311,16 @@ class ProVis:
         """
         Draw a GridBox; optionally add labels.
 
-        :param grid: GridBox to draw
-        :param color: color
-        :param opacity: opacity
-        :param labels: whether to draw labels
-        :return: self
+        :param grid: GridBox to draw (must have `.center` and `.size`).
+        :type grid: GridBox
+        :param color: Box color string.
+        :type color: str
+        :param opacity: Box opacity.
+        :type opacity: float
+        :param labels: If True, draw labels (center & sizes).
+        :type labels: bool
+        :return: self (chainable).
+        :rtype: ProVis
         """
         return (
             self.add_gridbox_with_labels(grid, color=color, opacity=opacity)
@@ -315,16 +339,30 @@ class ProVis:
         labels: bool = False,
     ) -> "ProVis":
         """
-        Convenience: compute a GridBox from a previously loaded ligand and draw it.
+        Compute a GridBox from a previously loaded ligand and draw it.
 
-        :param ligand_index: index of loaded ligand (supports negative indexing)
-        :param pad: padding in Å
-        :param isotropic: cubic if True
-        :param min_size: minimal edges
-        :param color: box color
-        :param opacity: box opacity
-        :param labels: draw labels if True
-        :return: self
+        This convenience method computes a GridBox by delegating to GridBox
+        (computational logic kept in GridBox) and then draws it.
+
+        :param ligand_index: Index of the loaded ligand to base the box on.
+                             Negative indices are supported (default -1 -> last).
+        :type ligand_index: int
+        :param pad: Padding in Å around ligand (scalar or per-axis tuple).
+        :type pad: float | tuple[float, float, float]
+        :param isotropic: If True, force cubic box sizing.
+        :type isotropic: bool
+        :param min_size: Minimal edge length (scalar or per-axis tuple).
+        :type min_size: float | tuple[float, float, float]
+        :param color: Box color.
+        :type color: str
+        :param opacity: Box opacity.
+        :type opacity: float
+        :param labels: Whether to draw labels next to the box.
+        :type labels: bool
+        :return: self (chainable).
+        :rtype: ProVis
+        :raises ValueError: if no ligand is loaded.
+        :raises IndexError: if the ligand_index is out of range.
         """
         if not self._ligands_meta:
             raise ValueError("No ligand loaded. Use load_ligand() first.")
@@ -334,10 +372,13 @@ class ProVis:
             raise IndexError("ligand_index out of range")
         meta = self._ligands_meta[ligand_index]
         # compute box using GridBox locally to avoid importing cycles in single-file use
-        from gridbox import GridBox  # local import to keep files decoupled
+        # Note: GridBox is also imported at module top; this local import mirrors previous behavior
+        from ..process.gridbox import (
+            GridBox as _GridBox,
+        )  # local alias to emphasize local use
 
         gb = (
-            GridBox()
+            _GridBox()
             .load_ligand(meta["data"], fmt=meta["fmt"])
             .from_ligand_pad(pad=pad, isotropic=isotropic, min_size=min_size)
         )
@@ -353,12 +394,16 @@ class ProVis:
         ligand_fmt: Optional[str] = None,
     ) -> "ProVis":
         """
-        Convenience loader for receptor and ligand in one call.
+        Convenience loader for receptor and ligand in a single call.
 
-        :param receptor: path to receptor PDB
-        :param ligand: path to ligand
-        :param ligand_fmt: ligand format if given
-        :return: self
+        :param receptor: Path to receptor PDB file (optional).
+        :type receptor: str | pathlib.Path | None
+        :param ligand: Path to ligand file (optional).
+        :type ligand: str | pathlib.Path | None
+        :param ligand_fmt: Optional ligand format to pass to load_ligand.
+        :type ligand_fmt: str | None
+        :return: self (chainable).
+        :rtype: ProVis
         """
         if receptor:
             self.load_receptor(receptor)
@@ -375,15 +420,21 @@ class ProVis:
         surface: bool = False,
     ) -> "ProVis":
         """
-        Apply a quick style preset.
+        Apply a quick visual styling preset.
 
-        Presets: 'publication', 'dark', 'surface'.
+        Presets supported: 'publication', 'dark', 'surface'.
 
-        :param name: preset name
-        :param ligand_style: ligand representation
-        :param background: optional background color
-        :param surface: draw surface if True
-        :return: self
+        :param name: Preset name.
+        :type name: str
+        :param ligand_style: Representation to use for ligands.
+        :type ligand_style: str
+        :param background: Optional background color (three.js hex-like '0x...' or CSS).
+        :type background: str | None
+        :param surface: If True, draw a receptor surface as part of the preset.
+        :type surface: bool
+        :return: self (chainable).
+        :rtype: ProVis
+        :raises ValueError: if an unknown preset name is given.
         """
         name = name.lower()
         if name == "publication":
@@ -410,10 +461,12 @@ class ProVis:
 
     def focus_ligand(self, index: int = -1) -> "ProVis":
         """
-        Zoom to a specific ligand (default last loaded).
+        Zoom the view to a specific loaded ligand.
 
-        :param index: ligand index (supports negatives)
-        :return: self
+        :param index: Ligand index to focus on; negative indices are supported (default -1 -> last).
+        :type index: int
+        :return: self (chainable).
+        :rtype: ProVis
         """
         if not self._ligands_meta:
             return self
@@ -426,7 +479,10 @@ class ProVis:
 
     def hide_waters(self) -> "ProVis":
         """
-        Hide water residues in the receptor (HOH/WAT).
+        Hide water residues (HOH / WAT) from the receptor model.
+
+        :return: self (chainable).
+        :rtype: ProVis
         """
         self._viewer.setStyle(
             {"and": [{"model": 0}, {"or": [{"resn": "HOH"}, {"resn": "WAT"}]}]}, {}
@@ -434,14 +490,28 @@ class ProVis:
         return self
 
     def dark_mode(self, on: bool = True) -> "ProVis":
-        """Switch to dark background when on=True."""
+        """
+        Toggle dark background.
+
+        :param on: If True set a dark background; otherwise set a white background.
+        :type on: bool
+        :return: self (chainable).
+        :rtype: ProVis
+        """
         return self.set_background("0x111111" if on else "0xFFFFFF")
 
     # -------------------------
     # Viewer controls
     # -------------------------
     def set_background(self, color: str = "0xFFFFFF") -> "ProVis":
-        """Set the viewer background color."""
+        """
+        Set the viewer background color.
+
+        :param color: Background color (three.js hex like '0xFFFFFF' or CSS color).
+        :type color: str
+        :return: self (chainable).
+        :rtype: ProVis
+        """
         self._viewer.setBackgroundColor(color)
         return self
 
@@ -449,9 +519,12 @@ class ProVis:
         """
         Render the py3Dmol viewer inline.
 
-        :param zoom_to: model index to zoom to (-1 for all)
-        :param orthographic: use orthographic projection
-        :return: self
+        :param zoom_to: Model index to zoom to (-1 zooms to all models).
+        :type zoom_to: int
+        :param orthographic: If True use orthographic projection; otherwise perspective.
+        :type orthographic: bool
+        :return: self (chainable).
+        :rtype: ProVis
         """
         if orthographic:
             self._viewer.setProjection("orthographic")
@@ -461,12 +534,22 @@ class ProVis:
 
     @property
     def viewer(self) -> py3Dmol.view:
-        """Return underlying py3Dmol view object."""
+        """
+        Return the underlying py3Dmol view object.
+
+        :return: The py3Dmol.view instance used by this wrapper.
+        :rtype: py3Dmol.view
+        """
         return self._viewer
 
     @property
     def ligands(self) -> Tuple[str, ...]:
-        """Names of loaded ligands (in order)."""
+        """
+        Names of loaded ligands (in order).
+
+        :return: Tuple of ligand display names.
+        :rtype: tuple[str, ...]
+        """
         return tuple(m["name"] for m in self._ligands_meta)
 
     def __repr__(self) -> str:

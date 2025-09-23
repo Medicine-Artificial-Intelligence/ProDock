@@ -8,15 +8,15 @@ from importlib.metadata import version as _get_version, PackageNotFoundError
 sys.path.insert(0, os.path.abspath(".."))
 
 # -- Project information -----------------------------------------------------
-project = "proqsar"
+project = "prodock"
 author = "Tieu-Long Phan"
 
 
 try:
-    release = _get_version("proqsar")
+    release = _get_version("prodock")
 except PackageNotFoundError:
     try:
-        release = m.version("proqsar")
+        release = m.version("prodock")
     except (ImportError, AttributeError):
         # Fallback default
         release = "0.0.1"
