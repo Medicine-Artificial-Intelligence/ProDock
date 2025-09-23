@@ -38,9 +38,18 @@ class DockGUI:
     - Themed **Dark/Light** look, reduced console spam (logs go to card)
     - **Export report** (HTML + optional ZIP bundle)
 
-    Usage
-    -----
-    >>> gui = DockGUI().build().display()
+    Typical usage
+    -------------
+    Construct, build and display the GUI::
+
+        >>> gui = DockGUI(vw=1100, vh=700).build().display()
+
+    Parameters
+    ----------
+    :param vw: initial viewer width (px), used for ProVis rendering defaults.
+    :type vw: int
+    :param vh: initial viewer height (px), used for ProVis rendering defaults.
+    :type vh: int
 
     Notes
     -----
@@ -311,23 +320,51 @@ class DockGUI:
 
     # ---------- Fluent API ----------
     def set_receptor(self, path: Union[str, Path]) -> "DockGUI":
-        """Set receptor path and return self."""
+        """
+        Set receptor path and return self.
+
+        :param path: path to receptor file (PDBQT or PDB).
+        :type path: str | pathlib.Path
+        :returns: self for fluent chaining.
+        :rtype: DockGUI
+        """
         self._receptor_path.value = str(Path(str(path)).expanduser())
         return self
 
     def set_ligand_dir(self, path: Union[str, Path]) -> "DockGUI":
-        """Set ligands directory and return self."""
+        """
+        Set ligands directory and return self.
+
+        :param path: directory containing ligand files.
+        :type path: str | pathlib.Path
+        :returns: self for fluent chaining.
+        :rtype: DockGUI
+        """
         self._ligand_dir.value = str(Path(str(path)).expanduser())
         return self
 
     def set_ligands(self, ligands: Sequence[Union[str, Path]]) -> "DockGUI":
-        """Set explicit ligands list (JSON field) and return self."""
+        """
+        Set explicit ligands list (populates the JSON textarea) and return self.
+
+        :param ligands: sequence of ligand paths.
+        :type ligands: Sequence[str | pathlib.Path]
+        :returns: self for fluent chaining.
+        :rtype: DockGUI
+        """
         arr = [str(Path(str(p)).expanduser()) for p in ligands]
         self._ligand_list_json.value = json.dumps(arr, indent=2)
         return self
 
     def set_on_finish(self, callback: Callable[["DockGUI"], None]) -> "DockGUI":
-        """Register a callback invoked when a run finishes; returns self."""
+        """
+        Register a callback invoked when a run finishes; returns self.
+
+        :param callback: callable that accepts the DockGUI instance.
+        :type callback: Callable[[DockGUI], None]
+        :returns: self
+        :rtype: DockGUI
+        """
         if callable(callback):
             self._on_finish_callbacks.append(callback)
         return self
@@ -335,7 +372,16 @@ class DockGUI:
     def set_discovery(
         self, ligand_format: str = "pdbqt", filter_glob: str = "*"
     ) -> "DockGUI":
-        """Set ligand discovery options; returns self."""
+        """
+        Set ligand discovery options; returns self.
+
+        :param ligand_format: one of "pdbqt","sdf","mol2","auto","any".
+        :type ligand_format: str
+        :param filter_glob: glob pattern (without extension) used to find ligands.
+        :type filter_glob: str
+        :returns: self
+        :rtype: DockGUI
+        """
         self._lig_format.value = ligand_format
         self._filter_pat.value = filter_glob
         return self
@@ -343,7 +389,16 @@ class DockGUI:
     def set_output(
         self, out_dir: Union[str, Path], log_dir: Optional[Union[str, Path]] = None
     ) -> "DockGUI":
-        """Set output and logs directories; returns self."""
+        """
+        Set output and logs directories; returns self.
+
+        :param out_dir: output directory path.
+        :type out_dir: str | pathlib.Path
+        :param log_dir: optional log directory path; if omitted logs go to out_dir/logs.
+        :type log_dir: Optional[str | pathlib.Path]
+        :returns: self
+        :rtype: DockGUI
+        """
         self._out_dir.value = str(Path(str(out_dir)).expanduser())
         self._log_dir.value = (
             "" if log_dir is None else str(Path(str(log_dir)).expanduser())
@@ -351,12 +406,24 @@ class DockGUI:
         return self
 
     def run(self) -> "DockGUI":
-        """Start docking asynchronously in chunks and return self."""
+        """
+        Start docking asynchronously in chunks and return self.
+
+        :returns: self
+        :rtype: DockGUI
+        """
         self._start_async_run_chunked()
         return self
 
     def write_summary(self, path: Optional[Union[str, Path]] = None) -> "DockGUI":
-        """Write CSV summary immediately; returns self."""
+        """
+        Write CSV summary immediately; returns self.
+
+        :param path: optional path to write CSV; if None the MultipleDock default is used.
+        :type path: Optional[str | pathlib.Path]
+        :returns: self
+        :rtype: DockGUI
+        """
         try:
             if not self._last_md:
                 self._status.value = self._status_bar(
@@ -373,13 +440,25 @@ class DockGUI:
         return self
 
     def export_report(self, zip_outputs: bool = False) -> "DockGUI":
-        """Export report (HTML + CSV, optional ZIP); returns self."""
+        """
+        Export report (HTML + CSV, optional ZIP) and return self.
+
+        :param zip_outputs: include outputs and logs in a zip bundle with the report.
+        :type zip_outputs: bool
+        :returns: self
+        :rtype: DockGUI
+        """
         self._execute_export_report(zip_outputs)
         return self
 
     # ---------- Build / Display ----------
     def build(self) -> "DockGUI":
-        """Compose widgets and return self (idempotent)."""
+        """
+        Compose widgets and return self (idempotent).
+
+        :returns: self, ready to display.
+        :rtype: DockGUI
+        """
         if self._ui is None:
             header = widgets.HBox(
                 [
@@ -538,14 +617,19 @@ class DockGUI:
         return self
 
     def display(self) -> "DockGUI":
-        """Render the GUI and return self."""
+        """
+        Render the GUI into the current IPython output area and return self.
+
+        :returns: self
+        :rtype: DockGUI
+        """
         if self._ui is None:
             self.build()
         display(self._ui)
         return self
 
     def help(self) -> None:
-        """Print a brief help message."""
+        """Print a brief help message describing the DockGUI usage."""
         print(self.__doc__ or "DockGUI")
 
     # ---------- Event handlers ----------

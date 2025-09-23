@@ -83,3 +83,19 @@ ProVis
    :members:
    :undoc-members:
    :show-inheritance:
+
+
+ProVisGUI
+---------
+.. automodule:: prodock.vis.provis_gui
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+
+DockGUI
+-------
+.. automodule:: prodock.vis.dock_gui
+   :members:
+   :undoc-members:
+   :show-inheritance:

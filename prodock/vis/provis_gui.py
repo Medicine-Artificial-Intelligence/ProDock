@@ -41,10 +41,18 @@ class ProVisGUI:
     Retrieval uses properties like :pyattr:`current_vina_dict`, :pyattr:`vina_lines`,
     :pyattr:`gridboxes`, and :pyattr:`ligand_names`.
 
-    :param vw: Viewer width (pixels).
+    :param vw: Initial viewer width in pixels (used when instantiating ProVis).
     :type vw: int
-    :param vh: Viewer height (pixels).
+    :param vh: Initial viewer height in pixels (used when instantiating ProVis).
     :type vh: int
+
+    Notes
+    -----
+    - The GUI is designed for interactive Jupyter usage. Call :py:meth:`build`
+      then :py:meth:`display` to render widgets in the notebook.
+    - Most mutator methods are chainable (return ``self``) so you can programmatically
+      drive a workflow, e.g.:
+        ``ProVisGUI().set_receptor('rec.pdb').add_ligand(...).compute().draw().display()``
     """
 
     # ---- Presets (extensible) ----------------------------------------------------

@@ -15,79 +15,80 @@ class BinaryDock:
     OOP wrapper for external docking binaries (smina, qvina, qvina-w, ...).
 
     Two usage patterns (both supported):
-    1) One-shot `__init__` configuration (autorun + autowrite):
-       bd = BinaryDock(
-           binary_name="smina",
-           cpu=8,
-           seed=42,
-           receptor="rec.pdbqt",
-           center=(32.5, 13.0, 133.75),
-           size=(22.5, 23.5, 22.5),
-           ligand="lig.pdbqt",
-           exhaustiveness=8,
-           n_poses=9,
-           out_poses="out/lig_docked.pdbqt",
-           log_path="out/lig.log",
-           autorun=True,
-           autowrite=True,
-       )
 
-    2) Staged chaining (configure then run):
-       bd = (BinaryDock("smina", cpu=8, seed=42)
-             .set_receptor("rec.pdbqt")
-             .set_box((32.5,13,133.75),(22.5,23.5,22.5))
-             .set_ligand("lig.pdbqt")
-             .set_out("out/lig_docked.pdbqt")
-             .set_log("out/lig.log")
-             .set_exhaustiveness(8)
-             .set_num_modes(9)
-             .set_cpu(8)
-             .run())
+    1) One-shot ``__init__`` configuration (autorun + autowrite)::
 
-    Parameters
-    ----------
-    binary_name : str, optional
-        Binary name or path (default ``"smina"``).
-    binary_dir : str or Path, optional
-        Directory to search for the binary (default ``"prodock/binary"``).
-    config : dict or str/Path (JSON), optional
-        Config dict or path to JSON (explicit kwargs override it).
-    cpu : int, optional
-        Number of CPU threads to request (will be added if binary supports `--cpu`).
-    seed : int, optional
-        RNG seed passed to binary if supported.
-    receptor : str or Path, optional
-        Receptor PDBQT path.
-    center : tuple, optional
-        Box center (x,y,z).
-    size : tuple, optional
-        Box size (sx,sy,sz).
-    ligand : str or Path, optional
-        Ligand path (PDBQT recommended).
-    exhaustiveness : int, optional
-        Search exhaustiveness (if supported).
-    n_poses : int, optional
-        Number of poses to request (mapped to `--num_modes` where supported).
-    out_poses : str or Path, optional
-        Path where output PDBQT should be written.
-    log_path : str or Path, optional
-        Path for human-readable log.
-    overwrite : bool, optional
-        Overwrite outputs when writing (default True).
-    validate_pdbqt : bool, optional
-        Do light PDBQT sanity checks on provided files (default False).
-    autorun : bool, optional
-        If True and inputs provided, run pipeline on construction.
-    autowrite : bool, optional
-        If True and outputs provided, write poses/log after autorun.
-    verbosity : int, optional
-        Internal logger level (0 ERROR, 1 INFO, 2+ DEBUG). Default 1.
+        bd = BinaryDock(
+            binary_name="smina",
+            cpu=8,
+            seed=42,
+            receptor="rec.pdbqt",
+            center=(32.5, 13.0, 133.75),
+            size=(22.5, 23.5, 22.5),
+            ligand="lig.pdbqt",
+            exhaustiveness=8,
+            n_poses=9,
+            out_poses="out/lig_docked.pdbqt",
+            log_path="out/lig.log",
+            autorun=True,
+            autowrite=True,
+        )
+
+    2) Staged chaining (configure then run)::
+
+        bd = (BinaryDock("smina", cpu=8, seed=42)
+              .set_receptor("rec.pdbqt")
+              .set_box((32.5,13,133.75),(22.5,23.5,22.5))
+              .set_ligand("lig.pdbqt")
+              .set_out("out/lig_docked.pdbqt")
+              .set_log("out/lig.log")
+              .set_exhaustiveness(8)
+              .set_num_modes(9)
+              .set_cpu(8)
+              .run())
 
     Notes
     -----
-    - The wrapper probes `<exe> --help` to decide which options to pass.
-    - After `run()` inspect `.result` for {"rc","stdout","stderr","out","log","called"}.
-    - Parsing helpers: :meth:`parse_scores_from_log`, :meth:`scores_to_csv`, :meth:`scores_as_dataframe`.
+    - The wrapper probes ``<exe> --help`` to decide which options to pass.
+    - After ``run()`` inspect :pyattr:`result` for ``{"rc","stdout","stderr","out","log","called"}``.
+    - Useful parsing helpers: :meth:`parse_scores_from_log`, :meth:`scores_to_csv`, :meth:`scores_as_dataframe`.
+
+    :param binary_name: Binary name or path (default ``"smina"``).
+    :type binary_name: str
+    :param binary_dir: Directory to search for the binary (default ``"prodock/binary"``).
+    :type binary_dir: str | pathlib.Path
+    :param config: Config dict or path to JSON (explicit kwargs override it).
+    :type config: Optional[dict | str | pathlib.Path]
+    :param cpu: Number of CPU threads to request (mapped to ``--cpu`` when supported).
+    :type cpu: Optional[int]
+    :param seed: RNG seed passed to binary if supported.
+    :type seed: Optional[int]
+    :param receptor: Receptor PDBQT path.
+    :type receptor: Optional[str | pathlib.Path]
+    :param center: Box center (x,y,z).
+    :type center: Optional[Tuple[float, float, float]]
+    :param size: Box size (sx,sy,sz).
+    :type size: Optional[Tuple[float, float, float]]
+    :param ligand: Ligand path (PDBQT recommended).
+    :type ligand: Optional[str | pathlib.Path]
+    :param exhaustiveness: Search exhaustiveness (if supported).
+    :type exhaustiveness: Optional[int]
+    :param n_poses: Number of poses to request (mapped to ``--num_modes`` where supported).
+    :type n_poses: Optional[int]
+    :param out_poses: Path where output PDBQT should be written.
+    :type out_poses: Optional[str | pathlib.Path]
+    :param log_path: Path for human-readable log.
+    :type log_path: Optional[str | pathlib.Path]
+    :param overwrite: Overwrite outputs when writing (default True).
+    :type overwrite: bool
+    :param validate_pdbqt: Do light PDBQT sanity checks on provided files (default False).
+    :type validate_pdbqt: bool
+    :param autorun: If True and inputs provided, run pipeline on construction.
+    :type autorun: bool
+    :param autowrite: If True and outputs provided, write poses/log after autorun.
+    :type autowrite: bool
+    :param verbosity: Internal logger level (0 ERROR, 1 INFO, 2+ DEBUG). Default 1.
+    :type verbosity: int
     """
 
     DEFAULTS: Dict[str, Any] = {
@@ -384,6 +385,16 @@ class BinaryDock:
     def set_binary(
         self, binary_name: str, binary_dir: Union[str, Path] = None
     ) -> "BinaryDock":
+        """
+        Set the binary name and optional binary directory, re-resolving capabilities.
+
+        :param binary_name: binary name or path.
+        :type binary_name: str
+        :param binary_dir: directory to search for binary (optional).
+        :type binary_dir: Optional[str | pathlib.Path]
+        :returns: self
+        :rtype: BinaryDock
+        """
         self.binary_name = str(binary_name)
         if binary_dir is not None:
             self.binary_dir = Path(binary_dir)
@@ -394,6 +405,17 @@ class BinaryDock:
     def set_receptor(
         self, receptor_path: Union[str, Path], *, validate: bool = False
     ) -> "BinaryDock":
+        """
+        Set receptor PDBQT path.
+
+        :param receptor_path: path to receptor file.
+        :type receptor_path: str | pathlib.Path
+        :param validate: if True run a light PDBQT quick-check.
+        :type validate: bool
+        :returns: self
+        :rtype: BinaryDock
+        :raises FileNotFoundError: if receptor does not exist.
+        """
         p = Path(receptor_path)
         if not p.exists():
             raise FileNotFoundError(f"Receptor not found: {p}")
@@ -403,6 +425,15 @@ class BinaryDock:
         return self
 
     def set_ligand(self, ligand_path: Union[str, Path]) -> "BinaryDock":
+        """
+        Set ligand file path.
+
+        :param ligand_path: path to ligand file.
+        :type ligand_path: str | pathlib.Path
+        :returns: self
+        :rtype: BinaryDock
+        :raises FileNotFoundError: if ligand file does not exist.
+        """
         p = Path(ligand_path)
         if not p.exists():
             raise FileNotFoundError(f"Ligand not found: {p}")
@@ -410,24 +441,66 @@ class BinaryDock:
         return self
 
     def set_flex(self, flex_path: Union[str, Path]) -> "BinaryDock":
+        """
+        Set flexible residues file (optional).
+
+        :param flex_path: path to flexible residues file.
+        :type flex_path: str | pathlib.Path
+        :returns: self
+        :rtype: BinaryDock
+        """
         self.flex_path = Path(flex_path)
         return self
 
     def set_out(self, out_path: Union[str, Path]) -> "BinaryDock":
+        """
+        Set output path for poses.
+
+        :param out_path: destination path for output poses.
+        :type out_path: str | pathlib.Path
+        :returns: self
+        :rtype: BinaryDock
+        """
         self.out_path = Path(out_path)
         return self
 
     def set_log(self, log_path: Union[str, Path]) -> "BinaryDock":
+        """
+        Set log path for driver-captured stdout/stderr and metadata.
+
+        :param log_path: destination log path.
+        :type log_path: str | pathlib.Path
+        :returns: self
+        :rtype: BinaryDock
+        """
         self.log_path = Path(log_path)
         return self
 
     def set_config(self, config_path: Union[str, Path]) -> "BinaryDock":
+        """
+        Set a binary-specific config file.
+
+        :param config_path: path to a config file.
+        :type config_path: str | pathlib.Path
+        :returns: self
+        :rtype: BinaryDock
+        """
         self.config_path = Path(config_path)
         return self
 
     def set_box(
         self, center: Tuple[float, float, float], size: Tuple[float, float, float]
     ) -> "BinaryDock":
+        """
+        Set docking box center and size.
+
+        :param center: (x, y, z) center coordinates.
+        :type center: Tuple[float, float, float]
+        :param size: (sx, sy, sz) box dimensions.
+        :type size: Tuple[float, float, float]
+        :returns: self
+        :rtype: BinaryDock
+        """
         self.center = (float(center[0]), float(center[1]), float(center[2]))
         self.size = (float(size[0]), float(size[1]), float(size[2]))
         return self
@@ -435,63 +508,174 @@ class BinaryDock:
     def enable_autobox(
         self, reference_file: Union[str, Path], padding: Optional[float] = None
     ) -> "BinaryDock":
+        """
+        Enable autoboxing based on a reference ligand.
+
+        :param reference_file: path to reference ligand for autoboxing.
+        :type reference_file: str | pathlib.Path
+        :param padding: optional padding to add.
+        :type padding: Optional[float]
+        :returns: self
+        :rtype: BinaryDock
+        """
         self.autobox = True
         self.autobox_reference = Path(reference_file)
         self.autobox_add = None if padding is None else float(padding)
         return self
 
     def disable_autobox(self) -> "BinaryDock":
+        """
+        Disable autobox behavior.
+
+        :returns: self
+        :rtype: BinaryDock
+        """
         self.autobox = False
         self.autobox_reference = None
         self.autobox_add = None
         return self
 
     def set_exhaustiveness(self, value: Optional[int]) -> "BinaryDock":
+        """
+        Set search exhaustiveness.
+
+        :param value: exhaustiveness integer or None to unset.
+        :type value: Optional[int]
+        :returns: self
+        :rtype: BinaryDock
+        """
         self.exhaustiveness = None if value is None else int(value)
         return self
 
     def set_num_modes(self, value: Optional[int]) -> "BinaryDock":
+        """
+        Set the requested number of output poses / modes.
+
+        :param value: integer number of modes or None.
+        :type value: Optional[int]
+        :returns: self
+        :rtype: BinaryDock
+        """
         self.num_modes = None if value is None else int(value)
         return self
 
     def set_spacing(self, value: Optional[float]) -> "BinaryDock":
+        """
+        Set grid spacing (where supported).
+
+        :param value: spacing in angstroms or None.
+        :type value: Optional[float]
+        :returns: self
+        :rtype: BinaryDock
+        """
         self.spacing = None if value is None else float(value)
         return self
 
     def set_cpu(self, value: Optional[int]) -> "BinaryDock":
+        """
+        Set CPU thread count.
+
+        :param value: integer CPU count or None.
+        :type value: Optional[int]
+        :returns: self
+        :rtype: BinaryDock
+        """
         self.cpu = None if value is None else int(value)
         return self
 
     def set_seed(self, value: Optional[int]) -> "BinaryDock":
+        """
+        Set RNG seed.
+
+        :param value: integer seed or None.
+        :type value: Optional[int]
+        :returns: self
+        :rtype: BinaryDock
+        """
         self.seed = None if value is None else int(value)
         return self
 
     def add_flags(self, flags: Sequence[str]) -> "BinaryDock":
+        """
+        Add raw flags to be appended to the command-line.
+
+        :param flags: sequence of flags (strings).
+        :type flags: Sequence[str]
+        :returns: self
+        :rtype: BinaryDock
+        """
         self._flags.extend(map(str, flags))
         return self
 
     def add_options(self, kv_pairs: Sequence[Union[str, int, float]]) -> "BinaryDock":
+        """
+        Add option key/value pairs to be appended to the command-line.
+
+        :param kv_pairs: flat sequence of option tokens (e.g. ['--foo', 1]).
+        :type kv_pairs: Sequence[Union[str, int, float]]
+        :returns: self
+        :rtype: BinaryDock
+        """
         self._options.extend(map(lambda x: str(x), kv_pairs))
         return self
 
     def set_timeout(self, seconds: Optional[float]) -> "BinaryDock":
+        """
+        Set a subprocess timeout.
+
+        :param seconds: timeout seconds or None to disable.
+        :type seconds: Optional[float]
+        :returns: self
+        :rtype: BinaryDock
+        """
         self.timeout = None if seconds is None else float(seconds)
         return self
 
     def set_env(self, env: Optional[dict]) -> "BinaryDock":
+        """
+        Set environment variables for subprocess.
+
+        :param env: dict of environment variables or None.
+        :type env: Optional[dict]
+        :returns: self
+        :rtype: BinaryDock
+        """
         self.env = None if env is None else dict(env)
         return self
 
     def set_cwd(self, cwd: Optional[Union[str, Path]]) -> "BinaryDock":
+        """
+        Set working directory for subprocess.
+
+        :param cwd: working directory path or None.
+        :type cwd: Optional[str | pathlib.Path]
+        :returns: self
+        :rtype: BinaryDock
+        """
         self.cwd = None if cwd is None else str(cwd)
         return self
 
     def set_dry_run(self, dry: bool = True) -> "BinaryDock":
+        """
+        Enable or disable dry-run mode.
+
+        :param dry: True to enable dry-run (do not execute binary).
+        :type dry: bool
+        :returns: self
+        :rtype: BinaryDock
+        """
         self.dry_run = bool(dry)
         return self
 
     # -------------------- command assembly -------------------- #
     def _build_args(self) -> List[str]:
+        """
+        Assemble the command-line argument list according to detected capabilities.
+
+        :returns: list of command tokens suitable for subprocess.run().
+        :rtype: List[str]
+        :raises RuntimeError: if executable has not been resolved.
+        """
         if not self._exe:
             raise RuntimeError("Executable not resolved")
         args: List[str] = [str(self._exe)]
@@ -611,7 +795,18 @@ class BinaryDock:
     # -------------------- runtime -------------------- #
     def run(self) -> "BinaryDock":
         """
-        Execute the assembled command. After run, inspect `.result`.
+        Execute the assembled command. After ``run()``, inspect :pyattr:`result`.
+
+        :returns: self
+        :rtype: BinaryDock
+        :raises RuntimeError: on missing executable or invalid inputs (see validators).
+        :example:
+
+        >>> bd = BinaryDock("smina")
+        >>> bd.set_receptor("rec.pdbqt").set_ligand("lig.pdbqt").set_out("out.pdbqt").set_log("out.log")
+        >>> bd.set_box((1,2,3),(10,10,10)).set_dry_run(True).run()
+        >>> bd.result['dry_run'] is True
+        True
         """
         self._resolve_executable()
         self._probe_capabilities()
@@ -678,6 +873,22 @@ class BinaryDock:
         autobox_refs: Optional[Iterable[Union[str, Path]]] = None,
         overwrite: bool = True,
     ) -> "BinaryDock":
+        """
+        Convenience to run docking over many ligand files.
+
+        :param ligands: iterable of ligand file paths.
+        :type ligands: Iterable[str | pathlib.Path]
+        :param out_dir: directory to write per-ligand output poses.
+        :type out_dir: str | pathlib.Path
+        :param log_dir: directory to write per-ligand logs.
+        :type log_dir: str | pathlib.Path
+        :param autobox_refs: optional iterable of autobox reference files (aligned with ligands).
+        :type autobox_refs: Optional[Iterable[str | pathlib.Path]]
+        :param overwrite: if False skip existing out/log pairs.
+        :type overwrite: bool
+        :returns: self
+        :rtype: BinaryDock
+        """
         out_dir = Path(out_dir)
         log_dir = Path(log_dir)
         out_dir.mkdir(parents=True, exist_ok=True)
@@ -704,6 +915,12 @@ class BinaryDock:
     # -------------------- accessors & parsing -------------------- #
     @property
     def result(self) -> Optional[Dict[str, Any]]:
+        """
+        Return the result dictionary from the last run.
+
+        :returns: last run result or None if not run yet.
+        :rtype: Optional[Dict[str, Any]]
+        """
         return self._last_result
 
     def __repr__(self) -> str:
@@ -714,6 +931,9 @@ class BinaryDock:
         )
 
     def help(self) -> None:
+        """
+        Print brief help (class docstring already contains examples).
+        """
         print("See class docstring for examples.")
 
     # -------------------- score parsing/export (unchanged, robust) -------------------- #
@@ -726,6 +946,28 @@ class BinaryDock:
         ligand_path: Optional[Union[str, Path]] = None,
         receptor_path: Optional[Union[str, Path]] = None,
     ) -> List[Dict[str, Any]]:
+        """
+        Parse docking scores table from a driver's textual log file.
+
+        The parser is robust to several common smina/qvina human-readable table layouts.
+
+        :param log_path: path to a textual log file produced by the docking run.
+        :type log_path: str | pathlib.Path
+        :param ligand_path: optional ligand path to include ligand identifier in rows.
+        :type ligand_path: Optional[str | pathlib.Path]
+        :param receptor_path: optional receptor path to include receptor identifier in rows.
+        :type receptor_path: Optional[str | pathlib.Path]
+        :returns: list of dicts with keys ``ligand_id``, ``receptor_id``, ``mode``,
+        ``affinity``, ``rmsd_lb``, ``rmsd_ub``.
+        :rtype: List[Dict[str, Any]]
+        :raises FileNotFoundError: if the log file does not exist.
+        :example:
+
+        >>> bd = BinaryDock("smina")
+        >>> rows = bd.parse_scores_from_log("example.log", ligand_path="lig.pdbqt")
+        >>> isinstance(rows, list)
+        True
+        """
         lp = Path(log_path)
         if not lp.exists():
             raise FileNotFoundError(f"log file not found: {log_path}")
@@ -823,6 +1065,25 @@ class BinaryDock:
         receptor_path: Optional[Union[str, Path]] = None,
         append: bool = False,
     ) -> None:
+        """
+        Parse scores from a log file and write them to CSV.
+
+        :param log_path: path to docking log file.
+        :type log_path: str | pathlib.Path
+        :param csv_path: destination CSV path.
+        :type csv_path: str | pathlib.Path
+        :param ligand_path: optional ligand path to include in CSV rows.
+        :type ligand_path: Optional[str | pathlib.Path]
+        :param receptor_path: optional receptor path to include in CSV rows.
+        :type receptor_path: Optional[str | pathlib.Path]
+        :param append: append to existing CSV when True, otherwise overwrite.
+        :type append: bool
+        :raises FileNotFoundError: if the log file cannot be found.
+        :example:
+
+        >>> bd = BinaryDock("smina")
+        >>> bd.scores_to_csv("example.log", "scores.csv")
+        """
         rows = self.parse_scores_from_log(
             log_path, ligand_path=ligand_path, receptor_path=receptor_path
         )
@@ -842,6 +1103,25 @@ class BinaryDock:
         ligand_path: Optional[Union[str, Path]] = None,
         receptor_path: Optional[Union[str, Path]] = None,
     ):
+        """
+        Parse scores and return a pandas DataFrame.
+
+        :param log_path: path to docking log file.
+        :type log_path: str | pathlib.Path
+        :param ligand_path: optional ligand path to include ligand identifier.
+        :type ligand_path: Optional[str | pathlib.Path]
+        :param receptor_path: optional receptor path to include receptor identifier.
+        :type receptor_path: Optional[str | pathlib.Path]
+        :returns: pandas.DataFrame with columns ``['ligand_id','receptor_id','mode','affinity','rmsd_lb','rmsd_ub']``.
+        :rtype: pandas.DataFrame
+        :raises ImportError: if pandas is not installed.
+        :example:
+
+        >>> bd = BinaryDock("smina")
+        >>> df = bd.scores_as_dataframe("example.log")
+        >>> hasattr(df, "columns")
+        True
+        """
         rows = self.parse_scores_from_log(
             log_path, ligand_path=ligand_path, receptor_path=receptor_path
         )

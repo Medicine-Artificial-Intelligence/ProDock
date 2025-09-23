@@ -14,7 +14,6 @@ from typing import List, Optional, Dict, Any, Iterable, Tuple
 from pathlib import Path
 import logging
 
-# RDKit imports
 try:
     from rdkit import Chem
     from rdkit.Chem import AllChem
@@ -26,7 +25,6 @@ except Exception as e:
         "RDKit is required for prodock.chem.embed: install rdkit from conda-forge"
     ) from e
 
-# prodock logging utilities (assume available in your environment)
 try:
     from prodock.io.logging import get_logger, StructuredAdapter
 except Exception:
@@ -49,7 +47,29 @@ class Embedder:
 
     Methods are chainable (return self). Use properties to access results.
 
-    :param seed: random seed for deterministic embeddings.
+    Basic workflow
+    --------------
+    1. Create instance: ``emb = Embedder(seed=42)``
+    2. Load SMILES: ``emb.load_smiles_file("smiles.txt")`` or ``emb.load_smiles_iterable([...])``
+    3. Run embedding: ``emb.embed_all(n_confs=3, add_hs=True)``
+    4. Access results: ``emb.mols``, ``emb.molblocks``, ``emb.conf_counts``
+    or write to disk with ``emb.mols_to_sdf(...)``
+
+    Examples
+    --------
+    Load from an iterable and embed 2 conformers per molecule::
+
+        >>> emb = Embedder(seed=123)
+        >>> emb.load_smiles_iterable(["CCO", "c1ccccc1"])
+        >>> emb.embed_all(n_confs=2, add_hs=True, embed_algorithm="ETKDGv3")
+        >>> len(emb.mols)
+        2
+        >>> emb.conf_counts
+        [2, 2]
+
+    Parameters
+    ----------
+    :param seed: Random seed used as fallback for embedding when no explicit seed is supplied.
     :type seed: int
     """
 
@@ -78,32 +98,56 @@ class Embedder:
     # ---------------- properties ----------------
     @property
     def seed(self) -> int:
-        """Random seed used for embeddings."""
+        """Random seed used for embeddings.
+
+        :return: integer seed value
+        :rtype: int
+        """
         return self._seed
 
     @property
     def smiles(self) -> List[str]:
-        """Return list of loaded SMILES (copy)."""
+        """Return list of loaded SMILES (copy).
+
+        :return: list of SMILES strings
+        :rtype: List[str]
+        """
         return list(self._smiles)
 
     @property
     def mols(self) -> List[Chem.Mol]:
-        """Return RDKit Mol objects (copied)."""
+        """Return RDKit Mol objects (copied).
+
+        :return: list of RDKit Mol objects (deep-copy via Chem.Mol)
+        :rtype: List[Chem.Mol]
+        """
         return [Chem.Mol(m) for m in self._mols]
 
     @property
     def molblocks(self) -> List[str]:
-        """Return MolBlock strings for embedded molecules."""
+        """Return MolBlock strings for embedded molecules.
+
+        :return: list of MolBlock strings
+        :rtype: List[str]
+        """
         return list(self._molblocks)
 
     @property
     def conf_counts(self) -> List[int]:
-        """Return the number of conformers embedded per molecule."""
+        """Return the number of conformers embedded per molecule.
+
+        :return: list of integers (conformer counts)
+        :rtype: List[int]
+        """
         return list(self._conf_counts)
 
     @property
     def last_params(self) -> Dict[str, Any]:
-        """Return the embed parameters used in the last embed_all call."""
+        """Return the embed parameters used in the last embed_all call.
+
+        :return: dict of parameters used in the last embedding run
+        :rtype: Dict[str, Any]
+        """
         return dict(self._last_params)
 
     # ---------------- loading ----------------
@@ -111,12 +155,24 @@ class Embedder:
         """
         Load SMILES from a newline-separated file.
 
+        The file should contain one SMILES per line. If a name or additional columns
+        are present, the first whitespace-separated token on each non-empty line is
+        taken as the SMILES.
+
         :param path: Path to SMILES file (one SMILES per line; name after whitespace allowed).
         :type path: str
-        :param sanitize: If True, RDKit sanitization is applied when parsing.
+        :param sanitize: If True, RDKit sanitization is applied when parsing (default True).
         :type sanitize: bool
         :return: self
         :rtype: Embedder
+        :raises FileNotFoundError: if the provided path does not exist
+        :example:
+
+        Load and embed afterwards::
+
+            >>> emb = Embedder()
+            >>> emb.load_smiles_file("my_smiles.txt")
+            >>> emb.embed_all(n_confs=1)
         """
         p = Path(path)
         if not p.exists():
@@ -132,12 +188,20 @@ class Embedder:
         """
         Load SMILES from any iterable of strings.
 
+        Items yielded by the iterable are stripped and the first whitespace-separated
+        token is considered the SMILES.
+
         :param smiles_iter: Iterable yielding SMILES strings.
         :type smiles_iter: Iterable[str]
-        :param sanitize: If True, attempt RDKit sanitization.
+        :param sanitize: If True, attempt RDKit sanitization (no explicit validation - parsed later).
         :type sanitize: bool
         :return: self
         :rtype: Embedder
+        :example:
+
+        >>> emb = Embedder()
+        >>> emb.load_smiles_iterable(["CCO", "O=C=O"])
+        >>> emb.embed_all()
         """
         out: List[str] = []
         for s in smiles_iter:
@@ -153,10 +217,18 @@ class Embedder:
         """
         Load existing MolBlock strings (they will be interpreted as RDKit Mols).
 
+        This is useful when you already have 3D structures in MolBlock format and
+        want to use the same Embedder utilities for downstream writing or conversion.
+
         :param molblocks: Iterable of MolBlock strings.
         :type molblocks: Iterable[str]
         :return: self
         :rtype: Embedder
+        :example:
+
+        >>> emb = Embedder()
+        >>> emb.load_molblocks([molblock_str1, molblock_str2])
+        >>> emb.mols_to_sdf("outdir")
         """
         out_mols: List[Chem.Mol] = []
         out_blocks: List[str] = []
@@ -286,12 +358,19 @@ class Embedder:
         This method delegates to smaller helpers so complexity is kept low.
 
         :param embed_algorithm: algorithm name (e.g. "ETKDGv3")
+        :type embed_algorithm: Optional[str]
         :param random_seed: RNG seed (or None)
+        :type random_seed: Optional[int]
         :param max_attempts: maxAttempts value when supported
+        :type max_attempts: int
         :param clear_confs: clear previous conformers before embedding
+        :type clear_confs: bool
         :param num_threads: requested number of threads (best-effort)
+        :type num_threads: int
         :param extras: extra params to set on the object if attributes exist
+        :type extras: Any
         :return: configured EmbedParameters
+        :rtype: AllChem.EmbedParameters
         """
         params = Embedder._select_algorithm_params(embed_algorithm)
         params = Embedder._configure_params(
@@ -491,6 +570,10 @@ class Embedder:
         """
         Sequentially embed all loaded SMILES into RDKit Mol objects with conformers.
 
+        This method uses RDKit's EmbedParameters objects (selected via
+        ``embed_algorithm``) and will attempt to set common parameters (seed,
+        maxAttempts, numThreads) on the returned parameters object when supported.
+
         :param n_confs: number of conformers to generate per molecule.
         :type n_confs: int
         :param add_hs: add explicit hydrogens before embedding (default True).
@@ -508,6 +591,16 @@ class Embedder:
         :type num_threads: int
         :return: self
         :rtype: Embedder
+        :raises RuntimeError: if no SMILES have been loaded prior to calling this method.
+        :example:
+
+        Basic embedding run::
+
+            >>> emb = Embedder(seed=7)
+            >>> emb.load_smiles_iterable(["CCO", "CCN"])
+            >>> emb.embed_all(n_confs=1, add_hs=True)
+            >>> emb.conf_counts
+            [1, 1]
         """
         if not self._smiles:
             raise RuntimeError(
@@ -568,12 +661,22 @@ class Embedder:
         """
         Write embedded molecules to SDF files.
 
+        If `per_mol_folder` is True, each molecule is written into its own folder
+        ``out_folder/ligand_i/ligand_i.sdf``. Otherwise SDF files are written directly
+        to ``out_folder`` as ``ligand_i.sdf``.
+
         :param out_folder: destination folder path.
         :type out_folder: str
         :param per_mol_folder: if True, write each SDF into its own folder ligand_i/ligand_i.sdf
         :type per_mol_folder: bool
         :return: self
         :rtype: Embedder
+        :example:
+
+        >>> emb = Embedder()
+        >>> emb.load_smiles_iterable(["CCO"])
+        >>> emb.embed_all()
+        >>> emb.mols_to_sdf("outdir", per_mol_folder=False)
         """
         out = Path(out_folder)
         out.mkdir(parents=True, exist_ok=True)

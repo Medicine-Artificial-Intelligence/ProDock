@@ -1,10 +1,10 @@
 # ----------------------------
-# Multi-stage Dockerfile
+# Multi-stage Dockerfile (preferred: conda binary installs + small fallback)
 # ----------------------------
 # Stage 1: build wheel (use stock python image so pip is available)
 FROM python:3.11-slim AS builder
 
-# ensure basic build tools (optional, helps if any build steps need tools)
+# ensure basic build tools (optional)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential git ca-certificates \
   && rm -rf /var/lib/apt/lists/*
@@ -39,11 +39,19 @@ WORKDIR /opt/prodock
 COPY --from=builder /build/dist/*.whl ./
 COPY --from=builder /build/requirements.txt ./requirements.txt
 
-# create conda env and install heavy binary packages from conda-forge (including OpenMM & PDBFixer)
-# NOTE: adjust package list if you want to change which heavy packages are installed by conda.
+# Install minimal system build tools as a fallback (so pip can compile if absolutely necessary)
+# This helps avoid "gcc: command not found" when pip must compile something.
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends build-essential git pkg-config \
+     libblas-dev liblapack-dev gfortran ca-certificates \
+  && rm -rf /var/lib/apt/lists/*
+
+# Create conda env and install heavy binary packages from conda-forge,
+# including MDAnalysis, OpenMM and PDBFixer (now included).
+# Adding mdanalysis here avoids pip building it from source.
 RUN micromamba create -n ${CONDA_ENV} -y -c ${CONDA_CHANNEL} \
       python=${PYTHON_VERSION} \
-      rdkit openbabel pymol-open-source vina py3Dmol \
+      rdkit openbabel pymol-open-source vina py3Dmol mdanalysis \
       ${OPENMM_PACKAGE} ${PDBFIXER_PACKAGE} \
       libstdcxx-ng libgcc-ng \
   && micromamba clean --all --yes
@@ -54,9 +62,9 @@ ENV CONDA_ENV_PREFIX=${CONDA_BASE}/envs/${CONDA_ENV}
 ENV PATH=${CONDA_ENV_PREFIX}/bin:${PATH}
 
 # Filter requirements.txt to remove packages installed via conda
-# Update the grep pattern if you change what conda installs
+# Update the grep pattern if you change what conda installs.
 RUN set -eux; \
-    grep -v -E '^(rdkit|openbabel-wheel|openbabel|pymol-open-source-whl|pymol-open-source|vina|py3Dmol|openmm|pdbfixer)' requirements.txt > reqs-pip.txt || true; \
+    grep -v -E '^(rdkit|openbabel-wheel|openbabel|pymol-open-source-whl|pymol-open-source|vina|py3Dmol|openmm|pdbfixer|mdanalysis)' requirements.txt > reqs-pip.txt || true; \
     echo "== pip reqs to install (filtered) =="; cat reqs-pip.txt || true
 
 # Install pip-only requirements inside the conda env, then install the built wheel (no-deps)
@@ -71,5 +79,5 @@ RUN set -eux; \
     micromamba run -n ${CONDA_ENV} pip install --no-cache-dir --no-deps ./*.whl; \
     rm -f ./*.whl
 
-# Default command: print package version (sanity)
+# Default runtime check
 CMD ["micromamba","run","-n","prodock","python","-c","import importlib.metadata as m; print('prodock==', m.version('prodock'))"]
