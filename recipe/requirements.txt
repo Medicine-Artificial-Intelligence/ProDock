@@ -1,0 +1,11 @@
+rdkit>=2025.3.5
+prolif>=2.0.3
+openbabel-wheel>=3.1.1.21
+meeko>=0.6.1
+py3Dmol>=2.5.2
+pandas
+tqdm
+matplotlib
+pymol-open-source-whl>=3.1.0.4
+vina>=1.2.7
+ipywidgets>=8.1.7

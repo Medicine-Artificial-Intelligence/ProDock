@@ -2,7 +2,7 @@
 Automatic pipeline for molecular modeling
 
 [![PyPI version](https://img.shields.io/pypi/v/prodock.svg)](https://pypi.org/project/prodock/)
-[![Conda version](https://img.shields.io/conda/vn/tieulongphan/prodock.svg)](https://anaconda.org/tieulongphan/prodock)
+[![conda](https://img.shields.io/conda/vn/tieulongphan/prodock.svg?label=conda)](https://anaconda.org/tieulongphan/prodock)
 [![Docker Pulls](https://img.shields.io/docker/pulls/tieulongphan/prodock.svg)](https://hub.docker.com/r/tieulongphan/prodock)
 [![Docker Image Version](https://img.shields.io/docker/v/tieulongphan/prodock/latest?label=container)](https://hub.docker.com/r/tieulongphan/prodock)
 [![License](https://img.shields.io/github/license/Medicine-Artificial-Intelligence/prodock.svg)](https://github.com/Medicine-Artificial-Intelligence/prodock/blob/main/LICENSE)
