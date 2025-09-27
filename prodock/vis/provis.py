@@ -18,7 +18,7 @@ from pathlib import Path
 from typing import Optional, Tuple, Union, List, Dict, Any
 import py3Dmol
 
-from ..process.gridbox import GridBox
+from ..preprocess.gridbox import GridBox
 
 
 class ProVis:
@@ -373,7 +373,7 @@ class ProVis:
         meta = self._ligands_meta[ligand_index]
         # compute box using GridBox locally to avoid importing cycles in single-file use
         # Note: GridBox is also imported at module top; this local import mirrors previous behavior
-        from ..process.gridbox import (
+        from ..preprocess.gridbox import (
             GridBox as _GridBox,
         )  # local alias to emphasize local use
 

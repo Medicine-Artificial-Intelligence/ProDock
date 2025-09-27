@@ -1,65 +1,52 @@
 """
+prodock.io.parser
+=================
+
 Small text-to-RDKit parsers used by gridbox and other modules.
 
-Each helper returns the first successfully parsed :class:`rdkit.Chem.rdchem.Mol`
-or ``None`` when parsing failed. These functions intentionally swallow parser
-exceptions and return ``None`` so callers can decide how to handle
-format-specific failures.
+These helpers attempt to parse molecular text blocks (SDF, PDB, MOL2, XYZ)
+and return the first successfully parsed :class:`rdkit.Chem.rdchem.Mol`
+or ``None`` when parsing failed. They are defensive by design: parser
+exceptions are swallowed and ``None`` is returned so callers can decide
+fallback behavior.
 
-They are small, single-responsibility helpers suitable for unit testing.
+The main helpers are:
 
-Module API
-----------
-Helpers provided:
 - :func:`_parse_sdf_text` — robust first-molecule-from-SDF parsing (string input).
 - :func:`_parse_pdb_text` — parse a PDB block.
 - :func:`_parse_mol2_text` — parse a MOL2 block.
 - :func:`_parse_xyz_text` — parse an XYZ block (if RDKit supports it).
 
-All functions return either a :class:`rdkit.Chem.rdchem.Mol` instance on success
-or ``None`` on failure.
-
-Examples
---------
-Simple usage::
-
-    from prodock.process import parser
-    sdf_content = open("example.sdf").read()
-    mol = parser._parse_sdf_text(sdf_content)
-    if mol is None:
-        print("Failed to parse SDF")
-    else:
-        print("Parsed atoms:", mol.GetNumAtoms())
-
-Notes
------
-- These helpers are defensive: they try multiple strategies (direct block parsing,
-  light sanitization, and SDMolSupplier via a temporary file) to maximize the
-  chance of successfully parsing real-world SDF artifacts.
-- RDKit C/C++ warnings are silenced at import time for cleaner logs.
+These functions are intentionally small and easy to unit-test.
 """
 
-from typing import Optional, List
+from __future__ import annotations
+
+import os
+import re
+import tempfile
+from typing import List, Optional
+
 from rdkit import Chem
 from rdkit.Chem.rdchem import Mol
 from rdkit import RDLogger
-import tempfile
-import os
-import re
 
-#  Quiet RDKit C/C++ warnings for parsing helpers
-RDLogger.DisableLog("rdApp.*")
+# Quiet RDKit C/C++ warnings for parsing helpers (defensive)
+try:
+    RDLogger.DisableLog("rdApp.*")
+except Exception:
+    # If RDLogger is unavailable or disabling fails, continue silently.
+    pass
 
 
 def _parse_block(block: str) -> Optional[Mol]:
     """
-    Try to parse a single MDL Mol block using :func:`rdkit.Chem.MolFromMolBlock`.
+    Try to parse a single MDL mol block using RDKit.
 
-    This is a thin wrapper that catches exceptions and returns ``None`` on failure.
-
-    :param str block: Text containing a single mol block (MDL Mol format).
-    :returns: Parsed RDKit Mol on success or ``None`` on failure.
-    :rtype: Optional[:class:`rdkit.Chem.rdchem.Mol`]
+    :param block: Text containing a single MDL Mol block.
+    :type block: str
+    :return: Parsed RDKit Mol on success, otherwise ``None``.
+    :rtype: Optional[rdkit.Chem.rdchem.Mol]
     """
     try:
         m = Chem.MolFromMolBlock(block, sanitize=True, removeHs=False)
@@ -70,13 +57,13 @@ def _parse_block(block: str) -> Optional[Mol]:
 
 def _try_blocks(blocks: List[str]) -> Optional[Mol]:
     """
-    Iterate candidate mol-block strings and return the first successfully parsed Mol.
+    Iterate candidate mol-block strings and return the first successfully
+    parsed molecule.
 
-    Skips empty/whitespace-only blocks.
-
-    :param List[str] blocks: List of mol-block strings to try.
-    :returns: First parsed RDKit Mol or ``None`` if none could be parsed.
-    :rtype: Optional[:class:`rdkit.Chem.rdchem.Mol`]
+    :param blocks: List of candidate mol-block strings.
+    :type blocks: List[str]
+    :return: First parsed RDKit Mol or ``None`` if none parsed.
+    :rtype: Optional[rdkit.Chem.rdchem.Mol]
     """
     for block in blocks:
         if not block or not block.strip():
@@ -89,114 +76,107 @@ def _try_blocks(blocks: List[str]) -> Optional[Mol]:
 
 def _sanitize_text(text: str) -> str:
     """
-    Apply lightweight sanitization for common SDF formatting issues.
+    Apply light sanitization to SDF text to handle some common malformed cases.
 
-    Current rules:
-      - replace occurrences of ``-0.`` with a conservative ``0.000`` which is
-        a frequent fragile formatting artifact in coordinate lines.
+    Current rules: conservative replacements of "-0." coordinate artifacts that
+    sometimes break strict parsers.
 
-    :param str text: Raw SDF text to sanitize.
-    :returns: Sanitized text (string).
+    :param text: Raw SDF text.
+    :type text: str
+    :return: Sanitized text.
     :rtype: str
     """
-    # Replace substrings like " -0." and "-0." conservatively
     sanitized = text.replace(" -0.", " 0.000").replace("-0.", "0.000")
-    # Additionally handle isolated patterns with regex (defensive)
-    sanitized = re.sub(r"(?<=\s)-0\.(?=\s)", "0.000", sanitized)
+    try:
+        sanitized = re.sub(r"(?<=\s)-0\.(?=\s)", "0.000", sanitized)
+    except re.error:
+        # If regex fails for any reason, fall back to the simple replacements.
+        pass
     return sanitized
 
 
 def _supplier_first_mol(text: str) -> Optional[Mol]:
     """
-    Write text to a temporary ``.sdf`` file and return the first molecule from
-    :class:`rdkit.Chem.SDMolSupplier`.
+    Use RDKit's SDMolSupplier as a robust fallback for SDF parsing.
 
-    This path is more robust for severely malformed SDFs where SDMolSupplier
-    implements additional parsing heuristics.
+    Writes the provided text to a temporary .sdf file and iterates the
+    SDMolSupplier collecting valid molecules. The temporary file is removed
+    after supplier iteration completes to avoid races where RDKit may still
+    read the file.
 
-    :param str text: Full SDF content (may contain multiple records).
-    :returns: First parsed RDKit Mol or ``None`` if the supplier yields nothing.
-    :rtype: Optional[:class:`rdkit.Chem.rdchem.Mol`]
+    :param text: Full SDF content (may contain multiple records).
+    :type text: str
+    :return: First parsed RDKit Mol or ``None``.
+    :rtype: Optional[rdkit.Chem.rdchem.Mol]
     """
-    tf = None
+    tf_path = None
+    mols: List[Mol] = []
     try:
-        # create a named temp file to allow SDMolSupplier to open it
         tf = tempfile.NamedTemporaryFile(mode="w", suffix=".sdf", delete=False)
+        tf_path = tf.name
         tf.write(text)
         tf.flush()
         tf.close()
-        supplier = Chem.SDMolSupplier(tf.name, sanitize=True, removeHs=False)
-        for mol in supplier:
-            if mol is not None:
-                return mol
+        supplier = Chem.SDMolSupplier(tf_path, sanitize=True, removeHs=False)
+        for m in supplier:
+            if m is not None:
+                mols.append(m)
     except Exception:
-        # swallow supplier exceptions and return None
-        return None
+        # Swallow any supplier-related exceptions and fall through to return None.
+        mols = []
     finally:
-        if tf is not None:
+        if tf_path is not None:
             try:
-                os.unlink(tf.name)
+                os.unlink(tf_path)
             except Exception:
+                # Ignore cleanup failures
                 pass
-    return None
+    return mols[0] if mols else None
 
 
 def _parse_sdf_text(text: str) -> Optional[Mol]:
     """
-    Parse SDF-like text and return the first valid RDKit :class:`rdkit.Chem.rdchem.Mol`.
+    Parse SDF-like text and return the first valid RDKit Mol.
 
-    Flow:
+    Strategy:
       1. Quick-fail on empty input.
-      2. Split by ``$$$$`` and attempt per-block :func:`rdkit.Chem.MolFromMolBlock`.
+      2. Split by ``$$$$`` and attempt per-block ``MolFromMolBlock``.
       3. If that fails, apply light sanitization and retry per-block parsing.
-      4. If still failing, write the text to a temporary .sdf and use
-         :class:`rdkit.Chem.SDMolSupplier`.
+      4. If still failing, write the text to a temporary .sdf file and use
+         ``SDMolSupplier`` as a robust fallback.
 
-    The functions intentionally swallow exceptions and return ``None`` rather than
-    raising so callers can implement fallback behavior.
-
-    :param str text: SDF-style content (possibly containing multiple records).
-    :returns: First parsed RDKit Mol or ``None`` if none parsed.
-    :rtype: Optional[:class:`rdkit.Chem.rdchem.Mol`]
-
-    Example
-    -------
-
-    >>> mol = _parse_sdf_text(open("example.sdf").read())
-    >>> if mol is None:
-    ...     print("No molecule parsed")
-    ... else:
-    ...     print(mol.GetNumAtoms())
+    :param text: SDF-style content (possibly multiple records).
+    :type text: str
+    :return: First parsed RDKit Mol or ``None`` if parsing fails.
+    :rtype: Optional[rdkit.Chem.rdchem.Mol]
     """
     if not text or not text.strip():
         return None
 
-    # preserve blocks (do not aggressively strip inner whitespace)
+    # Fast path: attempt per-block MolFromMolBlock parsing
     blocks = [b for b in text.split("$$$$")]
-
-    # 1) Fast path: try per-block MolFromMolBlock
     mol = _try_blocks(blocks)
     if mol is not None:
         return mol
 
-    # 2) Try sanitized blocks (fix common '-0.' formatting)
+    # Sanitized retry
     sanitized = _sanitize_text(text)
     mol = _try_blocks([b for b in sanitized.split("$$$$")])
     if mol is not None:
         return mol
 
-    # 3) Final robust attempt using SDMolSupplier on a temp file
-    mol = _supplier_first_mol(text)
-    return mol
+    # Last-resort: let SDMolSupplier parse the (possibly malformed) SDF
+    return _supplier_first_mol(text)
 
 
 def _parse_pdb_text(text: str) -> Optional[Mol]:
     """
-    Parse a PDB block into an RDKit Mol using :func:`rdkit.Chem.MolFromPDBBlock`.
+    Parse a PDB block into an RDKit Mol.
 
-    :param str text: PDB-format text (single model/block).
-    :returns: Parsed :class:`rdkit.Chem.rdchem.Mol` or ``None`` on failure.
-    :rtype: Optional[:class:`rdkit.Chem.rdchem.Mol`]
+    :param text: PDB-format text (single model/block).
+    :type text: str
+    :return: Parsed RDKit Mol or ``None`` on failure.
+    :rtype: Optional[rdkit.Chem.rdchem.Mol]
     """
     try:
         m = Chem.MolFromPDBBlock(text, removeHs=False)
@@ -209,14 +189,14 @@ def _parse_mol2_text(text: str) -> Optional[Mol]:
     """
     Parse a MOL2 block into an RDKit Mol.
 
-    Note
-    ----
-    Some RDKit builds or installs may omit MOL2 support; in those cases this
-    function will typically return ``None``.
+    Note:
+        Some RDKit binaries may lack MOL2 parsing support. In that case this
+        function typically returns ``None``.
 
-    :param str text: MOL2-format text.
-    :returns: Parsed :class:`rdkit.Chem.rdchem.Mol` or ``None`` on failure.
-    :rtype: Optional[:class:`rdkit.Chem.rdchem.Mol`]
+    :param text: MOL2-format text.
+    :type text: str
+    :return: Parsed RDKit Mol or ``None`` on failure.
+    :rtype: Optional[rdkit.Chem.rdchem.Mol]
     """
     try:
         m = Chem.MolFromMol2Block(text, sanitize=True, removeHs=False)
@@ -229,12 +209,13 @@ def _parse_xyz_text(text: str) -> Optional[Mol]:
     """
     Parse an XYZ-format block into an RDKit Mol.
 
-    Uses :func:`rdkit.Chem.MolFromXYZBlock` when available; older RDKit builds may
-    not provide this helper and the function will return ``None``.
+    Uses ``Chem.MolFromXYZBlock`` when available; older RDKit releases may not
+    provide this helper and the function will return ``None`` in that case.
 
-    :param str text: XYZ-format text.
-    :returns: Parsed :class:`rdkit.Chem.rdchem.Mol` or ``None`` on failure.
-    :rtype: Optional[:class:`rdkit.Chem.rdchem.Mol`]
+    :param text: XYZ-format text.
+    :type text: str
+    :return: Parsed RDKit Mol or ``None`` on failure.
+    :rtype: Optional[rdkit.Chem.rdchem.Mol]
     """
     try:
         m = Chem.MolFromXYZBlock(text)

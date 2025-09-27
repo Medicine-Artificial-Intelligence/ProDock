@@ -1,0 +1,41 @@
+# prodock/structure/constants.py
+from typing import List
+
+ALLOWED_EXT_ORDER = [".pdb", ".ent", ".cif", ".mmcif", ".pdb.gz", ".ent.gz"]
+
+DEFAULT_SOLVENTS: List[str] = [
+    "HOH",
+    "DOD",
+    "ETH",
+    "IPA",
+    "MEO",
+    "ACT",
+    "DMS",
+    "DME",
+    "BEN",
+    "TOL",
+    "DCM",
+    "CCL",
+    "MPG",
+    "PEG",
+    "PG4",
+    "ACE",
+    "PO4",
+    "DPO",
+    "SO4",
+    "SUL",
+    "TRS",
+    "TLA",
+    "HEP",
+    "MES",
+    "PIP",
+    "CO3",
+    "FMT",
+    "NA",
+    "K",
+    "CA",
+    "MG",
+    "CL",
+    "ZN",
+    "MN",
+]

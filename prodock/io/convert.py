@@ -1,12 +1,11 @@
-# prodock/io/convert.py
 from __future__ import annotations
-
+import re
 import shutil
-import subprocess
 import tempfile
+import subprocess
 from pathlib import Path
 from typing import Union, Optional, List, Literal
-import re
+
 
 try:
     from rdkit import Chem  # type: ignore
@@ -17,7 +16,7 @@ except Exception:
     _RDKIT_AVAILABLE = False
 
 from prodock.io.logging import get_logger
-from prodock.process.pdbqt_sanitizer import (
+from prodock.structure.pdbqt_sanitizer import (
     PDBQTSanitizer,
 )
 

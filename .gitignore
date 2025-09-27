@@ -4,3 +4,7 @@ logs/*
 *.dat
 docs/*
 *.html
+develop/*
+*ipynb
+auto/*
+out/*
