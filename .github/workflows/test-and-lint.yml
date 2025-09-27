@@ -2,7 +2,7 @@ name: Test & Lint
 
 on:
   push:
-    branches: ["main", "debug"]
+    branches: ["main", "dev"]
   pull_request:
     branches: ["main"]
 
@@ -138,7 +138,7 @@ jobs:
           conda activate "${CONDA_ENV_NAME}"
 
           # show which python is used
-          python -m pip install --upgrade pip pytest
+          python -m pip install --upgrade pip pytest pymol-open-source-whl>=3.1.0.4
           # Re-install requirements if the repo expects freshly installed packages (optional)
           if [ -f requirements.txt ]; then
             grep -vE '^(openmm|pdbfixer|OpenMM|PDBFixer)' requirements.txt > reqs-pip.txt || true
