@@ -1,0 +1,21 @@
+engine: smina
+n_jobs: 4
+out_dir: out/docked
+log_dir: out/logs
+exhaustiveness: 8
+n_poses: 9
+cpu: 4
+seed: 42
+rows:
+  - id: L1
+    receptor: Data/testcase/dock/receptor/5N2F.pdbqt
+    ligand: Data/testcase/dock/ligand/8HW.pdbqt
+    box:
+      center: [32.5, 13.0, 133.75]
+      size:   [22.5, 23.5, 22.5]
+  - id: L2
+    receptor: Data/testcase/dock/receptor/5N2F.pdbqt
+    ligand: Data/testcase/dock/ligand/another_ligand.pdbqt
+    box:
+      center: [32.5, 13.0, 133.75]
+      size:   [22.5, 23.5, 22.5]

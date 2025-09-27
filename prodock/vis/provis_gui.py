@@ -29,7 +29,7 @@ import traceback
 import ipywidgets as widgets
 from IPython.display import display, clear_output, HTML, Javascript
 
-from prodock.process.gridbox import GridBox, _is_pathlike, _snap_tuple, _round_tuple
+from prodock.preprocess.gridbox import GridBox, _is_pathlike, _snap_tuple, _round_tuple
 from prodock.vis.provis import ProVis
 
 

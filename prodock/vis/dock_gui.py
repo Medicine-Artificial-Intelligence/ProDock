@@ -16,7 +16,7 @@ from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
 import ipywidgets as widgets
 from IPython.display import display, clear_output, HTML, Javascript
 
-from prodock.engine.multiple import MultipleDock
+from prodock.dock.multiple import MultipleDock
 from prodock.io.convert import pdbqt_to_sdf  # PDBQT -> SDF conversion (Open Babel)
 
 # ProVis (see class below in this message)
