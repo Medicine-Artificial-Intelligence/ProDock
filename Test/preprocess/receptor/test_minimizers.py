@@ -1,4 +1,4 @@
-# tests/test_minimizers.py
+# Test/preprocess/receptor/test_minimizers.py
 import os
 import stat
 import tempfile

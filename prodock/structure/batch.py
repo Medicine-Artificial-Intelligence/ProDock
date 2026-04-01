@@ -4,7 +4,7 @@ from typing import Any, Dict, List, Optional, Union
 from pathlib import Path
 
 from prodock.io.logging import get_logger
-from .core import PDBQuery
+from .pdb_query import PDBQuery
 
 logger = get_logger(__name__)
 

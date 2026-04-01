@@ -12,6 +12,7 @@ This module exposes :class:`ProVis`, a small, chainable convenience wrapper
 around py3Dmol.view that captures loaded ligand metadata and provides a few
 helpers for drawing GridBox instances computed externally (see prodock.process.gridbox.GridBox).
 """
+
 from __future__ import annotations
 
 from pathlib import Path

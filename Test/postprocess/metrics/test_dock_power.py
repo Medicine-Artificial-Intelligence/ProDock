@@ -77,7 +77,7 @@ class TestDockEvaluator(unittest.TestCase):
         with self.assertRaises(ValueError):
             de.rmsd("this_file_does_not_exist.sdf", "also_missing.sdf")
 
-    @unittest.skipUnless(HAS_OPENBABEL, "openbabel not available in this environment")
+    # @unittest.skipUnless(HAS_OPENBABEL, "openbabel not available in this environment")
     def test_openbabel_rmsd_from_files(self):
         de = DockEvaluator(engine="openbabel")
         m = self._embed_mol("CCO")
