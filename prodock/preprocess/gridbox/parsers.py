@@ -1,4 +1,41 @@
 # prodock/process/gridbox/parsers.py
+"""
+Parsing helpers for converting molecular text or structure files into RDKit molecules.
+
+This module provides lightweight utilities for reading molecular content from
+either raw text or filesystem paths and converting that content into an RDKit
+``Mol`` object.
+
+Supported formats
+-----------------
+The following formats are supported:
+
+- ``"sdf"``
+- ``"pdb"``
+- ``"mol2"``
+- ``"xyz"``
+
+Parsing strategy
+----------------
+Parsing follows a two-stage strategy:
+
+1. Attempt parsing through project-specific helpers from ``prodock.io.parser``
+   when available.
+2. Fall back to direct RDKit parsing if project-level parsing is unavailable or
+   unsuccessful.
+
+The main public entry point is :func:`parse_text_to_mol`.
+
+Example
+-------
+.. code-block:: python
+
+    from prodock.process.gridbox.parsers import parse_text_to_mol
+
+    mol = parse_text_to_mol("ligand.sdf")
+    mol2 = parse_text_to_mol(raw_pdb_text, fmt="pdb")
+"""
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -14,6 +51,31 @@ try:
     )
 
     def _parse_with_project(text: str, fmt: str) -> Chem.Mol | None:
+        """
+        Parse molecular text using project-level parser helpers.
+
+        This helper dispatches to format-specific parsing functions from
+        ``prodock.io.parser`` when those functions are available.
+
+        :param text:
+            Raw molecular text to parse.
+        :type text: str
+        :param fmt:
+            Input format name such as ``"sdf"``, ``"pdb"``, ``"mol2"``, or
+            ``"xyz"``.
+        :type fmt: str
+
+        :returns:
+            Parsed RDKit molecule, or ``None`` if the format is unsupported or
+            parsing fails at the dispatch level.
+        :rtype: Chem.Mol | None
+
+        Example
+        -------
+        .. code-block:: python
+
+            mol = _parse_with_project(raw_sdf_text, "sdf")
+        """
         dispatch = {
             "sdf": _parse_sdf_text,
             "pdb": _parse_pdb_text,
@@ -28,6 +90,30 @@ except Exception:
 
 
 def _parse_with_rdkit(text: str, fmt: str) -> Chem.Mol | None:
+    """
+    Parse molecular text directly with RDKit.
+
+    This function provides a fallback parsing path when project-specific parsers
+    are unavailable or fail. Format matching is case-insensitive.
+
+    :param text:
+        Raw molecular text to parse.
+    :type text: str
+    :param fmt:
+        Input format name such as ``"sdf"``, ``"pdb"``, ``"mol2"``, or
+        ``"xyz"``.
+    :type fmt: str
+
+    :returns:
+        Parsed RDKit molecule, or ``None`` if parsing fails.
+    :rtype: Chem.Mol | None
+
+    Example
+    -------
+    .. code-block:: python
+
+        mol = _parse_with_rdkit(raw_pdb_text, "pdb")
+    """
     fmt = fmt.lower()
     try:
         if fmt == "sdf":
@@ -50,18 +136,59 @@ def parse_text_to_mol(
     text_or_path: str | Path, fmt: Optional[str] = None
 ) -> Chem.Mol | None:
     """
-    Parse a string containing molecule data or a file path into an RDKit Mol.
+    Parse molecular content or a structure file path into an RDKit molecule.
 
-    Behaviour:
-      - If `text_or_path` is an existing file path, read from file.
-      - Otherwise treat it as raw text containing molecule data.
-      - If `fmt` is None and `text_or_path` is a file path with a suffix,
-        infer the format from the suffix.
-    Supported formats: 'sdf', 'pdb', 'mol2', 'xyz'.
+    The input may be either raw molecular text or a path to an existing file.
+    If the input resolves to an existing file, the file is read from disk.
+    Otherwise, the input is treated as in-memory molecular text.
+
+    If ``fmt`` is not provided and the input is a file path with a recognized
+    suffix, the format is inferred from that suffix. When parsing raw text and
+    no format is provided, the default format is ``"sdf"``.
+
+    Supported formats are:
+
+    - ``"sdf"``
+    - ``"pdb"``
+    - ``"mol2"``
+    - ``"xyz"``
+
+    Parsing first attempts project-level parser utilities when available, then
+    falls back to direct RDKit parsing.
+
+    :param text_or_path:
+        Either raw molecular text or a filesystem path to a structure file.
+    :type text_or_path: str | Path
+    :param fmt:
+        Optional explicit format specifier. If omitted, the format is inferred
+        from the input path suffix when possible, otherwise defaults to
+        ``"sdf"`` for raw text.
+    :type fmt: Optional[str]
+
+    :returns:
+        Parsed RDKit molecule, or ``None`` if parsing fails.
+    :rtype: Chem.Mol | None
+
+    Notes
+    -----
+    Path detection is handled defensively. Calling :meth:`Path.exists` on large
+    multiline strings such as MolBlocks may raise exceptions on some platforms,
+    so this function guards that step and falls back to text interpretation.
+
+    Example
+    -------
+    .. code-block:: python
+
+        from prodock.process.gridbox.parsers import parse_text_to_mol
+
+        mol1 = parse_text_to_mol("ligand.sdf")
+        mol2 = parse_text_to_mol(raw_mol2_text, fmt="mol2")
+        mol3 = parse_text_to_mol(raw_pdb_text, fmt="pdb")
     """
     s = str(text_or_path)
 
-    # robust path detection: Path.exists() can raise for very long strings (e.g. multi-line mol blocks).
+    # Robust path detection: Path.exists() can raise for very long strings
+    # such as multiline MolBlocks or other raw structure text.
     is_path = False
     try:
         is_path = Path(s).exists()
@@ -78,15 +205,12 @@ def parse_text_to_mol(
 
     fmt = (fmt or "sdf").lower()
 
-    # try project parser first (if available)
     if _parse_with_project is not None:
         try:
             mol = _parse_with_project(text, fmt)
             if mol is not None:
                 return mol
         except Exception:
-            # project parser may raise for unsupported formats/inputs; fall back to RDKit
             pass
 
-    # fallback to RDKit parsing
     return _parse_with_rdkit(text, fmt)

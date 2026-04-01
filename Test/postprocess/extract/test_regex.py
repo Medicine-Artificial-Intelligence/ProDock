@@ -2,7 +2,6 @@ import unittest
 
 from prodock.postprocess.extract import detect_engine, parse_log_text
 
-
 VINA_TXT = """\
 AutoDock Vina v1.2.4
 mode |   affinity | dist from best mode

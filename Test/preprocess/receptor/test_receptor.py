@@ -1,31 +1,31 @@
-# tests/test_receptor.py
+# Test/preprocess/receptor/test_receptor.py
 import json
 import tempfile
 import unittest
 from pathlib import Path
 
-from prodock.preprocess.receptor import receptor, repr_helpers
+from prodock.preprocess.receptor import prep, repr_helpers
 
 
 class TestReceptor(unittest.TestCase):
     def setUp(self):
         self.tmpdir = Path(tempfile.mkdtemp())
         # save originals to restore later
-        self._orig_fix_pdb = receptor.fix_pdb
-        self._orig_min_openmm = receptor.minimize_with_openmm
-        self._orig_min_obabel = receptor.minimize_with_obabel
-        self._orig_conv_ob = receptor.convert_with_obabel
-        self._orig_conv_mk = receptor.convert_with_mekoo
-        self._orig_cmd = getattr(receptor, "cmd", None)
+        self._orig_fix_pdb = prep.fix_pdb
+        self._orig_min_openmm = prep.minimize_with_openmm
+        self._orig_min_obabel = prep.minimize_with_obabel
+        self._orig_conv_ob = prep.convert_with_obabel
+        self._orig_conv_mk = prep.convert_with_meeko
+        self._orig_cmd = getattr(prep, "cmd", None)
 
     def tearDown(self):
-        receptor.fix_pdb = self._orig_fix_pdb
-        receptor.minimize_with_openmm = self._orig_min_openmm
-        receptor.minimize_with_obabel = self._orig_min_obabel
-        receptor.convert_with_obabel = self._orig_conv_ob
-        receptor.convert_with_mekoo = self._orig_conv_mk
+        prep.fix_pdb = self._orig_fix_pdb
+        prep.minimize_with_openmm = self._orig_min_openmm
+        prep.minimize_with_obabel = self._orig_min_obabel
+        prep.convert_with_obabel = self._orig_conv_ob
+        prep.convert_with_meeko = self._orig_conv_mk
         if self._orig_cmd is not None:
-            receptor.cmd = self._orig_cmd
+            prep.cmd = self._orig_cmd
 
         try:
             for p in self.tmpdir.rglob("*"):
@@ -38,7 +38,7 @@ class TestReceptor(unittest.TestCase):
             pass
 
     def test_expected_output_for_variants(self):
-        rp = receptor.ReceptorPrep(use_meeko=True)
+        rp = prep.ReceptorPrep(use_meeko=True)
         inp = self.tmpdir / "protein.pdb"
         inp.write_text("ATOM\n")
         out1 = rp.expected_output_for(
@@ -52,7 +52,7 @@ class TestReceptor(unittest.TestCase):
         self.assertTrue(str(out2).endswith("custom.pdb"))
 
     def test_save_report_writes_json(self):
-        rp = receptor.ReceptorPrep(use_meeko=False)
+        rp = prep.ReceptorPrep(use_meeko=False)
         rp._last_simulation_report = {"final_artifact": "foo", "out_fmt": "pdb"}
         target = self.tmpdir / "report.json"
         written = rp.save_report(target)
@@ -83,16 +83,17 @@ class TestReceptor(unittest.TestCase):
             def delete(self, *a, **k):
                 called["delete"] = True
 
-        receptor.cmd = FakeCmd()
+        prep.cmd = FakeCmd()
         p = self.tmpdir / "proc.pdb"
         p.write_text("ATOM\n")
         # This uses the receptor.ReceptorPrep._postprocess_pymol signature (path inputs)
-        receptor.ReceptorPrep()._postprocess_pymol(p, start_at=2, cofactors=["HOH"])
+        prep.ReceptorPrep()._postprocess_pymol(p, start_at=2, cofactors=["HOH"])
         self.assertIn("load", called)
         self.assertIn("save", called)
 
     def test_prep_fallback_to_obabel_creates_pdbqt(self):
-        # stub low-level helpers directly on module (no unittest.mock)
+        calls = {}
+
         def stub_fix_pdb(path):
             return "FIXED_SENTINEL"
 
@@ -100,30 +101,47 @@ class TestReceptor(unittest.TestCase):
             raise RuntimeError("openmm not available")
 
         def stub_min_obabel(inp, out, steps=100):
+            calls["min_obabel"] = {
+                "inp": inp,
+                "out": out,
+                "steps": steps,
+            }
             out.write_text("MINIMIZED_PDB\n")
             return out
 
-        def stub_conv_obabel(inp, out, extra_args=None):
+        def stub_conv_obabel(inp, out, extra_args=None, **kwargs):
+            calls["conv_obabel"] = {
+                "inp": inp,
+                "out": out,
+                "extra_args": extra_args,
+                "kwargs": kwargs,
+            }
             out.write_text("CONVERTED_PDBQT\n")
             return None
 
-        receptor.fix_pdb = stub_fix_pdb
-        receptor.minimize_with_openmm = stub_min_openmm
-        receptor.minimize_with_obabel = stub_min_obabel
-        receptor.convert_with_obabel = stub_conv_obabel
+        prep.fix_pdb = stub_fix_pdb
+        prep.minimize_with_openmm = stub_min_openmm
+        prep.minimize_with_obabel = stub_min_obabel
+        prep.convert_with_obabel = stub_conv_obabel
 
         inp = self.tmpdir / "inp.pdb"
         inp.write_text("ATOM\n")
-        rp = receptor.ReceptorPrep(use_meeko=True)
+
+        rp = prep.ReceptorPrep(use_meeko=True)
         rp.prep(str(inp), str(self.tmpdir), out_fmt="pdbqt", add_prep_suffix=True)
 
         self.assertTrue(rp.used_obabel)
         self.assertEqual(rp.minimized_stage, "obabel")
+        self.assertEqual(rp.conversion_backend, "obabel")
         self.assertIsNotNone(rp.final_artifact)
         self.assertTrue(str(rp.final_artifact).endswith(".pdbqt"))
+        self.assertTrue(rp.final_artifact.exists())
+
+        self.assertIn("conv_obabel", calls)
+        self.assertTrue(calls["conv_obabel"]["out"].name.endswith(".pdbqt"))
+
         rpt = rp.last_simulation_report
         self.assertIsInstance(rpt, dict)
-        self.assertIn("used_obabel", rpt)
         self.assertTrue(rpt["used_obabel"])
 
     def test_repr_mixin_behaviour(self):

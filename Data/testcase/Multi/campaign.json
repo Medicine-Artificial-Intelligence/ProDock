@@ -1,0 +1,49 @@
+{
+  "receptors": [
+    {
+      "id": "4WKQ",
+      "receptor": "/home/lolo/Documents/TACsy/Side/ProDock/Data/testcase/Multi/4WKQ/filtered_protein/4WKQ.pdbqt",
+      "box": {
+        "center": [
+          2.865,
+          193.257,
+          21.367
+        ],
+        "size": [
+          27.091,
+          27.091,
+          27.091
+        ]
+      },
+      "out_dir": "/home/lolo/Documents/TACsy/Side/ProDock/Data/testcase/Multi/4WKQ/results/docked",
+      "log_dir": "/home/lolo/Documents/TACsy/Side/ProDock/Data/testcase/Multi/4WKQ/results/logs",
+      "softwares": [
+        {
+          "name": "smina",
+          "cpu": 4,
+          "seed": 42,
+          "exhaustiveness": 8,
+          "n_poses": 10,
+          "ligands": [
+            {
+              "id": "erlotinib",
+              "ligand": "/home/lolo/Documents/TACsy/Side/ProDock/Data/testcase/Multi/ligands/erlotinib.pdbqt"
+            },
+            {
+              "id": "erlotinib_1",
+              "ligand": "/home/lolo/Documents/TACsy/Side/ProDock/Data/testcase/Multi/ligands/erlotinib_1.pdbqt"
+            },
+            {
+              "id": "gefitinib",
+              "ligand": "/home/lolo/Documents/TACsy/Side/ProDock/Data/testcase/Multi/ligands/gefitinib.pdbqt"
+            },
+            {
+              "id": "gefitinib_1",
+              "ligand": "/home/lolo/Documents/TACsy/Side/ProDock/Data/testcase/Multi/ligands/gefitinib_1.pdbqt"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

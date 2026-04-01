@@ -7,6 +7,7 @@ This module provides:
 - GNINA_TABLE_HEADER, GNINA_ROW_RE: header/row regex for GNINA tables
 - detect_engine(text): best-effort engine canonicalization
 """
+
 from __future__ import annotations
 import re
 from typing import Optional, List, Tuple

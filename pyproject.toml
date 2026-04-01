@@ -41,7 +41,7 @@ keywords = ["docking", "molecular-docking", "bioinformatics", "rdkit", "vina"]
 dependencies = [
   "rdkit>=2025.3.5",
   "prolif>=2.0.3",
-  "openbabel-wheel>=3.1.1.21",
+  "openbabel-wheel==3.1.1.21",
   "meeko>=0.6.1",
   "py3Dmol>=2.5.2",
   "pandas",
@@ -58,6 +58,9 @@ docs = [
   "sphinx-rtd-theme",
   "sphinxcontrib-bibtex"
 ]
+
+[project.scripts]
+prodock = "prodock.cli:main"
 
 [project.urls]
 homepage      = "https://github.com/Medicine-Artificial-Intelligence/ProDock"

@@ -18,6 +18,7 @@ The crawler is encoding-tolerant: for log files that fail to parse initially it
 will attempt normalization via normalize.safe_parse_file (which will create a
 .bak backup and write UTF-8 normalized content) and retry parsing.
 """
+
 from __future__ import annotations
 
 from typing import Callable, Iterable, Optional, Sequence, Set, Literal
