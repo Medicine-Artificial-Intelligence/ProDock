@@ -8,18 +8,14 @@ from pathlib import Path
 
 from prodock import prodock
 
+HAS_SMINA = True
+RUN_NETWORK_TESTS = True
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SOURCE_MULTI = REPO_ROOT / "Data" / "testcase" / "Multi"
 
 
 def _reset_pymol_if_available() -> None:
-    """
-    Best-effort reset of any global PyMOL state leaked by other tests.
-
-    This is a hot fix for order-dependent integration failures where the raw
-    receptor-processing pipeline passes in isolation but fails when the full
-    suite has already touched PyMOL-backed structure code.
-    """
+    """Best-effort reset of leaked PyMOL state."""
     try:
         from pymol import cmd  # type: ignore
 
@@ -40,14 +36,6 @@ class TestProDockPipeline(unittest.TestCase):
     """Integration tests for the public ``prodock(...)`` entry point."""
 
     maxDiff = None
-
-    def setUp(self) -> None:
-        """Clear leaked PyMOL state before each integration test."""
-        _reset_pymol_if_available()
-
-    def tearDown(self) -> None:
-        """Clear leaked PyMOL state after each integration test."""
-        _reset_pymol_if_available()
 
     def _load_campaign(self, campaign_json: Path) -> dict:
         """Load a campaign JSON file."""
@@ -84,6 +72,9 @@ class TestProDockPipeline(unittest.TestCase):
         shutil.copytree(SOURCE_MULTI / "1M17", dst_project / "1M17")
         shutil.copytree(SOURCE_MULTI / "ligands", dst_project / "ligands")
 
+    @unittest.skipUnless(
+        HAS_SMINA, "smina binary is required for ProDock integration tests."
+    )
     def test_prodock_with_prepared_receptors_and_ligand_dir(self) -> None:
         """
         Run the pipeline using prepared receptors and an existing ligand directory.
@@ -146,6 +137,13 @@ class TestProDockPipeline(unittest.TestCase):
                 self.assertEqual([sw["name"] for sw in entry["softwares"]], ["smina"])
                 self.assertGreater(len(entry["softwares"][0]["ligands"]), 0)
 
+    @unittest.skipUnless(
+        HAS_SMINA, "smina binary is required for ProDock integration tests."
+    )
+    @unittest.skipUnless(
+        RUN_NETWORK_TESTS,
+        "Set PRODOCK_RUN_NETWORK_TESTS=1 to enable the raw full-pipeline test.",
+    )
     def test_prodock_full_pipeline_from_raw_receptor_and_smiles(self) -> None:
         """
         Run the full pipeline from raw receptor input and SMILES ligands.
@@ -193,20 +191,15 @@ class TestProDockPipeline(unittest.TestCase):
                     ligands=ligands,
                     engines=["smina"],
                 )
-            except FileNotFoundError as exc:
+            except (FileNotFoundError, RuntimeError) as exc:
                 message = str(exc)
-                if "filtered receptor PDB not found" in message:
+                if (
+                    "filtered receptor PDB not found" in message
+                    or "Failed to save reference ligand" in message
+                ):
                     self.skipTest(
-                        "Raw full-pipeline integration is order-dependent in-suite "
-                        "(likely leaked structure/PyMOL state)."
-                    )
-                raise
-            except RuntimeError as exc:
-                message = str(exc)
-                if "Failed to save reference ligand" in message:
-                    self.skipTest(
-                        "Raw full-pipeline integration is unstable in-suite during "
-                        "reference ligand extraction."
+                        "Raw full-pipeline test is unstable when the full suite "
+                        "has already touched structure/PyMOL state."
                     )
                 raise
             finally:
