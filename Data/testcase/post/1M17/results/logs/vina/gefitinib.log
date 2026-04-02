@@ -1,0 +1,31 @@
+AutoDock Vina Python backend
+
+Scoring function : vina
+Receptor         : /home/lolo/Documents/TACsy/Side/ProDock/Data/testcase/Multi/1M17/filtered_protein/1M17.pdbqt
+Ligand           : /home/lolo/Documents/TACsy/Side/ProDock/Data/testcase/Multi/ligands/gefitinib.pdbqt
+Center           : [21.623, 0.4, 52.467]
+Box size         : [34.07, 34.07, 34.07]
+Exhaustiveness   : 8
+CPU              : 4
+Seed             : 42
+Verbosity        : 1
+No refine        : False
+Requested poses  : 10
+Performing docking (random seed: 42) ... 
+0%   10   20   30   40   50   60   70   80   90   100%
+|----|----|----|----|----|----|----|----|----|----|
+***************************************************
+
+mode |   affinity | dist from best mode
+     | (kcal/mol) | rmsd l.b.| rmsd u.b.
+-----+------------+----------+----------
+   1       -7.339          0          0
+   2       -6.896      3.013       7.31
+   3       -6.836      3.256      7.576
+   4       -6.804      4.831      6.566
+   5       -6.799      3.091      6.485
+   6       -6.696       2.52      6.094
+   7       -6.422      1.622       2.47
+   8       -6.393      8.258      11.34
+   9       -6.306      5.113      6.841
+  10       -6.181      3.342      5.637

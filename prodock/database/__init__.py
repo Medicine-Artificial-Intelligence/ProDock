@@ -1,3 +1,9 @@
-from .sqlite import ProDockDB, PoseRecord
+from .core import PoseDatabase
+from .records import InteractionRecord, PoseRecord, ScoreRecord
 
-__all__ = ["ProDockDB", "PoseRecord"]
+__all__ = [
+    "PoseDatabase",
+    "PoseRecord",
+    "ScoreRecord",
+    "InteractionRecord",
+]
