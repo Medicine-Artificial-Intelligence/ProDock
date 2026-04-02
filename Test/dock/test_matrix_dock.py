@@ -7,12 +7,9 @@ from prodock.dock import BatchDock
 class TestBatchDockReal(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
-        cls.qvina_exe = True
         cls.campaign = Path("Data/testcase/Multi/campaign.json")
 
     def setUp(self) -> None:
-        if self.qvina_exe is None:
-            self.skipTest("qvina executable not found in PATH")
         if not self.campaign.exists():
             self.skipTest(f"Missing campaign file: {self.campaign}")
 
@@ -49,13 +46,19 @@ class TestBatchDockReal(unittest.TestCase):
                 log_text = log_path.read_text(errors="ignore")
 
                 self.assertTrue(
-                    len(out_text.strip()) > 0, f"Empty output file: {out_path}"
+                    len(out_text.strip()) > 0,
+                    f"Empty output file: {out_path}",
                 )
                 self.assertTrue(
-                    len(log_text.strip()) > 0, f"Empty log file: {log_path}"
+                    len(log_text.strip()) > 0,
+                    f"Empty log file: {log_path}",
                 )
 
-        self.assertGreater(success_count, 0, "No successful docking jobs were produced")
+        self.assertGreater(
+            success_count,
+            0,
+            "No successful docking jobs were produced",
+        )
 
 
 if __name__ == "__main__":
