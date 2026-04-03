@@ -1,14 +1,12 @@
-# .github/workflows/docker-publish.yml
-name: Publish Template Docker Package
+name: Publish Docker
 
 on:
   push:
-    # Fire on semver tags for real releases…
     tags:
       - 'v*.*.*'
-    # …and on any push to the refractor branch for testing
     branches:
       - 'release'
+      - 'refactor'
 
 jobs:
   build-and-push:
@@ -20,22 +18,47 @@ jobs:
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      - name: Set up QEMU (optional, for multi-arch)
+      - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
 
       - name: Log in to Docker Hub
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USER }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v4
+      - name: Build and push beta image from refactor
+        if: github.ref == 'refs/heads/refactor'
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            tieulongphan/prodock:beta
+            tieulongphan/prodock:refactor
+
+      - name: Build and push release image from release branch
+        if: github.ref == 'refs/heads/release'
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            tieulongphan/prodock:release
+            tieulongphan/prodock:latest
+
+      - name: Build and push versioned image from tag
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: docker/build-push-action@v5
         with:
           context: .
           file: Dockerfile

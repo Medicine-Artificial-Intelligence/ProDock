@@ -39,7 +39,7 @@ dependencies = [
   "pandas",
   "tqdm",
   "matplotlib",
-  "pymol-open-source-whl>=3.1.0.4",
+  "pymol_open_source==3.2.0a0",
   "vina>=1.2.7",
   "ipywidgets>=8.1.7"
 ]
