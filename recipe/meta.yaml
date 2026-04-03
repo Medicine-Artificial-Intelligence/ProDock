@@ -1,5 +1,5 @@
 {% set name = "prodock" %}
-{% set version = "0.1.0" %}
+{% set version = "0.1.0a" %}
 
 package:
   name: {{ name | lower }}
@@ -31,7 +31,7 @@ requirements:
     - pandas
     - tqdm
     - matplotlib
-    - vina >=1.2.7
+    - vina
     - ipywidgets >=8.1.7
     - mdanalysis
     - openbabel >=3.1.1
