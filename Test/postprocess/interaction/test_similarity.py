@@ -58,6 +58,7 @@ class TestTanimotoSimilarityMatrix(unittest.TestCase):
 
         def fake_import(name, globals=None, locals=None, fromlist=(), level=0):
             if name == "rdkit.DataStructs" and "TanimotoSimilarity" in fromlist:
+
                 class _FakeDataStructsModule:
                     @staticmethod
                     def TanimotoSimilarity(a, b):

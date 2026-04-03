@@ -7,7 +7,7 @@ from pathlib import Path
 import pandas as pd
 from rdkit import Chem
 
-from prodock.database.core import PoseDatabase
+from prodock.database.pose_db import PoseDatabase
 
 
 class TestPoseDatabaseCore(unittest.TestCase):

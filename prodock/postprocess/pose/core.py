@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Optional, Sequence
+from typing import Any, Optional, Sequence
 
 import pandas as pd
 
-from .convert import convert_pose_tree
-from .io import build_pose_mol_rows, build_pose_records
+from .convert import convert_pose_tree, pdbqt_to_rdkit_mols
+from .io import build_pose_records
 from .select import best_pose_per_group, pose_mols_to_dataframe, poses_to_dataframe
 
 PathLike = str | Path
@@ -35,6 +35,16 @@ class PoseCrawler:
        ``<root>/<receptor>/results/docked/<engine>/*.pdbqt``, where receptor id
        and engine are inferred automatically.
 
+    Important
+    ---------
+    When a root is a directory, only files whose names end with
+    ``"_docked.pdbqt"`` are retained. This prevents receptor preparation files
+    such as ``filtered_protein/4WKQ.pdbqt`` from being treated as docked ligand
+    poses.
+
+    Direct file inputs are **not** filtered by suffix. This preserves the
+    original direct-file behavior.
+
     :param roots:
         Root files or directories to inspect.
     :type roots: Sequence[str | pathlib.Path]
@@ -45,6 +55,10 @@ class PoseCrawler:
     :param recursive:
         Whether nested directories should be searched recursively.
     :type recursive: bool
+    :param docked_suffix:
+        Required filename suffix applied only to records discovered from
+        directory roots. Default is ``"_docked.pdbqt"``.
+    :type docked_suffix: str
 
     Example
     -------
@@ -87,6 +101,7 @@ class PoseCrawler:
         *,
         engine: Optional[str] = None,
         recursive: bool = True,
+        docked_suffix: str = "_docked.pdbqt",
     ) -> None:
         """
         Initialize a pose crawler.
@@ -101,17 +116,89 @@ class PoseCrawler:
         :param recursive:
             Whether nested directories should be searched recursively.
         :type recursive: bool
+        :param docked_suffix:
+            Required filename suffix applied only to records discovered from
+            directory roots.
+        :type docked_suffix: str
         """
         self.roots = list(roots)
         self.engine = engine
         self.recursive = recursive
+        self.docked_suffix = docked_suffix
+
+    def _root_paths(self) -> list[Path]:
+        """
+        Normalize roots to :class:`pathlib.Path` objects.
+
+        :returns:
+            Normalized root paths.
+        :rtype: list[pathlib.Path]
+        """
+        return [Path(root).resolve() for root in self.roots]
+
+    def _directory_roots(self) -> list[Path]:
+        """
+        Return only those configured roots that are directories.
+
+        :returns:
+            Directory roots.
+        :rtype: list[pathlib.Path]
+        """
+        return [path for path in self._root_paths() if path.is_dir()]
+
+    def _record_from_directory_root(self, source_file: Path) -> bool:
+        """
+        Return whether a record source file belongs to one of the directory
+        roots configured for this crawler.
+
+        :param source_file:
+            Source pose file path.
+        :type source_file: pathlib.Path
+
+        :returns:
+            ``True`` if the file is under a configured directory root.
+        :rtype: bool
+        """
+        source_file = source_file.resolve()
+        for root in self._directory_roots():
+            try:
+                source_file.relative_to(root)
+                return True
+            except ValueError:
+                continue
+        return False
+
+    def _keep_record(self, record: Any) -> bool:
+        """
+        Decide whether a discovered pose record should be kept.
+
+        Records discovered from directory roots must end with
+        ``self.docked_suffix``. Records originating from direct file roots are
+        kept unchanged.
+
+        :param record:
+            Discovered pose record.
+        :type record: Any
+
+        :returns:
+            ``True`` if the record should be retained.
+        :rtype: bool
+        """
+        source_file = Path(record.source_file).resolve()
+
+        if self._record_from_directory_root(source_file):
+            return source_file.name.endswith(self.docked_suffix)
+
+        return True
 
     def records(self):
         """
         Return discovered pose records.
 
         This method delegates to :func:`prodock.postprocess.pose.io.build_pose_records`
-        using the crawler configuration captured at initialization.
+        using the crawler configuration captured at initialization, then filters
+        directory-derived records so that only ``*_docked.pdbqt`` files are
+        retained.
 
         :returns:
             Discovered pose records.
@@ -124,11 +211,12 @@ class PoseCrawler:
             crawler = PoseCrawler(["Data/testcase/post"])
             records = crawler.records()
         """
-        return build_pose_records(
+        records = build_pose_records(
             self.roots,
             engine=self.engine,
             recursive=self.recursive,
         )
+        return [record for record in records if self._keep_record(record)]
 
     def crawl(self) -> pd.DataFrame:
         """
@@ -177,6 +265,9 @@ class PoseCrawler:
         - ``affinity``
         - ``mol``
 
+        For directory roots, only records whose source files end with
+        ``*_docked.pdbqt`` are processed.
+
         :param backend:
             Conversion backend used during PDBQT-to-SDF conversion.
         :type backend: str
@@ -207,16 +298,38 @@ class PoseCrawler:
             )
             mol_df = crawler.crawl_mols(save_sdf=True)
         """
-        rows = build_pose_mol_rows(
-            self.roots,
-            engine=self.engine,
-            recursive=self.recursive,
-            backend=backend,
-            sanitize=sanitize,
-            remove_hs=remove_hs,
-            save_sdf=save_sdf,
-            overwrite_sdf=overwrite_sdf,
-        )
+        records = self.records()
+
+        grouped: dict[Path, list[Any]] = {}
+        for record in records:
+            source_file = Path(record.source_file).resolve()
+            grouped.setdefault(source_file, []).append(record)
+
+        rows: list[dict[str, Any]] = []
+
+        for source_file, source_records in grouped.items():
+            if save_sdf:
+                from .io import save_pose_sdf
+
+                save_pose_sdf(
+                    source_file,
+                    backend=backend,
+                    overwrite=overwrite_sdf,
+                )
+
+            mols = pdbqt_to_rdkit_mols(
+                source_file,
+                backend=backend,
+                sanitize=sanitize,
+                remove_hs=remove_hs,
+            )
+
+            for idx, record in enumerate(source_records):
+                mol = mols[idx] if idx < len(mols) else None
+                row = dict(vars(record))
+                row["mol"] = mol
+                rows.append(row)
+
         return pose_mols_to_dataframe(rows)
 
     def best(
@@ -316,6 +429,9 @@ class PoseCrawler:
         ``.pdbqt`` file. When ``out_dir`` is provided, converted files are
         written into that shared destination directory.
 
+        For directory roots, only files ending with ``*_docked.pdbqt`` are
+        converted. Direct file inputs are preserved unchanged.
+
         :param backend:
             Conversion backend used for PDBQT-to-SDF conversion.
         :type backend: str
@@ -341,10 +457,13 @@ class PoseCrawler:
                 overwrite=True,
             )
         """
+        records = self.records()
+        pose_files = sorted({Path(record.source_file).resolve() for record in records})
+
         return convert_pose_tree(
-            self.roots,
+            pose_files,
             engine=self.engine,
-            recursive=self.recursive,
+            recursive=False,
             backend=backend,
             overwrite=overwrite,
             out_dir=out_dir,
@@ -356,6 +475,7 @@ def crawl_poses(
     *,
     engine: Optional[str] = None,
     recursive: bool = True,
+    docked_suffix: str = "_docked.pdbqt",
 ) -> pd.DataFrame:
     """
     Convenience wrapper around :meth:`PoseCrawler.crawl`.
@@ -369,6 +489,10 @@ def crawl_poses(
     :param recursive:
         Whether nested directories should be searched recursively.
     :type recursive: bool
+    :param docked_suffix:
+        Required filename suffix applied only to records discovered from
+        directory roots.
+    :type docked_suffix: str
 
     :returns:
         Standardized pose summary table.
@@ -380,7 +504,12 @@ def crawl_poses(
 
         df = crawl_poses(["Data/testcase/post"])
     """
-    return PoseCrawler(roots, engine=engine, recursive=recursive).crawl()
+    return PoseCrawler(
+        roots,
+        engine=engine,
+        recursive=recursive,
+        docked_suffix=docked_suffix,
+    ).crawl()
 
 
 def crawl_pose_mols(
@@ -388,6 +517,7 @@ def crawl_pose_mols(
     *,
     engine: Optional[str] = None,
     recursive: bool = True,
+    docked_suffix: str = "_docked.pdbqt",
     backend: str = "obabel",
     sanitize: bool = True,
     remove_hs: bool = False,
@@ -402,10 +532,14 @@ def crawl_pose_mols(
     :type roots: Sequence[str | pathlib.Path]
     :param engine:
         Optional engine hint or filter.
-    :type engine: Optional[str]
+        :type engine: Optional[str]
     :param recursive:
         Whether nested directories should be searched recursively.
     :type recursive: bool
+    :param docked_suffix:
+        Required filename suffix applied only to records discovered from
+        directory roots.
+    :type docked_suffix: str
     :param backend:
         Conversion backend used during PDBQT-to-SDF conversion.
     :type backend: str
@@ -436,7 +570,12 @@ def crawl_pose_mols(
             save_sdf=True,
         )
     """
-    return PoseCrawler(roots, engine=engine, recursive=recursive).crawl_mols(
+    return PoseCrawler(
+        roots,
+        engine=engine,
+        recursive=recursive,
+        docked_suffix=docked_suffix,
+    ).crawl_mols(
         backend=backend,
         sanitize=sanitize,
         remove_hs=remove_hs,
@@ -450,6 +589,7 @@ def select_best_poses(
     *,
     engine: Optional[str] = None,
     recursive: bool = True,
+    docked_suffix: str = "_docked.pdbqt",
     by: Sequence[str] = ("receptor_id", "ligand_id", "engine"),
 ) -> pd.DataFrame:
     """
@@ -464,6 +604,10 @@ def select_best_poses(
     :param recursive:
         Whether nested directories should be searched recursively.
     :type recursive: bool
+    :param docked_suffix:
+        Required filename suffix applied only to records discovered from
+        directory roots.
+    :type docked_suffix: str
     :param by:
         Grouping columns that define independent selection groups.
     :type by: Sequence[str]
@@ -478,7 +622,12 @@ def select_best_poses(
 
         best_df = select_best_poses(["Data/testcase/post"])
     """
-    return PoseCrawler(roots, engine=engine, recursive=recursive).best(by=by)
+    return PoseCrawler(
+        roots,
+        engine=engine,
+        recursive=recursive,
+        docked_suffix=docked_suffix,
+    ).best(by=by)
 
 
 def select_best_pose_mols(
@@ -486,6 +635,7 @@ def select_best_pose_mols(
     *,
     engine: Optional[str] = None,
     recursive: bool = True,
+    docked_suffix: str = "_docked.pdbqt",
     by: Sequence[str] = ("receptor_id", "ligand_id", "engine"),
     backend: str = "obabel",
     sanitize: bool = True,
@@ -505,6 +655,10 @@ def select_best_pose_mols(
     :param recursive:
         Whether nested directories should be searched recursively.
     :type recursive: bool
+    :param docked_suffix:
+        Required filename suffix applied only to records discovered from
+        directory roots.
+    :type docked_suffix: str
     :param by:
         Grouping columns that define independent selection groups.
     :type by: Sequence[str]
@@ -537,7 +691,12 @@ def select_best_pose_mols(
             save_sdf=False,
         )
     """
-    return PoseCrawler(roots, engine=engine, recursive=recursive).best_mols(
+    return PoseCrawler(
+        roots,
+        engine=engine,
+        recursive=recursive,
+        docked_suffix=docked_suffix,
+    ).best_mols(
         by=by,
         backend=backend,
         sanitize=sanitize,
