@@ -4,7 +4,7 @@ on:
   release:
     types: [published]
   push:
-    branches: [conda]
+    branches: [conda, refactor]
 
 permissions:
   contents: read
@@ -87,7 +87,7 @@ jobs:
 
   publish_beta:
     needs: build
-    if: github.event_name == 'push' && github.ref == 'refs/heads/conda'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/refactor'
     runs-on: ubuntu-latest
     steps:
       - name: Download built packages
