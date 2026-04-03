@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="660" viewBox="0 0 1200 660">
+
+<defs>
+  <linearGradient id="bggrad" x1="0" x2="1" y1="0" y2="1">
+    <stop offset="0%" stop-color="#fbfdff"/>
+    <stop offset="100%" stop-color="#eef4f7"/>
+  </linearGradient>
+  <linearGradient id="bluegrad" x1="0" x2="1" y1="0" y2="1">
+    <stop offset="0%" stop-color="#86bddc"/>
+    <stop offset="100%" stop-color="#366c98"/>
+  </linearGradient>
+  <linearGradient id="navygrad" x1="0" x2="1" y1="0" y2="1">
+    <stop offset="0%" stop-color="#2f5d82"/>
+    <stop offset="100%" stop-color="#1c3950"/>
+  </linearGradient>
+  <linearGradient id="ambergrad" x1="0" x2="1" y1="0" y2="1">
+    <stop offset="0%" stop-color="#f6c86d"/>
+    <stop offset="100%" stop-color="#c48d2d"/>
+  </linearGradient>
+  <linearGradient id="sagegrad" x1="0" x2="1" y1="0" y2="1">
+    <stop offset="0%" stop-color="#9ab694"/>
+    <stop offset="100%" stop-color="#6d856d"/>
+  </linearGradient>
+  <linearGradient id="stonegrad" x1="0" x2="1" y1="0" y2="1">
+    <stop offset="0%" stop-color="#c8bcaa"/>
+    <stop offset="100%" stop-color="#8f7c63"/>
+  </linearGradient>
+  <linearGradient id="dbgrad" x1="0" x2="1" y1="0" y2="1">
+    <stop offset="0%" stop-color="#8bc6e8"/>
+    <stop offset="55%" stop-color="#3373ac"/>
+    <stop offset="100%" stop-color="#21517a"/>
+  </linearGradient>
+  <style>
+    .title{font:700 30px Arial, sans-serif; fill:#23435f}
+    .subtitle{font:600 18px Arial, sans-serif; fill:#4579A8}
+    .label{font:700 17px Arial, sans-serif; fill:#27445D}
+    .body{font:400 14px Arial, sans-serif; fill:#5B7282}
+    .small{font:600 13px Arial, sans-serif; fill:#5B7282}
+    .tiny{font:600 11px Arial, sans-serif; fill:#6d7d87}
+  </style>
+</defs>
+
+<rect x="0" y="0" width="1200" height="660" rx="28" fill="url(#bggrad)"/>
+
+<text x="56" y="64" class="title">Structure acquisition and cleanup</text>
+<text x="56" y="96" class="body">Query a PDB entry, keep the right chains, extract the bound ligand, and save a clean protein.</text>
+<rect x="60" y="160" width="175" height="110" rx="22" fill="#ffffff" stroke="#d8e3ea" stroke-width="2" /><text x="82" y="195" class="label">PDB ID</text><text x="82" y="222" class="body">query metadata / files</text>
+<rect x="275" y="160" width="190" height="110" rx="22" fill="#ffffff" stroke="#d8e3ea" stroke-width="2" /><text x="297" y="195" class="label">Fetch complex</text><text x="297" y="222" class="body">download or load structure</text>
+<rect x="510" y="160" width="190" height="110" rx="22" fill="#EEF5ED" stroke="#d8e3ea" stroke-width="2" /><text x="532" y="195" class="label">Filter chains</text><text x="532" y="222" class="body">retain selected protein chains</text>
+<rect x="745" y="160" width="190" height="110" rx="22" fill="#EAF3F8" stroke="#d8e3ea" stroke-width="2" /><text x="767" y="195" class="label">Extract ligand</text><text x="767" y="222" class="body">bound ligand + cocrystal</text>
+<rect x="980" y="160" width="160" height="110" rx="22" fill="#F6F1E7" stroke="#d8e3ea" stroke-width="2" /><text x="1002" y="195" class="label">Clean</text><text x="1002" y="222" class="body">remove solvents</text>
+<polygon points="235.0,219.0 255.0,219.0 255.0,224.6 273.0,215.0 255.0,205.4 255.0,211.0 235.0,211.0" fill="#5d83a0" opacity="0.95"/><polygon points="465.0,219.0 490.0,219.0 490.0,224.6 508.0,215.0 490.0,205.4 490.0,211.0 465.0,211.0" fill="#5d83a0" opacity="0.95"/><polygon points="700.0,219.0 725.0,219.0 725.0,224.6 743.0,215.0 725.0,205.4 725.0,211.0 700.0,211.0" fill="#5d83a0" opacity="0.95"/><polygon points="935.0,219.0 960.0,219.0 960.0,224.6 978.0,215.0 960.0,205.4 960.0,211.0 935.0,211.0" fill="#5d83a0" opacity="0.95"/>
+<path d="M140,479.0 C140,400 232.5,385 275.0,408 C315.0,390 360,440 352,466.4 C360,532 315.0,542 280.0,530 C240.0,558 142,542 138,473.6 Z" fill="url(#bluegrad)" opacity="0.92"/><path d="M178,479.0 C182,450 225.0,442 260.0,468 C290.0,450 300,480 296,475.4 C290,474 295.0,490 265.0,476 C227.5,514 185,502 180,479.0 Z" fill="url(#navygrad)" opacity="0.98"/><line x1="215.0" y1="477.0" x2="237.0" y2="467.0" stroke="#f7e6c2" stroke-width="8.0" stroke-linecap="round" opacity="0.95"/><line x1="237.0" y1="467.0" x2="257.0" y2="480.0" stroke="#f7e6c2" stroke-width="8.0" stroke-linecap="round" opacity="0.95"/><line x1="257.0" y1="480.0" x2="279.0" y2="465.0" stroke="#f7e6c2" stroke-width="8.0" stroke-linecap="round" opacity="0.95"/><line x1="279.0" y1="465.0" x2="300.0" y2="477.0" stroke="#f7e6c2" stroke-width="8.0" stroke-linecap="round" opacity="0.95"/><line x1="300.0" y1="477.0" x2="325.0" y2="469.0" stroke="#f7e6c2" stroke-width="8.0" stroke-linecap="round" opacity="0.95"/><circle cx="215.0" cy="477.0" r="9.0" fill="#f24d3d" stroke="#ffffff" stroke-width="2.0"/><circle cx="237.0" cy="467.0" r="9.0" fill="#ef6a48" stroke="#ffffff" stroke-width="2.0"/><circle cx="257.0" cy="480.0" r="9.0" fill="#f4b93b" stroke="#ffffff" stroke-width="2.0"/><circle cx="279.0" cy="465.0" r="9.0" fill="#ef6a48" stroke="#ffffff" stroke-width="2.0"/><circle cx="300.0" cy="477.0" r="9.0" fill="#f4b93b" stroke="#ffffff" stroke-width="2.0"/><circle cx="325.0" cy="469.0" r="9.0" fill="#f0d05a" stroke="#ffffff" stroke-width="2.0"/><circle cx="267.0" cy="453.0" r="6.0" fill="#57b8d9" stroke="#fff" stroke-width="2.0"/><line x1="257.0" y1="480.0" x2="267.0" y2="453.0" stroke="#f7e6c2" stroke-width="5.0" stroke-linecap="round"/><text x="245.0" y="588" class="small" text-anchor="middle">filtered protein + reference ligand</text>
+<rect x="470" y="405" width="180" height="120" rx="16" fill="#ffffff" stroke="#d8e3ea" stroke-width="2" /><line x1="486" y1="443" x2="634" y2="443" stroke="#d7e6ef" stroke-width="2"/><line x1="486" y1="463" x2="634" y2="463" stroke="#d7e6ef" stroke-width="2"/><line x1="486" y1="483" x2="634" y2="483" stroke="#d7e6ef" stroke-width="2"/><line x1="532" y1="423" x2="532" y2="507" stroke="#d7e6ef" stroke-width="2"/><line x1="578" y1="423" x2="578" y2="507" stroke="#d7e6ef" stroke-width="2"/><rect x="486" y="423" width="148" height="20" rx="8" fill="#EAF3F8"/><text x="560.0" y="547" class="tiny" text-anchor="middle">metadata / paths</text>
+<rect x="755" y="392" width="260" height="120" rx="22" fill="#ffffff" stroke="#d8e3ea" stroke-width="2" /><text x="777" y="427" class="label">Key objects</text><text x="777" y="454" class="body">PDBQuery · PDBEngine · PDBQTSanitizer</text>
+<rect x="70" y="305" width="110" height="28" rx="14.0" fill="#EAF3F8"/><text x="125.0" y="324.0" font-family="Arial,sans-serif" font-size="13" font-weight="700" fill="#27445D" text-anchor="middle">chains</text><rect x="190" y="305" width="110" height="28" rx="14.0" fill="#EEF5ED"/><text x="245.0" y="324.0" font-family="Arial,sans-serif" font-size="13" font-weight="700" fill="#27445D" text-anchor="middle">ligand code</text><rect x="310" y="305" width="100" height="28" rx="14.0" fill="#F6F1E7"/><text x="360.0" y="324.0" font-family="Arial,sans-serif" font-size="13" font-weight="700" fill="#27445D" text-anchor="middle">cofactors</text>
+
+</svg>

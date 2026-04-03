@@ -1,11 +1,82 @@
 from __future__ import annotations
 
+"""
+High-level end-to-end automation pipeline for ProDock.
+
+This module provides a single orchestration layer that can:
+
+1. prepare receptors from raw PDB specifications or validate prebuilt receptors
+2. prepare ligands from SMILES or reuse an existing ligand directory
+3. build and save a docking campaign JSON file
+4. run batch docking
+5. crawl generated poses from the project directory
+6. optionally extract protein-ligand interactions
+7. optionally create and populate a project-local SQLite database
+
+The default database location is::
+
+    <project_dir>/prodock.db
+
+The default workflow is therefore fully project-local and reproducible.
+
+Example
+-------
+.. code-block:: python
+
+    from prodock import prodock
+
+    PROJECT = "Data/testcase/Multi"
+
+    RECEPTORS = [
+        {
+            "pdb_id": "4WKQ",
+            "receptor_name": "EGFR_4WKQ",
+            "ligand_code": "IRE",
+            "chains": ["A"],
+            "cofactors": [],
+        },
+    ]
+
+    LIGANDS = [
+        {
+            "id": "erlotinib",
+            "smiles": "COCCOc1cc2c(ncnc2cc1OCCOC)Nc1cccc(c1)C#C",
+        },
+        {
+            "id": "gefitinib",
+            "smiles": "COc1cc2ncnc(c2cc1OCCCN1CCOCC1)Nc1ccc(c(c1)Cl)F",
+        },
+    ]
+
+    result = prodock(
+        PROJECT,
+        receptors=RECEPTORS,
+        ligands=LIGANDS,
+        engines=["smina"],
+        extract_interaction=True,
+        db_name="prodock.db",
+    )
+
+    print(result.campaign_json)
+    print(result.db_path)
+    print(result.pose_df.head())
+    print(result.merged_df.head())
+"""
+
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 
+import pandas as pd
+
+from prodock.database import PoseDatabase
 from prodock.dock import BatchDock
 from prodock.dock.campaign import Campaign
+from prodock.postprocess.interaction.core import (
+    InteractionProfiler,
+    extract_pose_table_interactions,
+)
+from prodock.postprocess.pose import PoseCrawler
 from prodock.preprocess import LigandPrep, ReceptorPrep
 from prodock.preprocess.gridbox import GridBox
 from prodock.structure import PDBQuery
@@ -42,7 +113,7 @@ class PreparedReceptorSpec:
 @dataclass
 class ProDockResult:
     """
-    Result bundle returned by :class:`ProDockPipeline`.
+    Structured result bundle returned by :class:`ProDockPipeline`.
 
     :param project_dir:
         Root working directory of the project.
@@ -56,33 +127,74 @@ class ProDockResult:
     :param receptors:
         Prepared receptor specifications included in the campaign.
     :type receptors: List[PreparedReceptorSpec]
-    :param results:
+    :param receptor_pdb_by_id:
+        Mapping from receptor identifier to receptor ``.pdb`` file used for
+        interaction analysis.
+    :type receptor_pdb_by_id: Dict[str, Path]
+    :param campaign:
+        In-memory campaign object.
+    :type campaign: Campaign
+    :param docking_results:
         Raw docking results returned by :class:`prodock.dock.BatchDock`.
-    :type results: Any
+    :type docking_results: Any
+    :param pose_df:
+        Pose table collected by :class:`prodock.postprocess.pose.PoseCrawler`.
+    :type pose_df: pandas.DataFrame
+    :param interaction_result:
+        Raw interaction extraction result object, or ``None`` if interaction
+        extraction was skipped.
+    :type interaction_result: Any
+    :param merged_df:
+        Final dataframe chosen for downstream insertion into the database. This
+        is the interaction-merged dataframe if interaction extraction is
+        enabled; otherwise it is the crawled pose dataframe.
+    :type merged_df: pandas.DataFrame
+    :param interaction_df:
+        Long-form interaction-event dataframe, or ``None``.
+    :type interaction_df: Optional[pandas.DataFrame]
+    :param summary_df:
+        Pose-level interaction summary dataframe, or ``None``.
+    :type summary_df: Optional[pandas.DataFrame]
+    :param compact_interactions:
+        Compact per-pose interaction dictionary, or ``None``.
+    :type compact_interactions: Optional[Dict[str, Any]]
+    :param db_path:
+        SQLite database path if database writing was enabled.
+    :type db_path: Optional[Path]
     """
 
     project_dir: Path
     ligand_dir: Path
     campaign_json: Path
     receptors: List[PreparedReceptorSpec]
-    results: Any
+    receptor_pdb_by_id: Dict[str, Path]
+    campaign: Campaign
+    docking_results: Any
+    pose_df: pd.DataFrame
+    interaction_result: Any
+    merged_df: pd.DataFrame
+    interaction_df: Optional[pd.DataFrame]
+    summary_df: Optional[pd.DataFrame]
+    compact_interactions: Optional[Dict[str, Any]]
+    db_path: Optional[Path]
 
 
 class ProDockPipeline:
     """
     High-level orchestration helper for ProDock projects.
 
-    This helper unifies common workflows:
+    This class provides a single automation entry point for common workflows:
 
     1. raw receptor records + ligand SMILES records
-    2. prebuilt receptor ``.pdbqt`` files + explicit box coordinates
-    3. either ligand SMILES input or an existing ligand directory
+    2. prebuilt receptor ``.pdbqt`` files + explicit docking box coordinates
+    3. optional pose crawling after docking
+    4. optional interaction extraction
+    5. optional database creation and insertion
 
-    The pipeline can prepare receptors, prepare ligands, build a campaign JSON,
-    and optionally run batch docking in a single call.
+    All generated data are organized under ``project_dir``.
 
     :param project_dir:
-        Root directory used for all generated files.
+        Root directory used for all generated project files.
     :type project_dir: PathLike
     :param engines:
         Docking engines to include in the campaign. Default is
@@ -134,8 +246,10 @@ class ProDockPipeline:
         result = pipeline.run(
             receptors=RECEPTORS,
             ligands=LIGANDS,
+            extract_interaction=True,
         )
         print(result.campaign_json)
+        print(result.db_path)
 
     Example
     -------
@@ -152,86 +266,9 @@ class ProDockPipeline:
                 }
             ],
             ligand_dir="Data/testcase/Multi/ligands",
+            extract_interaction=True,
         )
-        print(result.campaign_json)
-
-    Example
-    -------
-    .. code-block:: python
-
-        from prodock import prodock
-
-        PROJECT = "Data/testcase/Multi"
-
-        RECEPTORS = [
-            {
-                "pdb_id": "1M17",
-                "receptor_name": "EGFR_1M17",
-                "ligand_code": "AQ4",
-                "chains": ["A"],
-                "cofactors": [],
-            },
-            {
-                "pdb_id": "2ITY",
-                "receptor_name": "EGFR_2ITY",
-                "ligand_code": "IRE",
-                "chains": ["A"],
-                "cofactors": [],
-            },
-            {
-                "pdb_id": "4WKQ",
-                "receptor_name": "EGFR_4WKQ",
-                "ligand_code": "IRE",
-                "chains": ["A"],
-                "cofactors": [],
-            },
-        ]
-
-        LIGANDS = [
-            {
-                "id": "erlotinib",
-                "smiles": "COCCOc1cc2c(ncnc2cc1OCCOC)Nc1cccc(c1)C#C",
-            },
-            {
-                "id": "gefitinib",
-                "smiles": "COc1cc2ncnc(c2cc1OCCCN1CCOCC1)Nc1ccc(c(c1)Cl)F",
-            },
-        ]
-
-        result = prodock(
-            PROJECT,
-            receptors=RECEPTORS,
-            ligands=LIGANDS,
-        )
-        print(result.campaign_json)
-
-    Example
-    -------
-    .. code-block:: python
-
-        from prodock import prodock
-
-        PROJECT = "Data/testcase/Multi"
-
-        result = prodock(
-            PROJECT,
-            prepared_receptors=[
-                {
-                    "receptor_id": "4WKQ",
-                    "receptor_pdbqt": "Data/testcase/Multi/4WKQ/filtered_protein/4WKQ.pdbqt",
-                    "center": (2.865, 193.257, 21.367),
-                    "size": (27.091, 27.091, 27.091),
-                },
-                {
-                    "receptor_id": "1M17",
-                    "receptor_pdbqt": "Data/testcase/Multi/1M17/filtered_protein/1M17.pdbqt",
-                    "center": (21.623, 0.4, 52.467),
-                    "size": (34.07, 34.07, 34.07),
-                },
-            ],
-            ligand_dir="Data/testcase/Multi/ligands",
-        )
-        print(result.campaign_json)
+        print(result.receptor_pdb_by_id)
     """
 
     def __init__(
@@ -364,6 +401,25 @@ class ProDockPipeline:
             return p.resolve()
         return (self.project_dir / p).resolve()
 
+    def _resolve_db_path(self, db_name: PathLike) -> Path:
+        """
+        Resolve the SQLite database path.
+
+        Relative database paths are interpreted relative to ``project_dir``.
+
+        :param db_name:
+            Database filename or path.
+        :type db_name: PathLike
+
+        :returns:
+            Absolute database path.
+        :rtype: Path
+        """
+        p = Path(db_name)
+        if p.is_absolute():
+            return p.resolve()
+        return (self.project_dir / p).resolve()
+
     @staticmethod
     def _infer_receptor_id_from_path(path: Path) -> str:
         """
@@ -472,6 +528,47 @@ class ProDockPipeline:
         size = self._as_vec3(gb.size, field_name="size")
         return center, size
 
+    def _build_receptor_pdb_map(
+        self,
+        receptor_specs: Sequence[PreparedReceptorSpec],
+    ) -> Dict[str, Path]:
+        """
+        Build the receptor ``.pdb`` mapping needed for interaction extraction.
+
+        The mapping is derived directly from the prepared receptor path by
+        replacing the suffix with ``.pdb``.
+
+        :param receptor_specs:
+            Prepared receptor specifications.
+        :type receptor_specs: Sequence[PreparedReceptorSpec]
+
+        :returns:
+            Mapping from receptor ID to receptor ``.pdb`` path.
+        :rtype: Dict[str, Path]
+
+        :raises FileNotFoundError:
+            Raised if the inferred receptor ``.pdb`` file does not exist.
+
+        Example
+        -------
+        .. code-block:: python
+
+            receptor_pdb_by_id = pipeline._build_receptor_pdb_map(receptor_specs)
+            print(receptor_pdb_by_id["4WKQ"])
+        """
+        receptor_pdb_by_id: Dict[str, Path] = {}
+
+        for spec in receptor_specs:
+            pdb_path = spec.receptor_pdbqt.with_suffix(".pdb")
+            if not pdb_path.exists():
+                raise FileNotFoundError(
+                    "Could not infer receptor PDB file from prepared receptor "
+                    f"path: {pdb_path}"
+                )
+            receptor_pdb_by_id[spec.receptor_id] = pdb_path.resolve()
+
+        return receptor_pdb_by_id
+
     def prepare_receptors(
         self,
         *,
@@ -554,6 +651,7 @@ class ProDockPipeline:
                         "Each prepared receptor record must contain "
                         "'receptor_pdbqt' or 'receptor'."
                     )
+
                 receptor_path = self._resolve_path(receptor_path)
                 receptor_id = str(
                     item.get("receptor_id")
@@ -727,6 +825,7 @@ class ProDockPipeline:
                 receptor_specs=receptor_specs,
                 ligand_dir=ligand_dir,
             )
+            print(campaign)
         """
         ligand_dir = self._resolve_path(ligand_dir)
 
@@ -766,11 +865,225 @@ class ProDockPipeline:
         :returns:
             Path to the written JSON file.
         :rtype: Path
+
+        Example
+        -------
+        .. code-block:: python
+
+            campaign_json = pipeline.save_campaign(campaign)
+            print(campaign_json)
         """
         name = campaign_name or self.campaign_name
         out_path = self.project_dir / name
         campaign.save_json(str(out_path))
         return out_path.resolve()
+
+    def crawl_poses(self, *, backend: str = "obabel") -> pd.DataFrame:
+        """
+        Crawl docked poses from the project directory.
+
+        This wraps :class:`prodock.postprocess.pose.PoseCrawler` using the
+        pipeline project directory as the crawl root.
+
+        :param backend:
+            Molecule loading backend passed to :meth:`PoseCrawler.crawl_mols`.
+        :type backend: str
+
+        :returns:
+            Crawled pose dataframe.
+        :rtype: pandas.DataFrame
+
+        Example
+        -------
+        .. code-block:: python
+
+            pose_df = pipeline.crawl_poses(backend="obabel")
+            print(pose_df.head())
+        """
+        crawler = PoseCrawler([str(self.project_dir)])
+        return crawler.crawl_mols(backend=backend)
+
+    def extract_interactions(
+        self,
+        *,
+        poses: pd.DataFrame,
+        receptor_specs: Sequence[PreparedReceptorSpec],
+        batch_size: int = 1,
+        progress: bool = False,
+        n_jobs: int = 1,
+        include_fingerprint_columns: bool = True,
+        include_interaction_events: bool = True,
+        include_bitvectors: bool = False,
+        include_countvectors: bool = False,
+        fail_fast: bool = True,
+        use_profiler: bool = False,
+    ) -> Tuple[Any, Dict[str, Path]]:
+        """
+        Extract protein-ligand interactions from a crawled pose dataframe.
+
+        The receptor ``.pdb`` mapping is automatically derived from the prepared
+        receptor ``.pdbqt`` files by replacing ``.pdbqt`` with ``.pdb``.
+
+        By default this method uses
+        :func:`extract_pose_table_interactions`. Optionally, it can use
+        :class:`InteractionProfiler`.
+
+        :param poses:
+            Pose dataframe returned by :meth:`crawl_poses`.
+        :type poses: pandas.DataFrame
+        :param receptor_specs:
+            Prepared receptor specifications.
+        :type receptor_specs: Sequence[PreparedReceptorSpec]
+        :param batch_size:
+            Batch size for interaction extraction.
+        :type batch_size: int
+        :param progress:
+            Whether to show progress.
+        :type progress: bool
+        :param n_jobs:
+            Number of parallel jobs.
+        :type n_jobs: int
+        :param include_fingerprint_columns:
+            Whether to include fingerprint columns.
+        :type include_fingerprint_columns: bool
+        :param include_interaction_events:
+            Whether to include the long-form interaction-event dataframe.
+        :type include_interaction_events: bool
+        :param include_bitvectors:
+            Whether to include bitvectors.
+        :type include_bitvectors: bool
+        :param include_countvectors:
+            Whether to include countvectors.
+        :type include_countvectors: bool
+        :param fail_fast:
+            Whether to fail on the first extraction error.
+        :type fail_fast: bool
+        :param use_profiler:
+            Whether to use :class:`InteractionProfiler` instead of the
+            functional wrapper.
+        :type use_profiler: bool
+
+        :returns:
+            Tuple ``(interaction_result, receptor_pdb_by_id)``.
+        :rtype: Tuple[Any, Dict[str, Path]]
+
+        Example
+        -------
+        .. code-block:: python
+
+            interaction_result, receptor_pdb_by_id = pipeline.extract_interactions(
+                poses=pose_df,
+                receptor_specs=receptor_specs,
+                batch_size=1,
+                progress=False,
+                n_jobs=1,
+            )
+
+            merged_df = interaction_result.merged_df
+            interaction_df = interaction_result.interaction_df
+            summary_df = interaction_result.summary_df
+            compact = interaction_result.summary_dict(kind="compact")
+        """
+        receptor_pdb_by_id = self._build_receptor_pdb_map(receptor_specs)
+        receptor_pdb_by_id_str = {k: str(v) for k, v in receptor_pdb_by_id.items()}
+
+        if use_profiler:
+            profiler = InteractionProfiler()
+            result = profiler.run_pose_table(
+                poses=poses,
+                receptor_pdb_by_id=receptor_pdb_by_id_str,
+                batch_size=batch_size,
+                progress=progress,
+                n_jobs=n_jobs,
+                include_fingerprint_columns=include_fingerprint_columns,
+                include_interaction_events=include_interaction_events,
+                include_bitvectors=include_bitvectors,
+                include_countvectors=include_countvectors,
+                fail_fast=fail_fast,
+            )
+        else:
+            result = extract_pose_table_interactions(
+                poses=poses,
+                receptor_pdb_by_id=receptor_pdb_by_id_str,
+                batch_size=batch_size,
+                progress=progress,
+                n_jobs=n_jobs,
+                include_fingerprint_columns=include_fingerprint_columns,
+                include_interaction_events=include_interaction_events,
+                include_bitvectors=include_bitvectors,
+                include_countvectors=include_countvectors,
+                fail_fast=fail_fast,
+            )
+
+        return result, receptor_pdb_by_id
+
+    def save_database(
+        self,
+        *,
+        df: pd.DataFrame,
+        interactions_by_pose: Optional[Dict[str, Any]] = None,
+        db_name: PathLike = "prodock.db",
+        replace: bool = True,
+        replace_interactions: bool = True,
+    ) -> Path:
+        """
+        Create or update a project-local SQLite database and insert results.
+
+        Relative database names are created inside ``project_dir``. With the
+        default configuration, the database path is::
+
+            <project_dir>/prodock.db
+
+        :param df:
+            Dataframe to insert.
+        :type df: pandas.DataFrame
+        :param interactions_by_pose:
+            Optional compact interaction dictionary keyed by pose identifier.
+        :type interactions_by_pose: Optional[Dict[str, Any]]
+        :param db_name:
+            Database filename or relative path under ``project_dir``.
+        :type db_name: PathLike
+        :param replace:
+            Whether to replace existing pose rows.
+        :type replace: bool
+        :param replace_interactions:
+            Whether to replace existing interaction rows.
+        :type replace_interactions: bool
+
+        :returns:
+            Absolute path to the SQLite database.
+        :rtype: Path
+
+        Example
+        -------
+        .. code-block:: python
+
+            db_path = pipeline.save_database(
+                df=merged_df,
+                interactions_by_pose=compact,
+                db_name="prodock.db",
+            )
+            print(db_path)
+        """
+        db_path = self._resolve_db_path(db_name)
+        db_path.parent.mkdir(parents=True, exist_ok=True)
+
+        db = PoseDatabase(str(db_path), create=True)
+
+        if interactions_by_pose is None:
+            db.insert_dataframe(
+                df,
+                replace=replace,
+            )
+        else:
+            db.insert_dataframe(
+                df,
+                interactions_by_pose=interactions_by_pose,
+                replace=replace,
+                replace_interactions=replace_interactions,
+            )
+
+        return db_path.resolve()
 
     def run(
         self,
@@ -780,16 +1093,34 @@ class ProDockPipeline:
         ligands: Optional[List[Dict[str, str]]] = None,
         ligand_dir: Optional[PathLike] = None,
         campaign_name: Optional[str] = None,
+        crawl_backend: str = "obabel",
+        extract_interaction: bool = False,
+        interaction_batch_size: int = 1,
+        interaction_progress: bool = False,
+        interaction_n_jobs: int = 1,
+        include_fingerprint_columns: bool = True,
+        include_interaction_events: bool = True,
+        include_bitvectors: bool = False,
+        include_countvectors: bool = False,
+        fail_fast: bool = True,
+        use_interaction_profiler: bool = False,
+        save_to_database: bool = True,
+        db_name: PathLike = "prodock.db",
+        replace: bool = True,
+        replace_interactions: bool = True,
     ) -> ProDockResult:
         """
         Execute the full ProDock pipeline.
 
-        This method:
+        This method performs the full end-to-end automation:
 
-        1. prepares or validates receptors
-        2. prepares or resolves ligands
-        3. builds and saves the campaign JSON
-        4. runs batch docking
+        1. prepare or validate receptors
+        2. prepare or resolve ligands
+        3. build and save the campaign JSON
+        4. run batch docking
+        5. run pose crawling on the project directory
+        6. optionally extract interactions
+        7. optionally create ``<project_dir>/prodock.db`` and insert results
 
         :param receptors:
             Raw receptor records for full receptor acquisition and preparation
@@ -807,6 +1138,52 @@ class ProDockPipeline:
         :param campaign_name:
             Output campaign JSON file name.
         :type campaign_name: Optional[str]
+        :param crawl_backend:
+            Backend passed to :meth:`crawl_poses`.
+        :type crawl_backend: str
+        :param extract_interaction:
+            Whether to run interaction extraction after pose crawling.
+        :type extract_interaction: bool
+        :param interaction_batch_size:
+            Interaction extraction batch size.
+        :type interaction_batch_size: int
+        :param interaction_progress:
+            Whether to show progress during interaction extraction.
+        :type interaction_progress: bool
+        :param interaction_n_jobs:
+            Parallel jobs for interaction extraction.
+        :type interaction_n_jobs: int
+        :param include_fingerprint_columns:
+            Whether to include fingerprint columns in interaction output.
+        :type include_fingerprint_columns: bool
+        :param include_interaction_events:
+            Whether to include long-form interaction events.
+        :type include_interaction_events: bool
+        :param include_bitvectors:
+            Whether to include bitvectors.
+        :type include_bitvectors: bool
+        :param include_countvectors:
+            Whether to include countvectors.
+        :type include_countvectors: bool
+        :param fail_fast:
+            Whether interaction extraction should fail immediately on errors.
+        :type fail_fast: bool
+        :param use_interaction_profiler:
+            Whether to use :class:`InteractionProfiler` for interaction
+            extraction.
+        :type use_interaction_profiler: bool
+        :param save_to_database:
+            Whether to create or update the SQLite database and insert results.
+        :type save_to_database: bool
+        :param db_name:
+            Database filename or relative path under ``project_dir``.
+        :type db_name: PathLike
+        :param replace:
+            Whether database insertion should replace existing pose rows.
+        :type replace: bool
+        :param replace_interactions:
+            Whether database insertion should replace existing interaction rows.
+        :type replace_interactions: bool
 
         :returns:
             Structured pipeline result.
@@ -816,18 +1193,22 @@ class ProDockPipeline:
         -------
         .. code-block:: python
 
-            pipeline = ProDockPipeline("Data/testcase/Multi")
             result = pipeline.run(
                 receptors=RECEPTORS,
                 ligands=LIGANDS,
+                extract_interaction=True,
+                db_name="prodock.db",
             )
+
             print(result.campaign_json)
+            print(result.db_path)
+            print(result.pose_df.head())
+            print(result.merged_df.head())
 
         Example
         -------
         .. code-block:: python
 
-            pipeline = ProDockPipeline("Data/testcase/Multi")
             result = pipeline.run(
                 prepared_receptors=[
                     {
@@ -835,44 +1216,93 @@ class ProDockPipeline:
                         "receptor_pdbqt": "Data/testcase/Multi/4WKQ/filtered_protein/4WKQ.pdbqt",
                         "center": (2.865, 193.257, 21.367),
                         "size": (27.091, 27.091, 27.091),
-                    },
-                    {
-                        "receptor_id": "1M17",
-                        "receptor_pdbqt": "Data/testcase/Multi/1M17/filtered_protein/1M17.pdbqt",
-                        "center": (21.623, 0.4, 52.467),
-                        "size": (34.07, 34.07, 34.07),
-                    },
+                    }
                 ],
                 ligand_dir="Data/testcase/Multi/ligands",
+                extract_interaction=True,
+                interaction_batch_size=1,
+                interaction_n_jobs=1,
             )
-            print(result.campaign_json)
         """
         receptor_specs = self.prepare_receptors(
             receptors=receptors,
             prepared_receptors=prepared_receptors,
         )
+
         final_ligand_dir = self.prepare_ligands(
             ligands=ligands,
             ligand_dir=ligand_dir,
         )
+
         campaign = self.build_campaign(
             receptor_specs=receptor_specs,
             ligand_dir=final_ligand_dir,
         )
+
         campaign_json = self.save_campaign(
             campaign,
             campaign_name=campaign_name,
         )
 
         runner = BatchDock(n_jobs=self.n_jobs, progress=self.progress)
-        results = runner.run_from_config(str(campaign_json))
+        docking_results = runner.run_from_config(str(campaign_json))
+
+        pose_df = self.crawl_poses(backend=crawl_backend)
+
+        receptor_pdb_by_id: Dict[str, Path] = {}
+        interaction_result: Any = None
+        merged_df = pose_df
+        interaction_df: Optional[pd.DataFrame] = None
+        summary_df: Optional[pd.DataFrame] = None
+        compact_interactions: Optional[Dict[str, Any]] = None
+
+        if extract_interaction:
+            interaction_result, receptor_pdb_by_id = self.extract_interactions(
+                poses=pose_df,
+                receptor_specs=receptor_specs,
+                batch_size=interaction_batch_size,
+                progress=interaction_progress,
+                n_jobs=interaction_n_jobs,
+                include_fingerprint_columns=include_fingerprint_columns,
+                include_interaction_events=include_interaction_events,
+                include_bitvectors=include_bitvectors,
+                include_countvectors=include_countvectors,
+                fail_fast=fail_fast,
+                use_profiler=use_interaction_profiler,
+            )
+
+            merged_df = interaction_result.merged_df
+            interaction_df = interaction_result.interaction_df
+            summary_df = interaction_result.summary_df
+            compact_interactions = interaction_result.summary_dict(kind="compact")
+        else:
+            receptor_pdb_by_id = self._build_receptor_pdb_map(receptor_specs)
+
+        db_path: Optional[Path] = None
+        if save_to_database:
+            db_path = self.save_database(
+                df=merged_df,
+                interactions_by_pose=compact_interactions,
+                db_name=db_name,
+                replace=replace,
+                replace_interactions=replace_interactions,
+            )
 
         return ProDockResult(
             project_dir=self.project_dir,
             ligand_dir=final_ligand_dir,
             campaign_json=campaign_json,
             receptors=list(receptor_specs),
-            results=results,
+            receptor_pdb_by_id=receptor_pdb_by_id,
+            campaign=campaign,
+            docking_results=docking_results,
+            pose_df=pose_df,
+            interaction_result=interaction_result,
+            merged_df=merged_df,
+            interaction_df=interaction_df,
+            summary_df=summary_df,
+            compact_interactions=compact_interactions,
+            db_path=db_path,
         )
 
 
@@ -896,12 +1326,27 @@ def prodock(
     box_scale: float = 2.0,
     box_isotropic: bool = True,
     campaign_name: str = "campaign.json",
+    crawl_backend: str = "obabel",
+    extract_interaction: bool = False,
+    interaction_batch_size: int = 1,
+    interaction_progress: bool = False,
+    interaction_n_jobs: int = 1,
+    include_fingerprint_columns: bool = True,
+    include_interaction_events: bool = True,
+    include_bitvectors: bool = False,
+    include_countvectors: bool = False,
+    fail_fast: bool = True,
+    use_interaction_profiler: bool = False,
+    save_to_database: bool = True,
+    db_name: PathLike = "prodock.db",
+    replace: bool = True,
+    replace_interactions: bool = True,
 ) -> ProDockResult:
     """
     Functional wrapper around :class:`ProDockPipeline`.
 
-    This is the main convenience entry point for running a ProDock workflow in
-    one call.
+    This is the main convenience entry point for running a complete ProDock
+    workflow in one call.
 
     :param project_dir:
         Root project directory.
@@ -937,7 +1382,7 @@ def prodock(
         Parallel jobs used by :class:`BatchDock`.
     :type n_jobs: Optional[int]
     :param progress:
-        Whether to enable progress reporting.
+        Whether to enable docking progress reporting.
     :type progress: bool
     :param receptor_use_meeko:
         Whether receptor preparation uses Meeko.
@@ -957,6 +1402,51 @@ def prodock(
     :param campaign_name:
         Output campaign JSON file name.
     :type campaign_name: str
+    :param crawl_backend:
+        Pose crawler backend.
+    :type crawl_backend: str
+    :param extract_interaction:
+        Whether to run interaction extraction.
+    :type extract_interaction: bool
+    :param interaction_batch_size:
+        Interaction extraction batch size.
+    :type interaction_batch_size: int
+    :param interaction_progress:
+        Whether to show interaction extraction progress.
+    :type interaction_progress: bool
+    :param interaction_n_jobs:
+        Parallel jobs for interaction extraction.
+    :type interaction_n_jobs: int
+    :param include_fingerprint_columns:
+        Whether to include fingerprint columns.
+    :type include_fingerprint_columns: bool
+    :param include_interaction_events:
+        Whether to include long-form interaction events.
+    :type include_interaction_events: bool
+    :param include_bitvectors:
+        Whether to include bitvectors.
+    :type include_bitvectors: bool
+    :param include_countvectors:
+        Whether to include countvectors.
+    :type include_countvectors: bool
+    :param fail_fast:
+        Whether interaction extraction fails immediately on errors.
+    :type fail_fast: bool
+    :param use_interaction_profiler:
+        Whether to use :class:`InteractionProfiler`.
+    :type use_interaction_profiler: bool
+    :param save_to_database:
+        Whether to write results into the SQLite database.
+    :type save_to_database: bool
+    :param db_name:
+        Database filename or relative path under ``project_dir``.
+    :type db_name: PathLike
+    :param replace:
+        Whether to replace existing pose rows in the database.
+    :type replace: bool
+    :param replace_interactions:
+        Whether to replace existing interaction rows in the database.
+    :type replace_interactions: bool
 
     :returns:
         Structured pipeline result.
@@ -971,20 +1461,6 @@ def prodock(
         PROJECT = "Data/testcase/Multi"
 
         RECEPTORS = [
-            {
-                "pdb_id": "1M17",
-                "receptor_name": "EGFR_1M17",
-                "ligand_code": "AQ4",
-                "chains": ["A"],
-                "cofactors": [],
-            },
-            {
-                "pdb_id": "2ITY",
-                "receptor_name": "EGFR_2ITY",
-                "ligand_code": "IRE",
-                "chains": ["A"],
-                "cofactors": [],
-            },
             {
                 "pdb_id": "4WKQ",
                 "receptor_name": "EGFR_4WKQ",
@@ -1009,8 +1485,14 @@ def prodock(
             PROJECT,
             receptors=RECEPTORS,
             ligands=LIGANDS,
+            engines=["smina"],
+            extract_interaction=True,
+            db_name="prodock.db",
         )
+
         print(result.campaign_json)
+        print(result.db_path)
+        print(result.receptor_pdb_by_id)
 
     Example
     -------
@@ -1028,17 +1510,14 @@ def prodock(
                     "receptor_pdbqt": "Data/testcase/Multi/4WKQ/filtered_protein/4WKQ.pdbqt",
                     "center": (2.865, 193.257, 21.367),
                     "size": (27.091, 27.091, 27.091),
-                },
-                {
-                    "receptor_id": "1M17",
-                    "receptor_pdbqt": "Data/testcase/Multi/1M17/filtered_protein/1M17.pdbqt",
-                    "center": (21.623, 0.4, 52.467),
-                    "size": (34.07, 34.07, 34.07),
-                },
+                }
             ],
             ligand_dir="Data/testcase/Multi/ligands",
+            extract_interaction=True,
+            db_name="prodock.db",
         )
-        print(result.campaign_json)
+
+        print(result.summary_df.head())
     """
     pipeline = ProDockPipeline(
         project_dir=project_dir,
@@ -1056,14 +1535,29 @@ def prodock(
         box_isotropic=box_isotropic,
         campaign_name=campaign_name,
     )
+
     return pipeline.run(
         receptors=receptors,
         prepared_receptors=prepared_receptors,
         ligands=ligands,
         ligand_dir=ligand_dir,
         campaign_name=campaign_name,
+        crawl_backend=crawl_backend,
+        extract_interaction=extract_interaction,
+        interaction_batch_size=interaction_batch_size,
+        interaction_progress=interaction_progress,
+        interaction_n_jobs=interaction_n_jobs,
+        include_fingerprint_columns=include_fingerprint_columns,
+        include_interaction_events=include_interaction_events,
+        include_bitvectors=include_bitvectors,
+        include_countvectors=include_countvectors,
+        fail_fast=fail_fast,
+        use_interaction_profiler=use_interaction_profiler,
+        save_to_database=save_to_database,
+        db_name=db_name,
+        replace=replace,
+        replace_interactions=replace_interactions,
     )
 
 
-# Optional backward-compatible alias.
 run_prodock = prodock
