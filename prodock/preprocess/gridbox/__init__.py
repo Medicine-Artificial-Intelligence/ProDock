@@ -1,4 +1,4 @@
-# prodock/process/gridbox/__init__.py
+# prodock/preprocess/gridbox/__init__.py
 from .gridbox import GridBox
 from .algorithms import (
     expand_by_pad,

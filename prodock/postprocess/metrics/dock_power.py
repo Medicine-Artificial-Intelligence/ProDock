@@ -42,6 +42,7 @@ Notes
 - OpenBabel backend will attempt to read files or convert RDKit mols to SDF for loading.
 - PyMOL backend will load objects into the PyMOL session; the objects are deleted after alignment.
 """
+
 from __future__ import annotations
 
 from typing import Optional, Sequence, Tuple, Union

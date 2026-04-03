@@ -24,6 +24,7 @@ Behavior notes
   when the provided RDKit ``Mol`` lacks conformers, honoring the `embed3d`
   and `optimize` flags.
 """
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -43,7 +44,6 @@ except Exception as e:
     ) from e
 
 from prodock.io.logging import get_logger, StructuredAdapter
-
 
 logger = StructuredAdapter(get_logger("prodock.io.file"), {"component": "file"})
 logger._base_logger = getattr(logger, "_base_logger", getattr(logger, "logger", None))

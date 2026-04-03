@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="650" viewBox="0 0 1200 650">
+
+<defs>
+  <linearGradient id="bggrad" x1="0" x2="1" y1="0" y2="1">
+    <stop offset="0%" stop-color="#fbfdff"/>
+    <stop offset="100%" stop-color="#eef4f7"/>
+  </linearGradient>
+  <linearGradient id="bluegrad" x1="0" x2="1" y1="0" y2="1">
+    <stop offset="0%" stop-color="#86bddc"/>
+    <stop offset="100%" stop-color="#366c98"/>
+  </linearGradient>
+  <linearGradient id="navygrad" x1="0" x2="1" y1="0" y2="1">
+    <stop offset="0%" stop-color="#2f5d82"/>
+    <stop offset="100%" stop-color="#1c3950"/>
+  </linearGradient>
+  <linearGradient id="ambergrad" x1="0" x2="1" y1="0" y2="1">
+    <stop offset="0%" stop-color="#f6c86d"/>
+    <stop offset="100%" stop-color="#c48d2d"/>
+  </linearGradient>
+  <linearGradient id="sagegrad" x1="0" x2="1" y1="0" y2="1">
+    <stop offset="0%" stop-color="#9ab694"/>
+    <stop offset="100%" stop-color="#6d856d"/>
+  </linearGradient>
+  <linearGradient id="stonegrad" x1="0" x2="1" y1="0" y2="1">
+    <stop offset="0%" stop-color="#c8bcaa"/>
+    <stop offset="100%" stop-color="#8f7c63"/>
+  </linearGradient>
+  <linearGradient id="dbgrad" x1="0" x2="1" y1="0" y2="1">
+    <stop offset="0%" stop-color="#8bc6e8"/>
+    <stop offset="55%" stop-color="#3373ac"/>
+    <stop offset="100%" stop-color="#21517a"/>
+  </linearGradient>
+  <style>
+    .title{font:700 30px Arial, sans-serif; fill:#23435f}
+    .subtitle{font:600 18px Arial, sans-serif; fill:#4579A8}
+    .label{font:700 17px Arial, sans-serif; fill:#27445D}
+    .body{font:400 14px Arial, sans-serif; fill:#5B7282}
+    .small{font:600 13px Arial, sans-serif; fill:#5B7282}
+    .tiny{font:600 11px Arial, sans-serif; fill:#6d7d87}
+  </style>
+</defs>
+
+<rect x="0" y="0" width="1200" height="650" rx="28" fill="url(#bggrad)"/>
+
+<text x="60" y="72" class="title">Workflow-first docking automation</text>
+<text x="60" y="106" class="body">Structure → Preprocess → Dock → Postprocess → Database</text>
+<rect x="62" y="128" width="150" height="30" rx="15.0" fill="#EEF5ED"/><text x="137.0" y="148.0" font-family="Arial,sans-serif" font-size="13" font-weight="700" fill="#5B7282" text-anchor="middle">multiple receptors</text>
+<rect x="224" y="128" width="140" height="30" rx="15.0" fill="#EAF3F8"/><text x="294.0" y="148.0" font-family="Arial,sans-serif" font-size="13" font-weight="700" fill="#5B7282" text-anchor="middle">multiple ligands</text>
+<rect x="376" y="128" width="145" height="30" rx="15.0" fill="#F6F1E7"/><text x="448.5" y="148.0" font-family="Arial,sans-serif" font-size="13" font-weight="700" fill="#5B7282" text-anchor="middle">multiple engines</text>
+<rect x="65" y="210" width="180" height="110" rx="22" fill="#ffffff" stroke="#d8e3ea" stroke-width="2" /><text x="87" y="245" class="label">Structure</text><text x="87" y="272" class="body">PDB query · chain filter · ligand extract</text>
+<rect x="275" y="210" width="190" height="110" rx="22" fill="#ffffff" stroke="#d8e3ea" stroke-width="2" /><text x="297" y="245" class="label">Preprocess</text><text x="297" y="272" class="body">ligand prep · receptor prep · grid box</text>
+<rect x="500" y="200" width="200" height="130" rx="22" fill="#eef5ed" stroke="#d8e3ea" stroke-width="2" /><text x="522" y="235" class="label">Dock</text><text x="522" y="262" class="body">single · batch · matrix campaigns</text>
+<rect x="735" y="210" width="190" height="110" rx="22" fill="#ffffff" stroke="#d8e3ea" stroke-width="2" /><text x="757" y="245" class="label">Postprocess</text><text x="757" y="272" class="body">scores · poses · interactions · metrics</text>
+<rect x="955" y="210" width="170" height="110" rx="22" fill="#ffffff" stroke="#d8e3ea" stroke-width="2" /><text x="977" y="245" class="label">Database</text><text x="977" y="272" class="body">pose-centric SQLite storage</text>
+<polygon points="246.0,269.0 256.0,269.0 256.0,274.6 274.0,265.0 256.0,255.4 256.0,261.0 246.0,261.0" fill="#5d83a0" opacity="0.95"/>
+<polygon points="466.0,269.0 481.0,269.0 481.0,274.6 499.0,265.0 481.0,255.4 481.0,261.0 466.0,261.0" fill="#5d83a0" opacity="0.95"/>
+<polygon points="700.0,269.0 716.0,269.0 716.0,274.6 734.0,265.0 716.0,255.4 716.0,261.0 700.0,261.0" fill="#5d83a0" opacity="0.95"/>
+<polygon points="926.0,269.0 936.0,269.0 936.0,274.6 954.0,265.0 936.0,255.4 936.0,261.0 926.0,261.0" fill="#5d83a0" opacity="0.95"/>
+<path d="M80,507.5 C80,445 141.0,430 171.6,453 C200.4,435 230,485 222,497.0 C230,547 200.4,557 175.2,545 C146.39999999999998,573 82,557 78,503.0 Z" fill="url(#bluegrad)" opacity="0.92"/><path d="M118,507.5 C122,495 135.6,487 160.8,513 C182.4,495 170,525 166,504.5 C160,489 186.0,505 164.39999999999998,491 C137.4,529 125,517 120,507.5 Z" fill="url(#navygrad)" opacity="0.98"/><line x1="155.0" y1="505.5" x2="177.0" y2="495.5" stroke="#f7e6c2" stroke-width="8.0" stroke-linecap="round" opacity="0.95"/><line x1="177.0" y1="495.5" x2="197.0" y2="508.5" stroke="#f7e6c2" stroke-width="8.0" stroke-linecap="round" opacity="0.95"/><line x1="197.0" y1="508.5" x2="219.0" y2="493.5" stroke="#f7e6c2" stroke-width="8.0" stroke-linecap="round" opacity="0.95"/><line x1="219.0" y1="493.5" x2="240.0" y2="505.5" stroke="#f7e6c2" stroke-width="8.0" stroke-linecap="round" opacity="0.95"/><line x1="240.0" y1="505.5" x2="265.0" y2="497.5" stroke="#f7e6c2" stroke-width="8.0" stroke-linecap="round" opacity="0.95"/><circle cx="155.0" cy="505.5" r="9.0" fill="#f24d3d" stroke="#ffffff" stroke-width="2.0"/><circle cx="177.0" cy="495.5" r="9.0" fill="#ef6a48" stroke="#ffffff" stroke-width="2.0"/><circle cx="197.0" cy="508.5" r="9.0" fill="#f4b93b" stroke="#ffffff" stroke-width="2.0"/><circle cx="219.0" cy="493.5" r="9.0" fill="#ef6a48" stroke="#ffffff" stroke-width="2.0"/><circle cx="240.0" cy="505.5" r="9.0" fill="#f4b93b" stroke="#ffffff" stroke-width="2.0"/><circle cx="265.0" cy="497.5" r="9.0" fill="#f0d05a" stroke="#ffffff" stroke-width="2.0"/><circle cx="207.0" cy="481.5" r="6.0" fill="#57b8d9" stroke="#fff" stroke-width="2.0"/><line x1="197.0" y1="508.5" x2="207.0" y2="481.5" stroke="#f7e6c2" stroke-width="5.0" stroke-linecap="round"/><text x="150.0" y="603" class="small" text-anchor="middle">reference complex</text>
+<ellipse cx="1043.0" cy="466" rx="63.0" ry="18" fill="#a8d2ee" stroke="#21517a" stroke-width="2"/><rect x="980" y="466" width="126" height="90" fill="url(#dbgrad)" stroke="#21517a" stroke-width="2"/><ellipse cx="1043.0" cy="466" rx="63.0" ry="18" fill="none" stroke="#e8f5fc" stroke-width="4" opacity="0.92"/><ellipse cx="1043.0" cy="502" rx="63.0" ry="18" fill="none" stroke="#e8f5fc" stroke-width="4" opacity="0.92"/><ellipse cx="1043.0" cy="538" rx="63.0" ry="18" fill="none" stroke="#e8f5fc" stroke-width="4" opacity="0.92"/><ellipse cx="1043.0" cy="556" rx="63.0" ry="18" fill="url(#dbgrad)" stroke="#21517a" stroke-width="2"/><text x="1043.0" y="602" class="small" text-anchor="middle">normalized storage</text>
+<rect x="742" y="448" width="170" height="110" rx="16" fill="#ffffff" stroke="#d8e3ea" stroke-width="2" /><line x1="758" y1="486" x2="896" y2="486" stroke="#d7e6ef" stroke-width="2"/><line x1="758" y1="506" x2="896" y2="506" stroke="#d7e6ef" stroke-width="2"/><line x1="758" y1="526" x2="896" y2="526" stroke="#d7e6ef" stroke-width="2"/><line x1="804" y1="466" x2="804" y2="540" stroke="#d7e6ef" stroke-width="2"/><line x1="850" y1="466" x2="850" y2="540" stroke="#d7e6ef" stroke-width="2"/><rect x="758" y="466" width="138" height="20" rx="8" fill="#EAF3F8"/><text x="827.0" y="580" class="tiny" text-anchor="middle">score tables</text>
+<rect x="523" y="448" width="150" height="105" rx="16" fill="#ffffff" stroke="#d8e3ea" stroke-width="2" /><line x1="545" y1="531" x2="655" y2="531" stroke="#9fb6c8" stroke-width="2"/><line x1="545" y1="466" x2="545" y2="531" stroke="#9fb6c8" stroke-width="2"/><polyline points="551,513 583,498 613,521 645,482" fill="none" stroke="#4579A8" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><text x="598.0" y="575" class="tiny" text-anchor="middle">rank / affinity</text>
+<rect x="320" y="440" width="130" height="110" rx="16" fill="#ffffff" stroke="#d8e3ea" stroke-width="2" /><rect x="332.0" y="452.0" width="18.2" height="14.2" rx="4" fill="#eaf3f8"/><rect x="353.2" y="452.0" width="18.2" height="14.2" rx="4" fill="#d6e7f1"/><rect x="374.4" y="452.0" width="18.2" height="14.2" rx="4" fill="#b5d2e5"/><rect x="395.6" y="452.0" width="18.2" height="14.2" rx="4" fill="#86bddc"/><rect x="416.8" y="452.0" width="18.2" height="14.2" rx="4" fill="#4579A8"/><rect x="332.0" y="469.2" width="18.2" height="14.2" rx="4" fill="#d6e7f1"/><rect x="353.2" y="469.2" width="18.2" height="14.2" rx="4" fill="#b5d2e5"/><rect x="374.4" y="469.2" width="18.2" height="14.2" rx="4" fill="#86bddc"/><rect x="395.6" y="469.2" width="18.2" height="14.2" rx="4" fill="#4579A8"/><rect x="416.8" y="469.2" width="18.2" height="14.2" rx="4" fill="#eaf3f8"/><rect x="332.0" y="486.4" width="18.2" height="14.2" rx="4" fill="#b5d2e5"/><rect x="353.2" y="486.4" width="18.2" height="14.2" rx="4" fill="#86bddc"/><rect x="374.4" y="486.4" width="18.2" height="14.2" rx="4" fill="#4579A8"/><rect x="395.6" y="486.4" width="18.2" height="14.2" rx="4" fill="#eaf3f8"/><rect x="416.8" y="486.4" width="18.2" height="14.2" rx="4" fill="#d6e7f1"/><rect x="332.0" y="503.6" width="18.2" height="14.2" rx="4" fill="#86bddc"/><rect x="353.2" y="503.6" width="18.2" height="14.2" rx="4" fill="#4579A8"/><rect x="374.4" y="503.6" width="18.2" height="14.2" rx="4" fill="#eaf3f8"/><rect x="395.6" y="503.6" width="18.2" height="14.2" rx="4" fill="#d6e7f1"/><rect x="416.8" y="503.6" width="18.2" height="14.2" rx="4" fill="#b5d2e5"/><rect x="332.0" y="520.8" width="18.2" height="14.2" rx="4" fill="#4579A8"/><rect x="353.2" y="520.8" width="18.2" height="14.2" rx="4" fill="#eaf3f8"/><rect x="374.4" y="520.8" width="18.2" height="14.2" rx="4" fill="#d6e7f1"/><rect x="395.6" y="520.8" width="18.2" height="14.2" rx="4" fill="#b5d2e5"/><rect x="416.8" y="520.8" width="18.2" height="14.2" rx="4" fill="#86bddc"/><text x="385.0" y="572" class="tiny" text-anchor="middle">similarity / analysis</text>
+<polygon points="240.3,504.0 300.3,500.1 300.7,505.7 318.0,495.0 299.4,486.6 299.8,492.2 239.7,496.0" fill="#8f7c63" opacity="0.95"/>
+<polygon points="450.0,499.0 502.0,499.0 502.0,504.6 520.0,495.0 502.0,485.4 502.0,491.0 450.0,491.0" fill="#8f7c63" opacity="0.95"/>
+<polygon points="675.0,499.0 724.0,499.0 724.0,504.6 742.0,495.0 724.0,485.4 724.0,491.0 675.0,491.0" fill="#8f7c63" opacity="0.95"/>
+<polygon points="913.4,499.0 961.6,506.3 960.8,511.8 980.0,505.0 963.6,492.8 962.8,498.3 914.6,491.0" fill="#8f7c63" opacity="0.95"/>
+
+</svg>

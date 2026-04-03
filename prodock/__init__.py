@@ -1,3 +1,7 @@
-from .pipeline.prodockpipeline import ProDock
+from .core import prodock
+from .cli import main
 
-__all__ = ["ProDock"]
+__all__ = [
+    "prodock",
+    "main",
+]

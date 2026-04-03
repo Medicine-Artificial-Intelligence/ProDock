@@ -1,52 +1,99 @@
 from __future__ import annotations
+
+"""Parsing helpers for Vina-family and GNINA docking logs."""
+
 import re
-from typing import Optional
+from typing import Iterator, Optional
 
 from .engines import (
-    detect_engine as _auto_detect_engine,
-    VINA_TABLE_HEADER,
-    VINA_ROW_RE,
-    GNINA_TABLE_HEADER,
     GNINA_ROW_RE,
+    GNINA_TABLE_HEADER,
+    VINA_ROW_RE,
+    VINA_TABLE_HEADER,
+    canonicalize_engine_name,
+    detect_engine as _auto_detect_engine,
 )
 
 
-def _iter_lines(text: str):
+def _iter_lines(text: str) -> Iterator[str]:
+    """
+    Yield log lines with trailing newline characters removed.
+
+    This helper splits the input text with :meth:`str.splitlines` and strips a
+    trailing newline character from each produced line. It provides a compact
+    iterator abstraction used by the table parsers.
+
+    :param text:
+        Raw log text to iterate line by line.
+    :type text: str
+
+    :returns:
+        Iterator over normalized log lines.
+    :rtype: Iterator[str]
+
+    Example
+    -------
+    .. code-block:: python
+
+        >>> list(_iter_lines("a\\nb\\n"))
+        ['a', 'b']
+    """
     for line in text.splitlines():
         yield line.rstrip("\n")
 
 
 def _parse_vina_family(text: str) -> list[dict]:
     """
-    Parse Vina-like tables (vina/smina/qvina/vina-gpu/qvina-gpu).
-    Returns list of dicts with keys: mode, affinity_kcal_mol, rmsd_lb, rmsd_ub
+    Parse a Vina-family docking result table from log text.
+
+    The parser searches for the standard Vina table header and then extracts
+    rows matching :data:`VINA_ROW_RE`. Returned dictionaries contain the
+    docking mode, affinity, lower RMSD bound, and upper RMSD bound.
+
+    Supported inputs typically include logs produced by tools such as
+    ``vina``, ``qvina``, or ``smina`` when they emit the standard Vina-style
+    result table.
+
+    :param text:
+        Raw docking log text.
+    :type text: str
+
+    :returns:
+        Parsed result rows. Each row contains the keys ``mode``,
+        ``affinity_kcal_mol``, ``rmsd_lb``, and ``rmsd_ub``. Returns an empty
+        list when no compatible table is found.
+    :rtype: list[dict]
+
+    Example
+    -------
+    .. code-block:: python
+
+        text = '''
+        -----+------------+----------+----------
+           1       -7.5      0.000      0.000
+           2       -7.1      1.200      2.400
+        '''
+        rows = _parse_vina_family(text)
     """
     lines = list(_iter_lines(text))
     rows: list[dict] = []
-    # Find header index
     header_idx = None
     for i, ln in enumerate(lines):
-        if VINA_TABLE_HEADER.search(ln.lower()):
+        if VINA_TABLE_HEADER.search(ln):
             header_idx = i
             break
     if header_idx is None:
         return rows
-    # Scan subsequent lines for numeric rows
-    # fmt: off
-    for ln in lines[header_idx + 1:]:  # fmt: on
+    for ln in lines[header_idx + 1 :]:  # noqa
         m = VINA_ROW_RE.match(ln)
         if not m:
             continue
-        mode = int(m.group(1))
-        aff = float(m.group(2))
-        rmsd_lb = float(m.group(3))
-        rmsd_ub = float(m.group(4))
         rows.append(
             {
-                "mode": mode,
-                "affinity_kcal_mol": aff,
-                "rmsd_lb": rmsd_lb,
-                "rmsd_ub": rmsd_ub,
+                "mode": int(m.group(1)),
+                "affinity_kcal_mol": float(m.group(2)),
+                "rmsd_lb": float(m.group(3)),
+                "rmsd_ub": float(m.group(4)),
             }
         )
     return rows
@@ -54,33 +101,52 @@ def _parse_vina_family(text: str) -> list[dict]:
 
 def _parse_gnina(text: str) -> list[dict]:
     """
-    Parse GNINA tables (affinity + CNN columns).
-    Keys: mode, affinity_kcal_mol, cnn_pose, cnn_affinity
+    Parse a GNINA docking result table from log text.
+
+    The parser searches for the standard GNINA table header and then extracts
+    rows matching :data:`GNINA_ROW_RE`. Returned dictionaries contain the
+    docking mode, affinity, CNN pose score, and CNN affinity score.
+
+    :param text:
+        Raw docking log text.
+    :type text: str
+
+    :returns:
+        Parsed result rows. Each row contains the keys ``mode``,
+        ``affinity_kcal_mol``, ``cnn_pose``, and ``cnn_affinity``. Returns an
+        empty list when no GNINA-style table is found.
+    :rtype: list[dict]
+
+    Example
+    -------
+    .. code-block:: python
+
+        text = '''
+        mode | affinity | cnn_pose | cnn_affinity
+           1     -8.2       0.71         7.45
+           2     -7.8       0.66         7.10
+        '''
+        rows = _parse_gnina(text)
     """
     lines = list(_iter_lines(text))
     rows: list[dict] = []
     header_idx = None
     for i, ln in enumerate(lines):
-        if GNINA_TABLE_HEADER.search(ln.lower()):
+        if GNINA_TABLE_HEADER.search(ln):
             header_idx = i
             break
     if header_idx is None:
         return rows
-    # fmt: off
-    for ln in lines[header_idx + 1:]:  # fmt: on
+    for ln in lines[header_idx + 1 :]:  # noqa
         m = GNINA_ROW_RE.match(ln)
         if not m:
             continue
-        mode = int(m.group(1))
-        aff = float(m.group(2))
-        cnn_pose = float(m.group(3))
-        cnn_aff = float(m.group(4))
         rows.append(
             {
-                "mode": mode,
-                "affinity_kcal_mol": aff,
-                "cnn_pose": cnn_pose,
-                "cnn_affinity": cnn_aff,
+                "mode": int(m.group(1)),
+                "affinity_kcal_mol": float(m.group(2)),
+                "cnn_pose": float(m.group(3)),
+                "cnn_affinity": float(m.group(4)),
             }
         )
     return rows
@@ -92,41 +158,72 @@ def parse_log_text(
     regex: Optional[dict[str, str]] = None,
 ) -> list[dict]:
     """
-    Parse docking log text with built-in or user-provided regex.
+    Parse docking log text using built-in or custom regex rules.
 
-    Parameters
-    ----------
-    text : str
-        Full text content of a docking log.
-    engine : str, optional
-        Force a particular engine ('vina', 'smina', 'qvina', 'vina-gpu', 'qvina-gpu', 'gnina').
-        When not provided, the function attempts auto-detection.
-    regex : dict[str, str], optional
-        Mapping from field-name to row-regex pattern. When provided, the custom
-        regex is tried **first**. The pattern must capture groups for the fields:
-          - for vina-like: (mode, affinity, rmsd_lb, rmsd_ub)
-          - for gnina: (mode, affinity, cnn_pose, cnn_affinity)
+    The parser first resolves the engine name using
+    :func:`canonicalize_engine_name` and, if needed, automatic engine detection.
+    When ``regex`` is provided, a custom row pattern is tried first. If custom
+    parsing yields rows, those rows are returned immediately. Otherwise, the
+    built-in engine-specific parsers are used.
 
-        Example:
-            {'vina_row': r'^\\s*(\\d+)\\s+(-?\\d+(?:\\.\\d+)?)\\s+(\\d+(?:\\.\\d+)?)\\s+(\\d+(?:\\.\\d+)?)\\s*$'}
+    For GNINA logs, the parser will first try the GNINA table parser and then
+    fall back to the Vina-family parser if no GNINA rows are found. This is
+    useful because some GNINA outputs may also contain Vina-like score tables.
 
-    Returns
+    :param text:
+        Raw docking log text to parse.
+    :type text: str
+    :param engine:
+        Optional engine name such as ``"vina"``, ``"smina"``, ``"qvina"``, or
+        ``"gnina"``. If omitted, the engine is inferred automatically from the
+        input text when possible.
+    :type engine: Optional[str]
+    :param regex:
+        Optional mapping of custom regex patterns. Supported keys are
+        ``"vina_row"`` and ``"gnina_row"``. The selected pattern must expose
+        four capture groups in the same order as the built-in parser expects.
+    :type regex: Optional[dict[str, str]]
+
+    :returns:
+        Parsed docking rows. For Vina-family logs, rows contain ``mode``,
+        ``affinity_kcal_mol``, ``rmsd_lb``, and ``rmsd_ub``. For GNINA logs,
+        rows contain ``mode``, ``affinity_kcal_mol``, ``cnn_pose``, and
+        ``cnn_affinity``.
+    :rtype: list[dict]
+
+    Example
     -------
-    list[dict]
-        Parsed rows with numeric fields.
+    .. code-block:: python
+
+        text = '''
+        -----+------------+----------+----------
+           1       -7.5      0.000      0.000
+           2       -7.1      1.200      2.400
+        '''
+        rows = parse_log_text(text, engine="vina")
+
+    Example
+    -------
+    .. code-block:: python
+
+        custom = {
+            "vina_row": r"^\\s*(\\d+)\\s+([-+]?\\d*\\.?\\d+)\\s+([-+]?\\d*\\.?\\d+)\\s+([-+]?\\d*\\.?\\d+)$"
+        }
+        rows = parse_log_text(text, engine="vina", regex=custom)
     """
-    # Custom regex path (lets users bring their own)
+    eng = canonicalize_engine_name(engine) or _auto_detect_engine(text)
+
     if regex:
-        patt_key = "vina_row" if (engine is None or engine != "gnina") else "gnina_row"
+        patt_key = "gnina_row" if eng == "gnina" else "vina_row"
         patt = regex.get(patt_key)
         if patt:
             row_re = re.compile(patt)
-            rows = []
+            rows: list[dict] = []
             for ln in text.splitlines():
                 m = row_re.match(ln)
                 if not m:
                     continue
-                if engine == "gnina":
+                if eng == "gnina":
                     rows.append(
                         {
                             "mode": int(m.group(1)),
@@ -146,16 +243,9 @@ def parse_log_text(
                     )
             if rows:
                 return rows
-        # If custom regex given but didn't match, fall through to built-ins
-
-    eng = engine or _auto_detect_engine(text)
 
     if eng == "gnina":
         rows = _parse_gnina(text)
-        if rows:
-            return rows
-        # fallback: try vina parser (some gnina builds can print vina-like table)
-        return _parse_vina_family(text)
+        return rows or _parse_vina_family(text)
 
-    # Vina family (vina/smina/qvina/vina-gpu/qvina-gpu or generic 'vina')
     return _parse_vina_family(text)

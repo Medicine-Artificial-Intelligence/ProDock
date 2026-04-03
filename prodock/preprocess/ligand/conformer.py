@@ -1,14 +1,39 @@
 # prodock/chem/conformer.py
 """
-Conformer manager: orchestrates embedding + optimization, exposes algorithm choices.
+High-level conformer generation and optimization utilities for ``prodock.chem``.
 
-This file provides ConformerManager (alias Conformer) which:
- - loads SMILES
- - uses prodock.chem.embed.Embedder for embedding (single-process inside worker)
- - uses prodock.chem.optimize.Optimizer for optimization (single-process inside worker)
- - runs parallel jobs via joblib (loky) only in this high-level manager
- - writes per-ligand SDFs and adds CONF_ENERGY_<id> tags when requested
+This module provides :class:`Conformer`, a high-level orchestration class that
+combines:
+
+- :class:`prodock.chem.embed.Embedder` for conformer embedding,
+- :class:`prodock.chem.optimize.Optimizer` for force-field optimization,
+- optional joblib-based parallel execution for per-ligand workflows,
+- SDF export with optional conformer energy annotations.
+
+Design
+------
+The low-level embedding and optimization logic is intentionally delegated to
+single-process worker utilities. Parallelism is handled only at this top-level
+layer, which simplifies worker behavior and makes the execution model easier to
+reason about.
+
+The public class is :class:`Conformer`. For backward compatibility,
+``ConformerManager`` is retained as an alias.
+
+Example
+-------
+.. code-block:: python
+
+    from prodock.chem.conformer import Conformer
+
+    conf = Conformer(seed=42, backend="loky")
+    conf.load_smiles(["CCO", "c1ccccc1"])
+    conf.embed_all(n_confs=2, n_jobs=1, embed_algorithm="ETKDGv3")
+    conf.optimize_all(method="MMFF94", n_jobs=1)
+    conf.prune_top_k(k=1)
+    conf.write_sdf("outdir", per_mol_folder=False)
 """
+
 from __future__ import annotations
 from typing import List, Dict, Optional, Tuple
 from pathlib import Path
@@ -22,7 +47,6 @@ try:
 except Exception:
     raise ImportError("RDKit is required for prodock.chem.conformer")
 
-
 from .embed import Embedder
 from .optimize import Optimizer
 from prodock.io.logging import get_logger, StructuredAdapter
@@ -32,8 +56,6 @@ logger = StructuredAdapter(
 )
 logger._base_logger = getattr(logger, "_base_logger", getattr(logger, "logger", None))
 
-
-# joblib for parallelism
 try:
     from joblib import Parallel, delayed
 
@@ -50,29 +72,48 @@ def _embed_worker(
     embed_algorithm: Optional[str],
 ) -> Tuple[Optional[str], int]:
     """
-    Worker wrapper for embedding: creates a local Embedder, embeds one SMILES,
-    returns (MolBlock or None, conf_count).
+    Embed a single SMILES string inside a worker context.
 
-    This function is intended to run inside a worker process (loky etc.).
-    It also sets common environment variables to limit thread usage in the worker.
+    This helper creates a local :class:`Embedder` instance, embeds exactly one
+    input SMILES string, and returns the first generated MolBlock together with
+    the conformer count.
 
-    :param smiles: SMILES string to embed.
+    The function is designed to run safely in a worker process and attempts to
+    limit thread over-subscription by setting common BLAS/OpenMP environment
+    variables to ``1``.
+
+    :param smiles:
+        SMILES string to embed.
     :type smiles: str
-    :param seed: RNG seed forwarded to Embedder.
+    :param seed:
+        Random seed forwarded to :class:`Embedder`.
     :type seed: int
-    :param n_confs: number of conformers to generate.
+    :param n_confs:
+        Number of conformers to generate.
     :type n_confs: int
-    :param add_hs: whether to add explicit hydrogens prior to embedding.
+    :param add_hs:
+        Whether explicit hydrogens should be added before embedding.
     :type add_hs: bool
-    :param embed_algorithm: algorithm name for RDKit embedding (e.g. "ETKDGv3").
+    :param embed_algorithm:
+        RDKit embedding algorithm name such as ``"ETKDGv3"``.
     :type embed_algorithm: Optional[str]
-    :return: tuple of (MolBlock string or None, conformer count)
+
+    :returns:
+        Tuple ``(molblock, conf_count)`` where ``molblock`` is ``None`` if
+        embedding failed.
     :rtype: Tuple[Optional[str], int]
 
-    :example:
+    Example
+    -------
+    .. code-block:: python
 
-    >>> _embed_worker("CCO", seed=42, n_confs=1, add_hs=True, embed_algorithm="ETKDGv3")
-    ('\n RDKit MolBlock ...', 1)
+        molblock, n_conf = _embed_worker(
+            "CCO",
+            seed=42,
+            n_confs=1,
+            add_hs=True,
+            embed_algorithm="ETKDGv3",
+        )
     """
     os.environ.setdefault("OMP_NUM_THREADS", "1")
     os.environ.setdefault("MKL_NUM_THREADS", "1")
@@ -96,22 +137,38 @@ def _optimize_worker(
     max_iters: int,
 ) -> Tuple[Optional[str], Dict[int, float]]:
     """
-    Worker wrapper for optimization: create a local Optimizer, optimize single MolBlock,
-    return optimized MolBlock and energy map.
+    Optimize a single MolBlock inside a worker context.
 
-    :param molblock: MolBlock string to optimize.
+    This helper creates a local :class:`Optimizer`, optimizes one MolBlock, and
+    returns the optimized MolBlock together with a conformer-energy mapping.
+
+    As with :func:`_embed_worker`, common thread-count environment variables are
+    set to reduce over-subscription in worker processes.
+
+    :param molblock:
+        Input MolBlock string to optimize.
     :type molblock: str
-    :param method: optimization method name (e.g. "MMFF94").
+    :param method:
+        Force-field optimization method such as ``"MMFF94"`` or ``"UFF"``.
     :type method: str
-    :param max_iters: maximum iterations for the optimizer.
+    :param max_iters:
+        Maximum number of optimization iterations.
     :type max_iters: int
-    :return: tuple of (optimized MolBlock or None, dict mapping conf-id -> energy)
+
+    :returns:
+        Tuple ``(optimized_molblock, energies)`` where ``optimized_molblock`` is
+        ``None`` on failure and ``energies`` maps conformer id to energy.
     :rtype: Tuple[Optional[str], Dict[int, float]]
 
-    :example:
+    Example
+    -------
+    .. code-block:: python
 
-    >>> _optimize_worker(molblock_str, method="MMFF94", max_iters=200)
-    ('\n RDKit MolBlock ...', {0: -12.34})
+        optimized_block, energies = _optimize_worker(
+            molblock_str,
+            method="MMFF94",
+            max_iters=200,
+        )
     """
     os.environ.setdefault("OMP_NUM_THREADS", "1")
     os.environ.setdefault("MKL_NUM_THREADS", "1")
@@ -124,33 +181,41 @@ def _optimize_worker(
     return opt.optimized_molblocks[0], (opt.energies[0] if opt.energies else {})
 
 
-class ConformerManager:
+class Conformer:
     """
-    High-level manager composing Embedder + Optimizer.
+    High-level conformer embedding and optimization workflow.
 
-    Methods are chainable (return self). Use properties to access results.
+    This class composes :class:`Embedder` and :class:`Optimizer` into a single
+    workflow-oriented interface. It supports sequential execution and optional
+    per-ligand parallel execution through joblib.
+
+    Methods are chainable and return ``self``.
 
     Typical workflow
     ----------------
-    1. Create instance: ``mgr = ConformerManager(seed=42, backend='loky')``
-    2. Load SMILES: ``mgr.load_smiles_file('smiles.txt')`` or ``mgr.load_smiles([...])``
-    3. Embed: ``mgr.embed_all(n_confs=3, n_jobs=4)``
-    4. Optimize: ``mgr.optimize_all(method='MMFF94', n_jobs=4)``
-    5. Optionally prune: ``mgr.prune_top_k(k=1)``
-    6. Write outputs: ``mgr.write_sdf('outdir')``
+    1. Create an instance.
+    2. Load SMILES from a file or Python list.
+    3. Run :meth:`embed_all`.
+    4. Run :meth:`optimize_all`.
+    5. Optionally run :meth:`prune_top_k`.
+    6. Export structures with :meth:`write_sdf`.
 
-    :param seed: RNG seed for embedding.
+    :param seed:
+        Random seed used during embedding.
     :type seed: int
-    :param backend: joblib backend to use when parallelizing (default 'loky').
+    :param backend:
+        Joblib backend used for parallel execution. The default is ``"loky"``.
     :type backend: str
 
-    :example:
+    Example
+    -------
+    .. code-block:: python
 
-    >>> mgr = ConformerManager(seed=7)
-    >>> mgr.load_smiles(['CCO', 'c1ccccc1'])
-    >>> mgr.embed_all(n_confs=1, n_jobs=1)
-    >>> mgr.optimize_all(method='MMFF94', n_jobs=1)
-    >>> mgr.write_sdf('outdir', per_mol_folder=False)
+        conf = Conformer(seed=7)
+        conf.load_smiles(["CCO", "c1ccccc1"])
+        conf.embed_all(n_confs=1, n_jobs=1)
+        conf.optimize_all(method="MMFF94", n_jobs=1)
+        conf.write_sdf("outdir", per_mol_folder=False)
     """
 
     def __init__(self, seed: int = 42, backend: str = "loky") -> None:
@@ -162,15 +227,18 @@ class ConformerManager:
         self._energies: List[Dict[int, float]] = []
 
     def __repr__(self) -> str:
-        return f"<ConformerManager smiles={len(self._smiles)} mols={len(self._molblocks)} seed={self._seed}>"
+        return (
+            f"<Conformer smiles={len(self._smiles)} "
+            f"mols={len(self._molblocks)} seed={self._seed}>"
+        )
 
-    # ---------- properties ----------
     @property
     def smiles(self) -> List[str]:
         """
-        Return a copy of loaded SMILES.
+        Return a copy of loaded SMILES strings.
 
-        :return: list of SMILES strings
+        :returns:
+            Loaded SMILES strings.
         :rtype: List[str]
         """
         return list(self._smiles)
@@ -178,9 +246,13 @@ class ConformerManager:
     @property
     def molblocks(self) -> List[str]:
         """
-        Return a copy of current MolBlock strings (embedded or optimized).
+        Return the current MolBlock strings.
 
-        :return: list of MolBlock strings
+        These MolBlocks may correspond to embedded structures or optimized
+        structures, depending on which workflow steps have been executed.
+
+        :returns:
+            Current MolBlock strings.
         :rtype: List[str]
         """
         return list(self._molblocks)
@@ -188,9 +260,10 @@ class ConformerManager:
     @property
     def conf_counts(self) -> List[int]:
         """
-        Return conformer counts per molecule.
+        Return the conformer count for each molecule.
 
-        :return: list of integer conformer counts
+        :returns:
+            Number of conformers stored for each molecule.
         :rtype: List[int]
         """
         return list(self._conf_counts)
@@ -198,86 +271,115 @@ class ConformerManager:
     @property
     def energies(self) -> List[Dict[int, float]]:
         """
-        Return a copy of energy maps produced by the optimizer.
+        Return optimization energies for each molecule.
 
-        Each entry is a dict mapping conformer id -> energy (float).
+        Each element is a dictionary mapping conformer id to energy value.
 
-        :return: list of dicts (conf-id -> energy)
+        :returns:
+            Per-molecule conformer energy maps.
         :rtype: List[Dict[int, float]]
         """
         return [dict(e) for e in self._energies]
 
-    # ---------- loading ----------
-    def load_smiles_file(self, path: str) -> "ConformerManager":
+    def load_smiles_file(self, path: str) -> "Conformer":
         """
-        Load SMILES from a newline-separated file.
+        Load SMILES from a newline-separated text file.
 
-        The first whitespace token on each non-empty line is interpreted as the SMILES.
+        The first whitespace-separated token on each non-empty line is treated as
+        the SMILES string. This allows simple ``SMILES name`` input formats.
 
-        :param path: path to SMILES file.
+        :param path:
+            Path to the SMILES file.
         :type path: str
-        :return: self
-        :rtype: ConformerManager
-        :raises FileNotFoundError: if the file does not exist
-        :example:
 
-        >>> mgr = ConformerManager()
-        >>> mgr.load_smiles_file('my_smiles.txt')
+        :returns:
+            The current conformer workflow instance.
+        :rtype: Conformer
+
+        :raises FileNotFoundError:
+            If ``path`` does not exist.
+
+        Example
+        -------
+        .. code-block:: python
+
+            conf = Conformer()
+            conf.load_smiles_file("my_smiles.txt")
         """
         p = Path(path)
         if not p.exists():
             raise FileNotFoundError(path)
         with p.open("r", encoding="utf-8") as fh:
             self._smiles = [ln.strip().split()[0] for ln in fh if ln.strip()]
-        logger.info("ConformerManager: loaded %d SMILES", len(self._smiles))
+        logger.info("Conformer: loaded %d SMILES", len(self._smiles))
         return self
 
-    def load_smiles(self, smiles: List[str]) -> "ConformerManager":
+    def load_smiles(self, smiles: List[str]) -> "Conformer":
         """
         Load SMILES from an in-memory list.
 
-        :param smiles: list of SMILES strings.
-        :type smiles: List[str]
-        :return: self
-        :rtype: ConformerManager
-        :example:
+        For each non-empty entry, the first whitespace-separated token is used as
+        the SMILES string.
 
-        >>> mgr = ConformerManager()
-        >>> mgr.load_smiles(['CCO', 'O=C=O'])
+        :param smiles:
+            Input SMILES strings.
+        :type smiles: List[str]
+
+        :returns:
+            The current conformer workflow instance.
+        :rtype: Conformer
+
+        Example
+        -------
+        .. code-block:: python
+
+            conf = Conformer()
+            conf.load_smiles(["CCO", "O=C=O"])
         """
         self._smiles = [s.strip().split()[0] for s in smiles if s]
         return self
 
-    # ---------- embedding ----------
     def embed_all(
         self,
         n_confs: int = 1,
         n_jobs: int = 1,
         add_hs: bool = True,
         embed_algorithm: Optional[str] = "ETKDGv3",
-    ) -> "ConformerManager":
+    ) -> "Conformer":
         """
-        Embed loaded SMILES.
+        Embed all loaded SMILES strings.
 
-        The method will either run sequentially (n_jobs==1 or joblib missing) or
-        dispatch workers via joblib's ``Parallel`` (when available).
+        Embedding is performed sequentially when ``n_jobs == 1`` or when joblib
+        is unavailable. Otherwise, one worker task is dispatched per molecule.
 
-        :param n_confs: conformers per molecule.
+        :param n_confs:
+            Number of conformers to generate per molecule.
         :type n_confs: int
-        :param n_jobs: parallel jobs (-1 for all CPUs), 1 for sequential.
+        :param n_jobs:
+            Number of parallel jobs. Use ``1`` for sequential execution.
         :type n_jobs: int
-        :param add_hs: add explicit Hs before embedding (default True).
+        :param add_hs:
+            Whether explicit hydrogens should be added before embedding.
         :type add_hs: bool
-        :param embed_algorithm: 'ETKDGv3' | 'ETKDGv2' | 'ETKDG' | None
+        :param embed_algorithm:
+            RDKit embedding algorithm name such as ``"ETKDGv3"``, ``"ETKDGv2"``,
+            ``"ETKDG"``, or ``None``.
         :type embed_algorithm: Optional[str]
-        :return: self
-        :rtype: ConformerManager
-        :raises RuntimeError: if no SMILES have been loaded
-        :example:
 
-        >>> mgr = ConformerManager()
-        >>> mgr.load_smiles(['CCO'])
-        >>> mgr.embed_all(n_confs=1, n_jobs=1)
+        :returns:
+            The current conformer workflow instance.
+        :rtype: Conformer
+
+        :raises RuntimeError:
+            If no SMILES have been loaded.
+
+        Example
+        -------
+        .. code-block:: python
+
+            conf = Conformer()
+            conf.load_smiles(["CCO"])
+            conf.embed_all(n_confs=1, n_jobs=1, embed_algorithm="ETKDGv3")
         """
         if not self._smiles:
             raise RuntimeError(
@@ -292,8 +394,7 @@ class ConformerManager:
                 for smi in self._smiles
             ]
         else:
-            jobs = n_jobs
-            results = Parallel(n_jobs=jobs, backend=self._backend)(
+            results = Parallel(n_jobs=n_jobs, backend=self._backend)(
                 delayed(_embed_worker)(
                     smi, self._seed, int(n_confs), bool(add_hs), embed_algorithm
                 )
@@ -311,36 +412,48 @@ class ConformerManager:
         self._molblocks = molblocks
         self._conf_counts = conf_counts
         logger.info(
-            "ConformerManager: embedded %d / %d molecules",
+            "Conformer: embedded %d / %d molecules",
             len(self._molblocks),
             len(self._smiles),
         )
         return self
 
-    # ---------- optimization ----------
     def optimize_all(
         self, method: str = "MMFF94", n_jobs: int = 1, max_iters: int = 200
-    ) -> "ConformerManager":
+    ) -> "Conformer":
         """
-        Optimize all embedded molblocks.
+        Optimize all currently stored MolBlocks.
 
-        This method dispatches optimization workers similar to embedding.
+        Optimization is performed sequentially when ``n_jobs == 1`` or when
+        joblib is unavailable. Otherwise, optimization is parallelized at the
+        per-molecule level.
 
-        :param method: 'UFF' | 'MMFF' | 'MMFF94' | 'MMFF94S'
+        :param method:
+            Force-field method. Typical values include ``"UFF"``, ``"MMFF"``,
+            ``"MMFF94"``, and ``"MMFF94S"``.
         :type method: str
-        :param n_jobs: parallel jobs; 1 for sequential.
+        :param n_jobs:
+            Number of parallel jobs. Use ``1`` for sequential execution.
         :type n_jobs: int
-        :param max_iters: max iterations for optimizer.
+        :param max_iters:
+            Maximum number of optimization iterations.
         :type max_iters: int
-        :return: self
-        :rtype: ConformerManager
-        :raises RuntimeError: if there are no embedded molblocks available
-        :example:
 
-        >>> mgr = ConformerManager()
-        >>> mgr.load_smiles(['CCO'])
-        >>> mgr.embed_all()
-        >>> mgr.optimize_all(method='MMFF94', n_jobs=1)
+        :returns:
+            The current conformer workflow instance.
+        :rtype: Conformer
+
+        :raises RuntimeError:
+            If there are no MolBlocks available for optimization.
+
+        Example
+        -------
+        .. code-block:: python
+
+            conf = Conformer()
+            conf.load_smiles(["CCO"])
+            conf.embed_all()
+            conf.optimize_all(method="MMFF94", n_jobs=1, max_iters=200)
         """
         if not self._molblocks:
             raise RuntimeError(
@@ -352,8 +465,7 @@ class ConformerManager:
                 _optimize_worker(mb, method, int(max_iters)) for mb in self._molblocks
             ]
         else:
-            jobs = n_jobs
-            results = Parallel(n_jobs=jobs, backend=self._backend)(
+            results = Parallel(n_jobs=n_jobs, backend=self._backend)(
                 delayed(_optimize_worker)(mb, method, int(max_iters))
                 for mb in self._molblocks
             )
@@ -368,30 +480,37 @@ class ConformerManager:
 
         self._molblocks = optimized_blocks
         self._energies = energies_list
-        logger.info("ConformerManager: optimized %d molecules", len(self._molblocks))
+        logger.info("Conformer: optimized %d molecules", len(self._molblocks))
         return self
 
-    # ---------- pruning ----------
-    def prune_top_k(self, k: int = 1) -> "ConformerManager":
+    def prune_top_k(self, k: int = 1) -> "Conformer":
         """
-        Keep only top-k lowest-energy conformers per molecule (based on last optimization).
+        Keep only the top-``k`` lowest-energy conformers for each molecule.
 
-        Conformer ids are re-assigned from 0..(k-1) after pruning and the energy
-        mapping is updated accordingly.
+        Pruning is based on the most recent optimization energies. After pruning,
+        conformer identifiers are reassigned to a dense range starting from zero.
 
-        :param k: number of lowest-energy conformers to keep (per molecule).
+        :param k:
+            Number of lowest-energy conformers to keep per molecule.
         :type k: int
-        :return: self
-        :rtype: ConformerManager
-        :raises RuntimeError: if there are no molecules to prune
-        :example:
 
-        >>> mgr.prune_top_k(k=1)
+        :returns:
+            The current conformer workflow instance.
+        :rtype: Conformer
+
+        :raises RuntimeError:
+            If there are no molecules available to prune.
+
+        Example
+        -------
+        .. code-block:: python
+
+            conf.prune_top_k(k=1)
         """
         if not self._molblocks:
             raise RuntimeError("No molecules to prune")
         if not self._energies:
-            logger.warning("ConformerManager: no energy data available; skipping prune")
+            logger.warning("Conformer: no energy data available; skipping prune")
             return self
 
         new_blocks: List[str] = []
@@ -405,7 +524,6 @@ class ConformerManager:
                 new_energies.append({})
                 continue
 
-            # sort conf ids by energy (ascending)
             keep_ids = [
                 cid
                 for cid, _ in sorted(e_map.items(), key=lambda kv: kv[1])[
@@ -425,7 +543,7 @@ class ConformerManager:
                     conf = mol.GetConformer(cid)
                     base.AddConformer(conf, assignId=True)
                 except Exception:
-                    logger.warning("ConformerManager: failed to copy conformer %s", cid)
+                    logger.warning("Conformer: failed to copy conformer %s", cid)
 
             new_map = {i: e_map[cid] for i, cid in enumerate(keep_ids)}
             new_blocks.append(Chem.MolToMolBlock(base))
@@ -435,36 +553,56 @@ class ConformerManager:
         self._energies = new_energies
         self._conf_counts = [len(e) for e in new_energies]
         logger.info(
-            "ConformerManager: pruned to top-%d confs for %d molecules",
+            "Conformer: pruned to top-%d conformers for %d molecules",
             k,
             len(self._molblocks),
         )
         return self
 
-    # ---------- write ----------
     def write_sdf(
         self,
         out_folder: str,
         per_mol_folder: bool = True,
         write_energy_tags: bool = True,
-    ) -> "ConformerManager":
+    ) -> "Conformer":
         """
-        Write SDF outputs. Each molblock becomes an SDF. Optionally add CONF_ENERGY_<id> properties.
+        Write current MolBlocks to SDF files.
 
-        If ``per_mol_folder`` is True, each molecule is written under ``out_folder/ligand_i/ligand_i.sdf``.
-        Otherwise files are written directly under ``out_folder`` as ``ligand_i.sdf``.
+        Each molecule is written as one SDF file. When energy data are available
+        and ``write_energy_tags`` is enabled, conformer energies are stored as
+        properties named ``CONF_ENERGY_<id>``.
 
-        :param out_folder: destination folder path.
+        If ``per_mol_folder`` is ``True``, output files are written as:
+
+        ``out_folder/ligand_i/ligand_i.sdf``
+
+        Otherwise files are written directly under ``out_folder`` as:
+
+        ``out_folder/ligand_i.sdf``
+
+        :param out_folder:
+            Destination directory.
         :type out_folder: str
-        :param per_mol_folder: if True, create ligand_i/ligand_i.sdf for each molecule.
+        :param per_mol_folder:
+            Whether to create one subdirectory per molecule.
         :type per_mol_folder: bool
-        :param write_energy_tags: write CONF_ENERGY_<id> properties when energies available.
+        :param write_energy_tags:
+            Whether to write ``CONF_ENERGY_<id>`` properties into the SDF.
         :type write_energy_tags: bool
-        :return: self
-        :rtype: ConformerManager
-        :example:
 
-        >>> mgr.write_sdf('outdir', per_mol_folder=False)
+        :returns:
+            The current conformer workflow instance.
+        :rtype: Conformer
+
+        Example
+        -------
+        .. code-block:: python
+
+            conf.write_sdf(
+                "outdir",
+                per_mol_folder=False,
+                write_energy_tags=True,
+            )
         """
         out = Path(out_folder)
         out.mkdir(parents=True, exist_ok=True)
@@ -472,7 +610,7 @@ class ConformerManager:
             mol = Chem.MolFromMolBlock(block, sanitize=False, removeHs=False)
             if mol is None:
                 logger.warning(
-                    "ConformerManager.write_sdf: could not parse molblock for index %d",
+                    "Conformer.write_sdf: could not parse molblock for index %d",
                     i,
                 )
                 continue
@@ -497,12 +635,10 @@ class ConformerManager:
             writer = Chem.SDWriter(str(path))
             writer.write(mol)
             writer.close()
-            logger.debug("ConformerManager: wrote SDF for ligand %d -> %s", i, path)
+            logger.debug("Conformer: wrote SDF for ligand %d -> %s", i, path)
 
-        logger.info(
-            "ConformerManager: wrote %d SDF files to %s", len(self._molblocks), out
-        )
+        logger.info("Conformer: wrote %d SDF files to %s", len(self._molblocks), out)
         return self
 
 
-Conformer = ConformerManager
+ConformerManager = Conformer
