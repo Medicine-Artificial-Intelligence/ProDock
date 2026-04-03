@@ -1,0 +1,32 @@
+{
+  "project_dir": "Demo",
+  "receptors": [
+    {
+      "pdb_id": "4WKQ",
+      "receptor_name": "EGFR_4WKQ",
+      "ligand_code": "IRE",
+      "chains": ["A"],
+      "cofactors": []
+    }
+  ],
+  "ligands": [
+    {
+      "id": "erlotinib",
+      "smiles": "COCCOc1cc2c(ncnc2cc1OCCOC)Nc1cccc(c1)C#C"
+    },
+    {
+      "id": "gefitinib",
+      "smiles": "COc1cc2ncnc(c2cc1OCCCN1CCOCC1)Nc1ccc(c(c1)Cl)F"
+    }
+  ],
+  "config": {
+    "engines": ["qvina", "qvina-w"],
+    "extract_interaction": true,
+    "db_name": "demo.db",
+    "cpu": 8,
+    "n_jobs": 8,
+    "exhaustiveness": 16,
+    "n_poses": 20,
+    "save_to_database": true
+  }
+}
