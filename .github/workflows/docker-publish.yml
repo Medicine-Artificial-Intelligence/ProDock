@@ -6,7 +6,6 @@ on:
       - 'v*.*.*'
     branches:
       - 'release'
-      - 'refactor'
 
 jobs:
   build-and-push:
