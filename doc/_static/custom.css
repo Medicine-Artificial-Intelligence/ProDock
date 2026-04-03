@@ -1,0 +1,1055 @@
+/* =========================================================
+   ProDock docs visual system
+   ========================================================= */
+
+:root {
+  --pd-blue: #4579A8;
+  --pd-blue-dark: #23435f;
+  --pd-blue-soft: #EAF3F8;
+  --pd-sage: #6D856D;
+  --pd-sage-dark: #4E654E;
+  --pd-sage-soft: #EEF5ED;
+  --pd-stone: #8f7c63;
+  --pd-stone-dark: #6e5d48;
+  --pd-stone-soft: #F6F1E7;
+  --pd-gray: #5B7282;
+  --pd-gray-dark: #334754;
+  --pd-gray-soft: #F3F7F9;
+  --pd-border: #D6E2E9;
+  --pd-border-strong: #c4d5df;
+  --pd-white: #ffffff;
+  --pd-shadow-xs: 0 2px 8px rgba(36, 67, 95, 0.04);
+  --pd-shadow-sm: 0 4px 18px rgba(49, 84, 109, 0.05);
+  --pd-shadow: 0 10px 30px rgba(36, 67, 95, 0.08);
+  --pd-shadow-lg: 0 20px 42px rgba(36, 67, 95, 0.10);
+  --pd-radius-xs: 10px;
+  --pd-radius-sm: 14px;
+  --pd-radius: 22px;
+  --pd-radius-lg: 28px;
+  --pd-code-bg: #f8fbfd;
+}
+
+/* =========================================================
+   Layout tuning
+   ========================================================= */
+
+/* overall page width */
+.bd-page-width {
+  max-width: 1600px;
+}
+
+/* main article width */
+.bd-main .bd-content .bd-article-container {
+  max-width: 1240px;
+}
+
+/* desktop column proportions: left / middle / right */
+@media (min-width: 1200px) {
+  .bd-sidebar-primary {
+    flex: 0 0 240px;
+    max-width: 240px;
+  }
+
+  .bd-sidebar-secondary {
+    flex: 0 0 200px;
+    max-width: 200px;
+  }
+
+  .bd-main .bd-content {
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+
+  .bd-main .bd-content .bd-article-container {
+    max-width: 1240px;
+  }
+}
+
+/* keep medium and small screens fluid */
+@media (max-width: 1199px) {
+  .bd-main .bd-content .bd-article-container {
+    max-width: 100%;
+  }
+}
+
+.bd-header {
+  border-bottom: 1px solid rgba(39, 68, 93, 0.10);
+  backdrop-filter: blur(10px);
+  background: rgba(255, 255, 255, 0.90);
+}
+
+html[data-theme="dark"] .bd-header {
+  background: rgba(17, 24, 32, 0.86);
+}
+
+.bd-article-container h1 {
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  margin-bottom: 0.7rem;
+}
+
+.bd-article-container h2 {
+  margin-top: 1.55rem;
+  margin-bottom: 0.65rem;
+}
+
+.bd-article-container h3 {
+  margin-top: 1.1rem;
+}
+
+.bd-content img {
+  border-radius: 18px;
+}
+
+/* =========================================================
+   Generic visual utilities
+   ========================================================= */
+
+.pd-kicker,
+.pd-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.34rem 0.78rem;
+  border-radius: 999px;
+  background: var(--pd-blue-soft);
+  color: var(--pd-blue-dark);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.pd-kicker {
+  padding: 0;
+  background: transparent;
+  color: var(--pd-blue);
+  border-radius: 0;
+}
+
+.pd-caption {
+  color: var(--pd-gray);
+  font-size: 0.95rem;
+  margin-top: -0.2rem;
+}
+
+.pd-list {
+  margin: 0.35rem 0 0 1.1rem;
+  color: var(--pd-gray);
+}
+
+.pd-list li {
+  margin: 0.25rem 0;
+}
+
+.pd-muted {
+  color: var(--pd-gray);
+}
+
+.pd-divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--pd-border), transparent);
+  margin: 1.2rem 0;
+}
+
+/* =========================================================
+   Grid system
+   ========================================================= */
+
+.pd-grid-2,
+.pd-grid-3,
+.pd-grid-4 {
+  display: grid;
+  gap: 1rem;
+  margin: 1rem 0 1.4rem;
+}
+
+.pd-grid-2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.pd-grid-3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.pd-grid-4 {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.pd-grid-tight {
+  gap: 0.75rem;
+}
+
+/* =========================================================
+   Hero blocks
+   ========================================================= */
+
+.pd-hero {
+  display: grid;
+  grid-template-columns: 1.02fr 0.98fr;
+  gap: 1.25rem;
+  margin: 0 0 1.5rem;
+  padding: 1.45rem;
+  border: 1px solid var(--pd-border);
+  border-radius: var(--pd-radius-lg);
+  background:
+    radial-gradient(circle at top right, rgba(69, 121, 168, 0.10), transparent 30%),
+    linear-gradient(135deg, #fdfeff 0%, #eef4f7 100%);
+  box-shadow: var(--pd-shadow);
+}
+
+.pd-hero-title {
+  margin: 0.35rem 0 0.55rem;
+  font-size: 2.35rem;
+  line-height: 1.08;
+  letter-spacing: -0.04em;
+  color: var(--pd-blue-dark);
+  font-weight: 800;
+  max-width: 16ch;
+}
+
+.pd-hero h1,
+.pd-hero h2 {
+  margin-top: 0.35rem;
+  margin-bottom: 0.55rem;
+  line-height: 1.08;
+  letter-spacing: -0.04em;
+  color: var(--pd-blue-dark);
+  font-weight: 800;
+}
+
+.pd-hero p {
+  margin: 0 0 0.95rem;
+  color: var(--pd-gray);
+  line-height: 1.62;
+  max-width: 58ch;
+}
+
+.pd-hero-media {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pd-hero-media img {
+  width: 100%;
+  max-width: 540px;
+  border: 0;
+  box-shadow: none;
+}
+
+.pd-hero-compact {
+  display: block;
+  padding: 1.15rem 1.25rem;
+  border: 1px solid var(--pd-border);
+  border-radius: var(--pd-radius);
+  background:
+    radial-gradient(circle at top right, rgba(69, 121, 168, 0.08), transparent 24%),
+    linear-gradient(135deg, #f8fbfd 0%, #eef4f7 100%);
+  box-shadow: var(--pd-shadow-sm);
+  margin: 0 0 1.15rem;
+}
+
+.pd-hero-install {
+  padding: 1.4rem 1.5rem;
+  margin: 0 0 1.2rem 0;
+  border-radius: var(--pd-radius-lg);
+  border: 1px solid var(--pd-border);
+  background:
+    radial-gradient(circle at top right, rgba(90, 140, 170, 0.12), transparent 28%),
+    linear-gradient(135deg, #f7fafc 0%, #eef3f7 100%);
+  box-shadow: var(--pd-shadow);
+}
+
+.pd-hero-grid {
+  display: grid;
+  grid-template-columns: 1.2fr 0.95fr;
+  gap: 1rem;
+  align-items: center;
+}
+
+.pd-lead {
+  font-size: 1.02rem;
+  line-height: 1.65;
+  margin: 0.55rem 0 0.95rem 0;
+  color: var(--pd-gray-dark);
+}
+
+/* =========================================================
+   Buttons and action rows
+   ========================================================= */
+
+.pd-actions {
+  display: flex;
+  gap: 0.7rem;
+  flex-wrap: wrap;
+  margin: 0 0 0.8rem;
+}
+
+.pd-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.72rem 1rem;
+  border-radius: 12px;
+  border: 1px solid var(--pd-border);
+  background: #fff;
+  color: var(--pd-blue-dark) !important;
+  text-decoration: none !important;
+  font-weight: 700;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.pd-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--pd-shadow);
+  text-decoration: none !important;
+  border-color: var(--pd-border-strong);
+}
+
+.pd-btn--primary {
+  background: linear-gradient(135deg, var(--pd-blue), #6da7d3);
+  color: #fff !important;
+  border-color: transparent;
+}
+
+.pd-btn--sage {
+  background: linear-gradient(135deg, var(--pd-sage), #90a890);
+  color: #fff !important;
+  border-color: transparent;
+}
+
+/* =========================================================
+   Badge rows
+   ========================================================= */
+
+.pd-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-top: 0.3rem;
+}
+
+.pd-badges img {
+  height: 22px;
+  border-radius: 6px;
+}
+
+.pd-badge-row {
+  display: flex;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+}
+
+.pd-install-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem 0.8rem;
+  border-radius: 999px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  border: 1px solid var(--pd-border);
+  background: rgba(255, 255, 255, 0.76);
+  box-shadow: var(--pd-shadow-xs);
+}
+
+.pd-install-icon {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.pd-install-conda {
+  border-color: rgba(67, 160, 71, 0.35);
+}
+
+.pd-install-pip {
+  border-color: rgba(53, 114, 165, 0.35);
+}
+
+.pd-install-env {
+  border-color: rgba(199, 147, 33, 0.35);
+}
+
+/* =========================================================
+   Cards / panels
+   ========================================================= */
+
+.pd-card,
+.pd-panel,
+.pd-mini,
+.pd-mini-card,
+.pd-install-card {
+  border: 1px solid var(--pd-border);
+  border-radius: var(--pd-radius);
+  background: #fff;
+  box-shadow: var(--pd-shadow-sm);
+}
+
+.pd-card {
+  display: block;
+  padding: 1rem 1rem 0.95rem;
+  color: inherit !important;
+  text-decoration: none !important;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.pd-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--pd-shadow);
+  text-decoration: none !important;
+  border-color: var(--pd-border-strong);
+}
+
+.pd-card h3,
+.pd-panel h3,
+.pd-mini h3,
+.pd-mini-card h3 {
+  margin: 0.05rem 0 0.4rem;
+  color: var(--pd-blue-dark);
+}
+
+.pd-card p,
+.pd-panel p,
+.pd-mini p,
+.pd-mini-card p {
+  color: var(--pd-gray);
+  margin: 0;
+  line-height: 1.58;
+}
+
+.pd-card-icon h3 {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.pd-card-soft {
+  background: linear-gradient(180deg, #fff, rgba(234, 243, 248, 0.70));
+}
+
+.pd-card-link {
+  text-decoration: none !important;
+}
+
+.pd-panel {
+  padding: 1rem 1rem 0.9rem;
+}
+
+.pd-panel--blue {
+  background: linear-gradient(180deg, #fff, var(--pd-blue-soft));
+}
+
+.pd-panel--sage {
+  background: linear-gradient(180deg, #fff, var(--pd-sage-soft));
+}
+
+.pd-panel--stone {
+  background: linear-gradient(180deg, #fff, var(--pd-stone-soft));
+}
+
+.pd-mini {
+  padding: 0.95rem 1rem;
+}
+
+.pd-mini-card {
+  padding: 0.95rem 1rem;
+  border-radius: 18px;
+  background: linear-gradient(180deg, #ffffff, #fbfdfe);
+}
+
+.pd-mini-card h4 {
+  margin: 0 0 0.38rem;
+  color: var(--pd-blue-dark);
+  font-size: 1rem;
+  letter-spacing: -0.01em;
+}
+
+.pd-mini-card p {
+  margin: 0;
+  color: var(--pd-gray);
+  line-height: 1.55;
+}
+
+.pd-mini-card-accent {
+  border-top: 3px solid #6aa38b;
+}
+
+.pd-note {
+  padding: 0.9rem 1rem;
+  border-left: 5px solid var(--pd-blue);
+  background: #f9fcfe;
+  border-radius: 16px;
+  color: var(--pd-gray);
+  margin: 0.8rem 0 1rem;
+}
+
+.pd-note-inline {
+  margin: 0.9rem 0 1.2rem 0;
+  padding: 0.8rem 1rem;
+  border-left: 4px solid #6aa38b;
+  background: rgba(106, 163, 139, 0.08);
+  border-radius: 10px;
+  color: var(--pd-gray-dark);
+}
+
+/* =========================================================
+   Callouts
+   ========================================================= */
+
+.pd-callout {
+  margin: 0.95rem 0 1.1rem 0;
+  padding: 0.95rem 1rem;
+  border-radius: 16px;
+  border: 1px solid var(--pd-border);
+  box-shadow: var(--pd-shadow-xs);
+}
+
+.pd-callout-title {
+  font-weight: 800;
+  margin-bottom: 0.25rem;
+  color: var(--pd-blue-dark);
+}
+
+.pd-callout p {
+  margin: 0;
+  color: var(--pd-gray);
+  line-height: 1.58;
+}
+
+.pd-callout-soft {
+  background: linear-gradient(180deg, rgba(92, 138, 168, 0.10), rgba(92, 138, 168, 0.04));
+}
+
+.pd-callout-success {
+  border-left: 4px solid #6aa38b;
+  background: rgba(106, 163, 139, 0.08);
+}
+
+.pd-callout-warm {
+  border-left: 4px solid var(--pd-stone);
+  background: rgba(143, 124, 99, 0.08);
+}
+
+/* =========================================================
+   Figures / visuals
+   ========================================================= */
+
+.pd-visual {
+  margin: 0.85rem 0 1rem;
+  width: 100%;
+}
+
+.pd-visual img,
+img.pd-visual {
+  width: 100%;
+  border: 1px solid var(--pd-border);
+  box-shadow: var(--pd-shadow);
+  background: #fff;
+}
+
+.pd-figure-card {
+  padding: 0.7rem;
+  border: 1px solid var(--pd-border);
+  border-radius: var(--pd-radius);
+  background: #fff;
+  box-shadow: var(--pd-shadow-sm);
+}
+
+/* =========================================================
+   Install-specific cards / flow
+   ========================================================= */
+
+.pd-install-grid {
+  margin-top: 1rem;
+}
+
+.pd-install-card {
+  border-radius: 18px;
+  padding: 1rem 1rem 0.9rem 1rem;
+  background: linear-gradient(180deg, rgba(255,255,255,0.82), rgba(248,250,252,0.94));
+}
+
+.pd-install-card-conda {
+  border-top: 3px solid #43a047;
+}
+
+.pd-install-card-pip {
+  border-top: 3px solid #3572a5;
+}
+
+.pd-install-card-head {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  margin-bottom: 0.7rem;
+}
+
+.pd-install-card-head h3 {
+  margin: 0;
+}
+
+.pd-install-card-head p {
+  margin: 0.15rem 0 0 0;
+  opacity: 0.82;
+}
+
+.pd-install-mark {
+  width: 2.4rem;
+  height: 2.4rem;
+  border-radius: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.05rem;
+  font-weight: 700;
+  background: rgba(92, 138, 168, 0.10);
+}
+
+.pd-install-card pre,
+.pd-card pre {
+  margin: 0.75rem 0 0 0;
+  padding: 0.9rem 1rem;
+  border-radius: 14px;
+  overflow-x: auto;
+  font-size: 0.88rem;
+  line-height: 1.55;
+}
+
+.pd-install-flow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.45rem;
+  padding: 0.95rem;
+  border-radius: 18px;
+  border: 1px solid var(--pd-border);
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: var(--pd-shadow-xs);
+}
+
+.pd-flow-step {
+  flex: 1 1 0;
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+}
+
+.pd-flow-num {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  background: #5c8aa8;
+  color: white;
+  flex: 0 0 auto;
+}
+
+.pd-flow-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+  font-size: 0.88rem;
+}
+
+.pd-flow-text strong {
+  color: var(--pd-blue-dark);
+}
+
+.pd-flow-text span {
+  opacity: 0.82;
+}
+
+.pd-flow-arrow {
+  font-size: 1.2rem;
+  opacity: 0.55;
+  padding: 0 0.2rem;
+}
+
+/* =========================================================
+   Code blocks / literals
+   ========================================================= */
+
+code.literal,
+.rst-content code.literal {
+  color: #27506F;
+  background: rgba(69, 121, 168, 0.08);
+  border: 1px solid rgba(69, 121, 168, 0.10);
+  padding: 0.1rem 0.35rem;
+  border-radius: 6px;
+}
+
+pre,
+div.highlight pre {
+  background: var(--pd-code-bg);
+  border: 1px solid var(--pd-border);
+  border-radius: 16px;
+  box-shadow: var(--pd-shadow-xs);
+}
+
+/* =========================================================
+   Top-right toolbar utilities
+   ========================================================= */
+
+#pd-fullscreen-toggle,
+.pd-top-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 999px;
+  border: 1px solid rgba(39, 68, 93, 0.16);
+  background: transparent;
+  color: var(--pst-color-text-base);
+  transition: background 0.15s ease, transform 0.15s ease, border-color 0.15s ease;
+}
+
+#pd-fullscreen-toggle:hover,
+.pd-top-icon:hover {
+  background: rgba(69, 121, 168, 0.08);
+  transform: translateY(-1px);
+  border-color: rgba(69, 121, 168, 0.30);
+}
+
+#pd-fullscreen-toggle svg,
+.pd-top-icon svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+/* =========================================================
+   Dark mode
+   ========================================================= */
+
+html[data-theme="dark"] {
+  --pd-border: #2a3945;
+  --pd-border-strong: #365061;
+  --pd-blue-soft: rgba(69, 121, 168, 0.14);
+  --pd-sage-soft: rgba(109, 133, 109, 0.14);
+  --pd-stone-soft: rgba(143, 124, 99, 0.14);
+  --pd-gray-soft: rgba(91, 114, 130, 0.16);
+  --pd-shadow-xs: 0 2px 8px rgba(0, 0, 0, 0.18);
+  --pd-shadow-sm: 0 4px 18px rgba(0, 0, 0, 0.22);
+  --pd-shadow: 0 10px 30px rgba(0, 0, 0, 0.26);
+  --pd-shadow-lg: 0 20px 42px rgba(0, 0, 0, 0.30);
+  --pd-code-bg: #111922;
+}
+
+html[data-theme="dark"] .pd-hero,
+html[data-theme="dark"] .pd-hero-compact,
+html[data-theme="dark"] .pd-hero-install {
+  background:
+    radial-gradient(circle at top right, rgba(90, 140, 170, 0.18), transparent 28%),
+    linear-gradient(135deg, #141b22 0%, #0f141a 100%);
+}
+
+html[data-theme="dark"] .pd-card,
+html[data-theme="dark"] .pd-panel,
+html[data-theme="dark"] .pd-mini,
+html[data-theme="dark"] .pd-mini-card,
+html[data-theme="dark"] .pd-install-card,
+html[data-theme="dark"] .pd-figure-card {
+  background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.02));
+}
+
+html[data-theme="dark"] .pd-install-badge,
+html[data-theme="dark"] .pd-install-flow {
+  background: rgba(255,255,255,0.04);
+}
+
+html[data-theme="dark"] .pd-hero-title,
+html[data-theme="dark"] .pd-hero h1,
+html[data-theme="dark"] .pd-hero h2,
+html[data-theme="dark"] .pd-card h3,
+html[data-theme="dark"] .pd-panel h3,
+html[data-theme="dark"] .pd-mini-card h4,
+html[data-theme="dark"] .pd-callout-title,
+html[data-theme="dark"] .pd-flow-text strong {
+  color: #d9e7f2;
+}
+
+html[data-theme="dark"] .pd-card p,
+html[data-theme="dark"] .pd-panel p,
+html[data-theme="dark"] .pd-mini p,
+html[data-theme="dark"] .pd-mini-card p,
+html[data-theme="dark"] .pd-hero p,
+html[data-theme="dark"] .pd-callout p,
+html[data-theme="dark"] .pd-note,
+html[data-theme="dark"] .pd-note-inline,
+html[data-theme="dark"] .pd-caption,
+html[data-theme="dark"] .pd-list {
+  color: #afc2cf;
+}
+
+/* =========================================================
+   Responsive
+   ========================================================= */
+
+@media (max-width: 1100px) {
+  .pd-grid-4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 980px) {
+  .pd-hero,
+  .pd-hero-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .pd-grid-2,
+  .pd-grid-3,
+  .pd-grid-4 {
+    grid-template-columns: 1fr;
+  }
+
+  .pd-hero-title {
+    max-width: none;
+    font-size: 2.05rem;
+  }
+
+  .pd-install-flow {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .pd-flow-arrow {
+    display: none;
+  }
+}
+
+.pd-install-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.35rem;
+  height: 1.35rem;
+  padding: 0 0.28rem;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 800;
+  line-height: 1;
+  color: #fff;
+  box-shadow: var(--pd-shadow-xs);
+}
+
+.pd-install-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.55rem;
+  height: 2.55rem;
+  padding: 0 0.38rem;
+  border-radius: 14px;
+  font-size: 0.82rem;
+  font-weight: 800;
+  line-height: 1;
+  color: #fff;
+  box-shadow: var(--pd-shadow-xs);
+}
+
+.pd-install-icon-conda,
+.pd-install-mark-conda {
+  background: #43a047;
+}
+
+.pd-install-icon-pip,
+.pd-install-mark-pip {
+  background: #3572a5;
+}
+
+.pd-install-icon-source,
+.pd-install-mark-source {
+  background: #785ca8;
+}
+
+.pd-install-icon-env,
+.pd-install-mark-env {
+  background: #b3882f;
+}
+
+.pd-install-github { border-color: rgba(36, 41, 47, 0.20); }
+
+.pd-install-icon-github,
+.pd-install-mark-github {
+  background: #24292f;
+  color: #fff;
+}
+
+.pd-install-icon-conda,
+.pd-install-mark-conda {
+  background: #43a047;
+  color: #fff;
+}
+
+.pd-install-icon-pip,
+.pd-install-mark-pip {
+  background: #3775a9;
+  color: #fff;
+}
+
+.pd-install-icon-env,
+.pd-install-mark-env {
+  background: #b3882f;
+  color: #fff;
+}
+
+.pd-mini-card-badge {
+  text-align: left;
+}
+
+.pd-mini-card-badge img {
+  display: block;
+  margin: 0 0 0.7rem 0;
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+}
+
+.pd-mini-card-badge p {
+  margin: 0;
+}
+
+.pd-api-intro {
+  margin: 0.35rem 0 1.4rem 0;
+}
+
+.pd-api-lead {
+  margin: 0;
+  max-width: 58rem;
+  font-size: 1.02rem;
+  line-height: 1.7;
+  color: var(--pst-color-text-muted);
+}
+
+.pd-api-grid-2x3 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  margin: 1rem 0 0.5rem 0;
+}
+
+.pd-api-card {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.95rem;
+  min-height: 126px;
+  padding: 1.05rem 1.05rem 1rem 1.05rem;
+  border: 1px solid var(--pst-color-border);
+  border-radius: 16px;
+  background:
+    linear-gradient(180deg, var(--pd-bg-top), var(--pd-bg-bottom));
+  text-decoration: none !important;
+  color: inherit !important;
+  overflow: hidden;
+  transition: transform 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease;
+}
+
+.pd-api-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 5px;
+  background: var(--pd-accent);
+}
+
+.pd-api-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--pd-accent);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.10);
+}
+
+.pd-api-icon {
+  flex: 0 0 auto;
+  width: 2.8rem;
+  height: 2.8rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.9rem;
+  color: var(--pd-accent);
+  background: var(--pd-soft);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.18);
+}
+
+.pd-api-icon svg {
+  width: 1.35rem;
+  height: 1.35rem;
+}
+
+.pd-api-body {
+  min-width: 0;
+}
+
+.pd-api-title {
+  margin: 0 0 0.28rem 0;
+  font-size: 1.02rem;
+  font-weight: 700;
+  color: var(--pst-color-text-base);
+}
+
+.pd-api-text {
+  margin: 0;
+  font-size: 0.93rem;
+  line-height: 1.58;
+  color: var(--pst-color-text-muted);
+}
+
+/* palette */
+.pd-core {
+  --pd-accent: #4c6fff;
+  --pd-soft: rgba(76, 111, 255, 0.12);
+  --pd-bg-top: rgba(76, 111, 255, 0.05);
+  --pd-bg-bottom: rgba(76, 111, 255, 0.015);
+}
+
+.pd-structure {
+  --pd-accent: #00a38c;
+  --pd-soft: rgba(0, 163, 140, 0.12);
+  --pd-bg-top: rgba(0, 163, 140, 0.05);
+  --pd-bg-bottom: rgba(0, 163, 140, 0.015);
+}
+
+.pd-preprocess {
+  --pd-accent: #2d8cff;
+  --pd-soft: rgba(45, 140, 255, 0.12);
+  --pd-bg-top: rgba(45, 140, 255, 0.05);
+  --pd-bg-bottom: rgba(45, 140, 255, 0.015);
+}
+
+.pd-dock {
+  --pd-accent: #8b5cf6;
+  --pd-soft: rgba(139, 92, 246, 0.12);
+  --pd-bg-top: rgba(139, 92, 246, 0.05);
+  --pd-bg-bottom: rgba(139, 92, 246, 0.015);
+}
+
+.pd-postprocess {
+  --pd-accent: #f59e0b;
+  --pd-soft: rgba(245, 158, 11, 0.14);
+  --pd-bg-top: rgba(245, 158, 11, 0.05);
+  --pd-bg-bottom: rgba(245, 158, 11, 0.015);
+}
+
+.pd-database {
+  --pd-accent: #7c58d6;
+  --pd-soft: rgba(124, 88, 214, 0.12);
+  --pd-bg-top: rgba(124, 88, 214, 0.05);
+  --pd-bg-bottom: rgba(124, 88, 214, 0.015);
+}
+
+html[data-theme="dark"] .pd-api-card,
+html[data-theme="dark"] .pd-api-card:hover {
+  box-shadow: none;
+}
+
+@media (max-width: 900px) {
+  .pd-api-grid-2x3 {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,40 +1,78 @@
-# prodock/postprocess/extract/core.py
-"""
-Core extraction helpers that wrap crawling + parsing into a convenient API.
-
-This module provides:
-- crawl_scores(roots, ...): discover log/table files, parse them (using
-  reader.parse_log_text), and return a pandas DataFrame with standardized
-  columns.
-- Extractor: wrapper class around crawl_scores with engine-filtering utilities.
-- functional wrappers extract_scores(...) and list_engines(...)
-
-Examples
---------
->>> from prodock.postprocess.extract.core import crawl_scores
->>> df = crawl_scores(["/path/to/logs"])
->>> df.head()
-The crawler is encoding-tolerant: for log files that fail to parse initially it
-will attempt normalization via normalize.safe_parse_file (which will create a
-.bak backup and write UTF-8 normalized content) and retry parsing.
-"""
 from __future__ import annotations
 
-from typing import Callable, Iterable, Optional, Sequence, Set, Literal
+"""
+High-level score extraction utilities for docking log files and tables.
+
+This module supports four main discovery layouts:
+
+- ``auto``: generic recursive crawl with best-effort engine detection
+- ``single_file``: parse one ``.log`` or ``.txt`` file with a required engine
+- ``flat_dir``: parse a directory of ``.log`` or ``.txt`` files with a required
+  engine
+- ``engine_tree``: parse a high-level logs directory whose immediate subfolders
+  are engine names such as ``vina`` or ``smina``; the folder name is used as the
+  engine for all contained log files
+
+The extracted dataframe uses canonical core columns:
+
+- ``ligand_id``
+- ``score``
+- ``rank``
+- ``engine``
+- ``source_file``
+
+Additional parsed columns are preserved when relevant, for example:
+
+- ``rmsd_lb``
+- ``rmsd_ub``
+- ``cnn_pose``
+- ``cnn_affinity``
+"""
+
 from pathlib import Path
+from typing import Callable, Iterable, Literal, Optional, Sequence
 
 import pandas as pd
 
-from .utils import build_engine_pattern, normalize_engine_token
+from .engines import (
+    canonicalize_engine_name,
+    detect_engine,
+    detect_engine_from_path,
+)
+from .normalize import read_text_flexible, safe_parse_file
 from .reader import parse_log_text
-from .engines import detect_engine
-from .normalize import safe_parse_file, read_text_flexible
+from .utils import (
+    build_engine_pattern,
+    is_log_path,
+    is_table_path,
+    normalize_engine_token,
+)
 
-# allowed match modes for extractor
 MatchMode = Literal["substring", "exact", "regex"]
+LayoutMode = Literal["auto", "single_file", "flat_dir", "engine_tree"]
 
 
 def _to_float_or_none(x) -> Optional[float]:
+    """
+    Convert a value to ``float`` when possible.
+
+    :param x:
+        Input value to convert.
+    :type x: Any
+
+    :returns:
+        Floating-point representation of ``x`` when conversion succeeds,
+        otherwise ``None``.
+    :rtype: float | None
+
+    Example
+    -------
+    .. code-block:: python
+
+        value1 = _to_float_or_none("-7.5")
+        value2 = _to_float_or_none(3)
+        value3 = _to_float_or_none("bad")
+    """
     try:
         return float(x)
     except Exception:
@@ -42,6 +80,29 @@ def _to_float_or_none(x) -> Optional[float]:
 
 
 def _to_int_or_none(x) -> Optional[int]:
+    """
+    Convert a value to ``int`` when possible.
+
+    The conversion first casts the input to ``float`` and then to ``int`` so
+    values such as ``"2.0"`` can still be normalized to integer ranks.
+
+    :param x:
+        Input value to convert.
+    :type x: Any
+
+    :returns:
+        Integer representation of ``x`` when conversion succeeds,
+        otherwise ``None``.
+    :rtype: int | None
+
+    Example
+    -------
+    .. code-block:: python
+
+        rank1 = _to_int_or_none("1")
+        rank2 = _to_int_or_none("2.0")
+        rank3 = _to_int_or_none(None)
+    """
     try:
         return int(float(x))
     except Exception:
@@ -50,10 +111,31 @@ def _to_int_or_none(x) -> Optional[int]:
 
 def _read_csv_flexible(path: Path) -> Optional[pd.DataFrame]:
     """
-    Try reading a CSV/TSV with several encodings; return DataFrame or None.
+    Read a CSV- or TSV-like file using several fallback encodings.
+
+    Files ending in ``.tsv`` or ``.tab`` are treated as tab-delimited.
+
+    :param path:
+        Path to the input table file.
+    :type path: pathlib.Path
+
+    :returns:
+        Parsed dataframe when successful, otherwise ``None``.
+    :rtype: pandas.DataFrame | None
+
+    Example
+    -------
+    .. code-block:: python
+
+        from pathlib import Path
+
+        df = _read_csv_flexible(Path("scores.csv"))
+        if df is not None:
+            print(df.head())
     """
     suffix = path.suffix.lower()
     is_tsv = suffix in {".tsv", ".tab"}
+
     for enc in ("utf-8", "latin-1", "cp1252"):
         try:
             if is_tsv:
@@ -61,7 +143,7 @@ def _read_csv_flexible(path: Path) -> Optional[pd.DataFrame]:
             return pd.read_csv(path, encoding=enc)
         except Exception:
             continue
-    # last resort: try python engine with latin-1 replace
+
     try:
         if is_tsv:
             return pd.read_csv(path, sep="\t", encoding="latin-1", engine="python")
@@ -70,57 +152,667 @@ def _read_csv_flexible(path: Path) -> Optional[pd.DataFrame]:
         return None
 
 
-def crawl_scores(
-    roots: Sequence[Path | str],
-    include_logs: Optional[Sequence[str]] = None,
-    include_tables: Optional[Sequence[str]] = None,
-    engine_hint: Optional[str] = None,
-    labels: Optional[dict] = None,
+def _normalize_table_df(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Normalize a score table to canonical column names.
+
+    Supported canonical output columns include:
+
+    - ``ligand_id``
+    - ``score``
+    - ``rank``
+    - ``engine``
+
+    This helper only renames columns. It does not coerce numeric types.
+
+    :param df:
+        Input dataframe loaded from a CSV- or TSV-like source.
+    :type df: pandas.DataFrame
+
+    :returns:
+        Copy of the dataframe with recognized column aliases normalized.
+    :rtype: pandas.DataFrame
+
+    Example
+    -------
+    .. code-block:: python
+
+        import pandas as pd
+
+        raw = pd.DataFrame(
+            {
+                "Ligand": ["lig1", "lig2"],
+                "Affinity": [-7.5, -6.8],
+                "Engine": ["vina", "vina"],
+            }
+        )
+        norm = _normalize_table_df(raw)
+    """
+    t = df.copy()
+    colmap: dict[str, str] = {}
+
+    for c in list(t.columns):
+        lc = c.lower().strip()
+
+        if (
+            lc in {"affinity", "affinity_kcal_mol", "score"}
+            and "score" not in t.columns
+        ):
+            colmap[c] = "score"
+
+        if lc in {"ligand_id", "ligand", "id"} and "ligand_id" not in t.columns:
+            colmap[c] = "ligand_id"
+
+        if lc == "rank" and "rank" not in t.columns:
+            colmap[c] = "rank"
+
+        if lc == "engine" and "engine" not in t.columns:
+            colmap[c] = "engine"
+
+    if colmap:
+        t = t.rename(columns=colmap)
+
+    return t
+
+
+def _finalize_parts(parts: list[pd.DataFrame]) -> Optional[pd.DataFrame]:
+    """
+    Concatenate parsed dataframe parts and enforce canonical core columns.
+
+    The returned dataframe always contains at least the following columns:
+
+    - ``ligand_id``
+    - ``score``
+    - ``rank``
+    - ``engine``
+    - ``source_file``
+
+    :param parts:
+        Parsed dataframe fragments collected during crawling.
+    :type parts: list[pandas.DataFrame]
+
+    :returns:
+        Concatenated and normalized dataframe, or ``None`` when no parts are
+        available.
+    :rtype: pandas.DataFrame | None
+
+    Example
+    -------
+    .. code-block:: python
+
+        import pandas as pd
+
+        part1 = pd.DataFrame({"ligand_id": ["lig1"], "score": [-7.5]})
+        part2 = pd.DataFrame({"ligand_id": ["lig2"], "score": [-6.8]})
+        df = _finalize_parts([part1, part2])
+    """
+    if not parts:
+        return None
+
+    df_all = pd.concat(parts, ignore_index=True, sort=False).astype(object)
+
+    for col in ["ligand_id", "score", "rank", "engine", "source_file"]:
+        if col not in df_all.columns:
+            df_all[col] = None
+
+    df_all["score"] = df_all["score"].apply(_to_float_or_none)
+    df_all["rank"] = df_all["rank"].apply(_to_int_or_none)
+    df_all["engine"] = df_all["engine"].fillna("").astype(str)
+    df_all["source_file"] = df_all["source_file"].astype(str)
+
+    return df_all.reset_index(drop=True)
+
+
+def _rows_to_frame(
+    path: Path,
+    rows_parsed: list[dict],
+    engine_used: Optional[str],
 ) -> Optional[pd.DataFrame]:
     """
-    Discover and parse docking outputs under `roots` and return a combined
-    :class:`pandas.DataFrame` with standardized columns.
+    Convert parsed log rows into a normalized dataframe.
 
-    The function scans each path in ``roots`` (files or directories) for
-    log files and table files, parses them using the package parsers and
-    concatenates the results. For log files that cannot be parsed due to
-    encoding issues, the function will attempt normalization and retry.
+    The helper maps parser-native fields such as ``affinity_kcal_mol`` and
+    ``mode`` to canonical columns ``score`` and ``rank``. Only a limited set of
+    additional engine-specific fields are preserved.
 
-    :param roots: Sequence of filesystem roots (file paths or directories)
-                  to search for logs and tables.
-    :type roots: sequence of :class:`pathlib.Path` or :class:`str`
-    :param include_logs: Glob patterns for identifying log files. If None,
-                         defaults to ("**/*.log", "**/*.txt").
-    :type include_logs: sequence of str, optional
-    :param include_tables: Glob patterns for table files (CSV/TSV). If None,
-                           defaults to ("**/*.csv", "**/*.tsv").
-    :type include_tables: sequence of str, optional
-    :param engine_hint: Optional engine hint forwarded to the parser when
-                        automatic detection fails (e.g. "vina", "gnina").
-    :type engine_hint: str or None
-    :param labels: Optional mapping from ligand identifiers to labels
-                   (e.g., ``{"LIG1": 1}``) to populate the 'label' column.
-    :type labels: dict[str, int] or None
+    :param path:
+        Source log file path.
+    :type path: pathlib.Path
+    :param rows_parsed:
+        List of row dictionaries returned by the log parser.
+    :type rows_parsed: list[dict]
+    :param engine_used:
+        Canonical engine name used for the parsed rows.
+    :type engine_used: str | None
 
-    :returns: A :class:`pandas.DataFrame` combining all parsed rows. Columns
-              include at least ``["ligand_id", "score", "rank", "pose_path",
-              "engine", "label"]``. Returns ``None`` if no files are found.
-    :rtype: pandas.DataFrame or None
-
-    :raises FileNotFoundError: If one of the provided root paths is invalid
-                               and strict behavior is required.  (Note: the
-                               default implementation silently ignores missing
-                               roots, so this is rarely raised.)
-    :raises ValueError: If an input table cannot be parsed as CSV/TSV.
+    :returns:
+        Normalized dataframe for the parsed log rows, or ``None`` if no rows are
+        available.
+    :rtype: pandas.DataFrame | None
 
     Example
     -------
     .. code-block:: python
 
         from pathlib import Path
-        df = crawl_scores([Path("/data/docking")])
-        # inspect top scoring poses
-        top = df.sort_values("score").head(10)
+
+        rows = [
+            {"mode": 1, "affinity_kcal_mol": -8.2, "rmsd_lb": 0.0, "rmsd_ub": 0.0},
+            {"mode": 2, "affinity_kcal_mol": -7.5, "rmsd_lb": 1.2, "rmsd_ub": 2.3},
+        ]
+        df = _rows_to_frame(Path("lig1.log"), rows, "vina")
+    """
+    if not rows_parsed:
+        return None
+
+    stem = path.stem
+    out_rows: list[dict] = []
+    allowed_extra = {"rmsd_lb", "rmsd_ub", "cnn_pose", "cnn_affinity"}
+
+    for r in rows_parsed:
+        row = {
+            "ligand_id": stem,
+            "score": _to_float_or_none(r.get("affinity_kcal_mol")),
+            "rank": _to_int_or_none(r.get("mode")),
+            "engine": engine_used or "",
+            "source_file": str(path),
+        }
+
+        for key, value in r.items():
+            if key in allowed_extra:
+                row[key] = value
+
+        out_rows.append(row)
+
+    return pd.DataFrame(out_rows)
+
+
+def _parse_log_file(
+    path: Path,
+    *,
+    engine_hint: Optional[str],
+) -> Optional[pd.DataFrame]:
+    """
+    Parse a single docking log file into a normalized dataframe.
+
+    Parsing first uses the provided engine hint when available. If the engine is
+    still unknown after parsing, a fallback detection step is applied using the
+    file content and path.
+
+    :param path:
+        Path to the input log file.
+    :type path: pathlib.Path
+    :param engine_hint:
+        Optional engine hint used during parsing.
+    :type engine_hint: str | None
+
+    :returns:
+        Normalized dataframe for the parsed file, or ``None`` if no score rows
+        are found.
+    :rtype: pandas.DataFrame | None
+
+    Example
+    -------
+    .. code-block:: python
+
+        from pathlib import Path
+
+        df = _parse_log_file(
+            Path("vina/erlotinib.log"),
+            engine_hint="vina",
+        )
+    """
+    hint = canonicalize_engine_name(engine_hint)
+
+    rows_parsed, engine_used = safe_parse_file(
+        path,
+        parse_fn=parse_log_text,
+        engine_hint=hint,
+        regex=None,
+        normalize_on_failure=True,
+    )
+
+    if not engine_used:
+        try:
+            txt, _ = read_text_flexible(path)
+            engine_used = (
+                hint or detect_engine(txt) or detect_engine_from_path(path) or ""
+            )
+        except Exception:
+            engine_used = hint or detect_engine_from_path(path) or ""
+
+    return _rows_to_frame(path, rows_parsed, engine_used)
+
+
+def _parse_table_file(path: Path) -> Optional[pd.DataFrame]:
+    """
+    Parse a single CSV- or TSV-like table file.
+
+    The file is read with encoding fallbacks and its column names are normalized
+    to canonical names when recognized.
+
+    :param path:
+        Path to the input table file.
+    :type path: pathlib.Path
+
+    :returns:
+        Normalized dataframe for the table, or ``None`` if parsing fails.
+    :rtype: pandas.DataFrame | None
+
+    Example
+    -------
+    .. code-block:: python
+
+        from pathlib import Path
+
+        df = _parse_table_file(Path("scores.tsv"))
+    """
+    df = _read_csv_flexible(path)
+    if df is None:
+        return None
+
+    t = _normalize_table_df(df)
+
+    if "source_file" not in t.columns:
+        t["source_file"] = str(path)
+
+    return t
+
+
+def _collect_log_files(root: Path, recursive: bool = True) -> list[Path]:
+    """
+    Collect valid log files from a file or directory root.
+
+    Recognized log files include both ``.log`` and ``.txt``.
+
+    :param root:
+        File or directory to inspect.
+    :type root: pathlib.Path
+    :param recursive:
+        Whether directory traversal should recurse into nested folders.
+    :type recursive: bool
+
+    :returns:
+        Sorted list of discovered log-file paths.
+    :rtype: list[pathlib.Path]
+
+    Example
+    -------
+    .. code-block:: python
+
+        from pathlib import Path
+
+        files = _collect_log_files(Path("logs"), recursive=True)
+    """
+    if root.is_file():
+        return [root] if is_log_path(root) else []
+
+    if not root.exists():
+        return []
+
+    if recursive:
+        return sorted(p for p in root.rglob("*") if is_log_path(p))
+
+    return sorted(p for p in root.iterdir() if is_log_path(p))
+
+
+def _require_engine(engine_hint: Optional[str], layout: str) -> str:
+    """
+    Validate that a required engine hint is available for a fixed-layout mode.
+
+    This is used by layouts where automatic engine guessing is intentionally not
+    allowed.
+
+    :param engine_hint:
+        User-provided engine hint.
+    :type engine_hint: str | None
+    :param layout:
+        Layout name requesting a required engine.
+    :type layout: str
+
+    :returns:
+        Canonical engine name.
+    :rtype: str
+
+    :raises ValueError:
+        Raised when the engine is missing or not recognized.
+
+    Example
+    -------
+    .. code-block:: python
+
+        engine = _require_engine("vina", "single_file")
+    """
+    engine = canonicalize_engine_name(engine_hint)
+    if engine is None:
+        raise ValueError(
+            f"engine_hint is required for layout={layout!r} and must be one of "
+            "vina, vina-gpu, smina, qvina, qvina-gpu, gnina"
+        )
+    return engine
+
+
+def _crawl_single_file(
+    roots: Sequence[Path | str],
+    *,
+    engine_hint: Optional[str],
+) -> Optional[pd.DataFrame]:
+    """
+    Parse one or more explicit log files using a required engine.
+
+    All input paths must be valid ``.log`` or ``.txt`` files.
+
+    :param roots:
+        Sequence of file paths to parse.
+    :type roots: Sequence[pathlib.Path | str]
+    :param engine_hint:
+        Required engine name applied to all files.
+    :type engine_hint: str | None
+
+    :returns:
+        Combined parsed dataframe, or ``None`` when no rows are found.
+    :rtype: pandas.DataFrame | None
+
+    :raises ValueError:
+        Raised when a provided path is not a valid log file or the engine is
+        missing.
+
+    Example
+    -------
+    .. code-block:: python
+
+        df = _crawl_single_file(
+            ["logs/erlotinib.log"],
+            engine_hint="smina",
+        )
+    """
+    engine = _require_engine(engine_hint, "single_file")
+    parts: list[pd.DataFrame] = []
+
+    for root in roots:
+        p = Path(root)
+        if not is_log_path(p):
+            raise ValueError(f"single_file layout expects a .log or .txt file: {p}")
+
+        part = _parse_log_file(p, engine_hint=engine)
+        if part is not None:
+            parts.append(part)
+
+    return _finalize_parts(parts)
+
+
+def _crawl_flat_dir(
+    roots: Sequence[Path | str],
+    *,
+    engine_hint: Optional[str],
+    recursive: bool,
+) -> Optional[pd.DataFrame]:
+    """
+    Parse log files from one or more directories using a required engine.
+
+    This layout is intended for directories that contain only one engine's log
+    files.
+
+    :param roots:
+        Sequence of directory roots to inspect.
+    :type roots: Sequence[pathlib.Path | str]
+    :param engine_hint:
+        Required engine name applied to all discovered log files.
+    :type engine_hint: str | None
+    :param recursive:
+        Whether nested subdirectories should also be searched.
+    :type recursive: bool
+
+    :returns:
+        Combined parsed dataframe, or ``None`` when no rows are found.
+    :rtype: pandas.DataFrame | None
+
+    Example
+    -------
+    .. code-block:: python
+
+        df = _crawl_flat_dir(
+            ["logs/smina_run"],
+            engine_hint="smina",
+            recursive=True,
+        )
+    """
+    engine = _require_engine(engine_hint, "flat_dir")
+    parts: list[pd.DataFrame] = []
+
+    for root in roots:
+        rp = Path(root)
+        if not rp.exists():
+            continue
+
+        files = _collect_log_files(rp, recursive=recursive)
+        for p in files:
+            part = _parse_log_file(p, engine_hint=engine)
+            if part is not None:
+                parts.append(part)
+
+    return _finalize_parts(parts)
+
+
+def _crawl_engine_tree(
+    roots: Sequence[Path | str],
+    *,
+    recursive: bool,
+) -> Optional[pd.DataFrame]:
+    """
+    Parse a high-level logs directory whose immediate subfolders are engine names.
+
+    Each immediate child directory is interpreted as an engine folder. Valid
+    child names are canonicalized through the engine helper functions.
+
+    :param roots:
+        Sequence of top-level directories to inspect.
+    :type roots: Sequence[pathlib.Path | str]
+    :param recursive:
+        Whether log discovery inside each engine folder should recurse into
+        nested subdirectories.
+    :type recursive: bool
+
+    :returns:
+        Combined parsed dataframe, or ``None`` when no rows are found.
+    :rtype: pandas.DataFrame | None
+
+    :raises ValueError:
+        Raised when one of the provided roots is a file instead of a directory.
+
+    Example
+    -------
+    .. code-block:: python
+
+        df = _crawl_engine_tree(
+            ["logs"],
+            recursive=True,
+        )
+    """
+    parts: list[pd.DataFrame] = []
+
+    for root in roots:
+        rp = Path(root)
+        if not rp.exists():
+            continue
+
+        if rp.is_file():
+            raise ValueError("engine_tree layout expects directories, not files")
+
+        for child in sorted(p for p in rp.iterdir() if p.is_dir()):
+            engine = canonicalize_engine_name(child.name)
+            if engine is None:
+                continue
+
+            for p in _collect_log_files(child, recursive=recursive):
+                part = _parse_log_file(p, engine_hint=engine)
+                if part is not None:
+                    parts.append(part)
+
+    return _finalize_parts(parts)
+
+
+def _crawl_auto(
+    roots: Sequence[Path | str],
+    *,
+    include_logs: Sequence[str],
+    include_tables: Sequence[str],
+    engine_hint: Optional[str],
+) -> Optional[pd.DataFrame]:
+    """
+    Perform generic recursive crawling with best-effort engine detection.
+
+    Files are classified as log files or tabular files. Log files are parsed
+    through the log parser stack. Table files are read through the flexible CSV
+    reader stack.
+
+    :param roots:
+        Sequence of files or directories to inspect.
+    :type roots: Sequence[pathlib.Path | str]
+    :param include_logs:
+        Glob patterns used to discover log files.
+    :type include_logs: Sequence[str]
+    :param include_tables:
+        Glob patterns used to discover table files.
+    :type include_tables: Sequence[str]
+    :param engine_hint:
+        Optional fallback engine hint used during log parsing.
+    :type engine_hint: str | None
+
+    :returns:
+        Combined parsed dataframe, or ``None`` when no parsable inputs are found.
+    :rtype: pandas.DataFrame | None
+
+    Example
+    -------
+    .. code-block:: python
+
+        df = _crawl_auto(
+            ["results"],
+            include_logs=("**/*.log", "**/*.txt"),
+            include_tables=("**/*.csv", "**/*.tsv", "**/*.tab"),
+            engine_hint=None,
+        )
+    """
+    parts: list[pd.DataFrame] = []
+    engine = canonicalize_engine_name(engine_hint)
+
+    for root in roots:
+        rp = Path(root)
+        if not rp.exists():
+            continue
+
+        if rp.is_file():
+            if is_log_path(rp):
+                part = _parse_log_file(
+                    rp,
+                    engine_hint=engine or detect_engine_from_path(rp),
+                )
+                if part is not None:
+                    parts.append(part)
+
+            elif is_table_path(rp):
+                part = _parse_table_file(rp)
+                if part is not None:
+                    parts.append(part)
+
+            continue
+
+        for pat in include_logs:
+            for p in sorted(rp.rglob(pat)):
+                if not is_log_path(p):
+                    continue
+
+                path_engine = detect_engine_from_path(p)
+                part = _parse_log_file(
+                    p,
+                    engine_hint=engine or path_engine,
+                )
+                if part is not None:
+                    parts.append(part)
+
+        for pat in include_tables:
+            for p in sorted(rp.rglob(pat)):
+                if not is_table_path(p):
+                    continue
+
+                part = _parse_table_file(p)
+                if part is not None:
+                    parts.append(part)
+
+    return _finalize_parts(parts)
+
+
+def crawl_scores(
+    roots: Sequence[Path | str],
+    include_logs: Optional[Sequence[str]] = None,
+    include_tables: Optional[Sequence[str]] = None,
+    engine_hint: Optional[str] = None,
+    *,
+    layout: LayoutMode = "auto",
+    recursive: bool = True,
+) -> Optional[pd.DataFrame]:
+    """
+    Discover and parse docking outputs under one or more filesystem roots.
+
+    Supported layouts are:
+
+    - ``auto``: generic crawling with best-effort engine detection
+    - ``single_file``: explicit log file parsing with required engine
+    - ``flat_dir``: log directory parsing with required engine
+    - ``engine_tree``: high-level directory whose immediate child folders are
+      engine names
+
+    :param roots:
+        Files or directories to inspect.
+    :type roots: Sequence[pathlib.Path | str]
+    :param include_logs:
+        Optional log-file glob patterns used only in ``layout="auto"``.
+    :type include_logs: Sequence[str] | None
+    :param include_tables:
+        Optional table-file glob patterns used only in ``layout="auto"``.
+    :type include_tables: Sequence[str] | None
+    :param engine_hint:
+        Engine required for ``single_file`` and ``flat_dir``. In ``auto`` mode,
+        it acts as a fallback hint.
+    :type engine_hint: str | None
+    :param layout:
+        Extraction layout mode.
+    :type layout: Literal["auto", "single_file", "flat_dir", "engine_tree"]
+    :param recursive:
+        Whether directory-based layouts should recurse into nested folders.
+    :type recursive: bool
+
+    :returns:
+        Combined parsed dataframe, or ``None`` when no parsable data is found.
+    :rtype: pandas.DataFrame | None
+
+    Example
+    -------
+    .. code-block:: python
+
+        df1 = crawl_scores(
+            roots=["logs/erlotinib.log"],
+            engine_hint="vina",
+            layout="single_file",
+        )
+
+        df2 = crawl_scores(
+            roots=["logs/smina_run"],
+            engine_hint="smina",
+            layout="flat_dir",
+            recursive=True,
+        )
+
+        df3 = crawl_scores(
+            roots=["logs"],
+            layout="engine_tree",
+        )
+
+        df4 = crawl_scores(
+            roots=["results"],
+            layout="auto",
+        )
     """
     include_logs = (
         tuple(include_logs) if include_logs is not None else ("**/*.log", "**/*.txt")
@@ -128,146 +820,64 @@ def crawl_scores(
     include_tables = (
         tuple(include_tables)
         if include_tables is not None
-        else ("**/*.csv", "**/*.tsv")
+        else ("**/*.csv", "**/*.tsv", "**/*.tab")
     )
-    labels_map = labels or {}
 
-    parsed_rows: list[dict] = []
-    csv_parts: list[pd.DataFrame] = []
+    if layout == "single_file":
+        return _crawl_single_file(roots, engine_hint=engine_hint)
 
-    # helper to process a single log file robustly
-    def _process_log_file(p: Path):
-        # safe_parse_file will try multiple encodings and will normalize (create .bak)
-        # and retry parsing if the initial parse returned no rows or failed.
-        rows_parsed, eng_used = safe_parse_file(
-            p,
-            parse_fn=parse_log_text,
+    if layout == "flat_dir":
+        return _crawl_flat_dir(
+            roots,
             engine_hint=engine_hint,
-            regex=None,
-            normalize_on_failure=True,
+            recursive=recursive,
         )
-        # If engine not set by engine_hint, try to detect from file content
-        if not eng_used:
-            try:
-                txt, _ = read_text_flexible(p)
-                eng_used = detect_engine(txt) or engine_hint or ""
-            except Exception:
-                eng_used = engine_hint or ""
-        stem = p.stem
-        for r in rows_parsed:
-            affinity = r.get("affinity_kcal_mol")
-            mode = r.get("mode")
-            parsed_rows.append(
-                {
-                    "ligand_id": stem,
-                    "score": _to_float_or_none(affinity),
-                    "rank": _to_int_or_none(mode),
-                    "pose_path": (
-                        r.get("pose_path") if r.get("pose_path") is not None else None
-                    ),
-                    "engine": eng_used or "",
-                    "label": labels_map.get(stem),
-                }
-            )
 
-    # helper to process a table file (CSV/TSV)
-    def _process_table_file(p: Path):
-        df = _read_csv_flexible(p)
-        if df is None:
-            return
-        # Normalize common column names to canonical ones where present
-        t = df.copy()
-        colmap: dict[str, str] = {}
-        for c in list(t.columns):
-            lc = c.lower().strip()
-            if (
-                lc in {"affinity", "affinity_kcal_mol", "score"}
-                and "score" not in t.columns
-            ):
-                colmap[c] = "score"
-            if lc in {"ligand_id", "ligand", "id"} and "ligand_id" not in t.columns:
-                colmap[c] = "ligand_id"
-            if lc in {"rank"} and "rank" not in t.columns:
-                colmap[c] = "rank"
-            if lc in {"pose_path", "pose", "posepath"} and "pose_path" not in t.columns:
-                colmap[c] = "pose_path"
-            if lc in {"engine"} and "engine" not in t.columns:
-                colmap[c] = "engine"
-            if lc in {"label", "labels"} and "label" not in t.columns:
-                colmap[c] = "label"
-        if colmap:
-            t = t.rename(columns=colmap)
-        csv_parts.append(t)
+    if layout == "engine_tree":
+        return _crawl_engine_tree(
+            roots,
+            recursive=recursive,
+        )
 
-    # Walk roots
-    for root in roots:
-        rp = Path(root)
-        if not rp.exists():
-            continue
-        if rp.is_file():
-            # classify by suffix
-            if rp.suffix.lower() in {".log", ".txt"}:
-                _process_log_file(rp)
-            elif rp.suffix.lower() in {".csv", ".tsv", ".tab"}:
-                _process_table_file(rp)
-            else:
-                # try to match include patterns
-                matched_log = any(rp.match(pat) for pat in include_logs)
-                matched_table = any(rp.match(pat) for pat in include_tables)
-                if matched_log:
-                    _process_log_file(rp)
-                elif matched_table:
-                    _process_table_file(rp)
-            continue
-
-        # directory: rglob for given patterns
-        for pat in include_logs:
-            for p in rp.rglob(pat):
-                if p.is_file():
-                    _process_log_file(p)
-        for pat in include_tables:
-            for p in rp.rglob(pat):
-                if p.is_file():
-                    _process_table_file(p)
-
-    parts: list[pd.DataFrame] = []
-    if parsed_rows:
-        parts.append(pd.DataFrame(parsed_rows))
-    if csv_parts:
-        parts.extend(csv_parts)
-
-    if not parts:
-        return None
-
-    df_all = pd.concat(parts, ignore_index=True, sort=False).astype(object)
-
-    # Ensure canonical columns exist
-    for col in ["ligand_id", "score", "rank", "pose_path", "engine", "label"]:
-        if col not in df_all.columns:
-            df_all[col] = None
-
-    # Normalize types
-    df_all["score"] = df_all["score"].apply(_to_float_or_none)
-    df_all["rank"] = df_all["rank"].apply(_to_int_or_none)
-    df_all["engine"] = df_all["engine"].fillna("").astype(str)
-
-    return df_all.reset_index(drop=True)
+    return _crawl_auto(
+        roots,
+        include_logs=include_logs,
+        include_tables=include_tables,
+        engine_hint=engine_hint,
+    )
 
 
 class Extractor:
     """
-    High-level extractor that wraps crawling and provides filtering utilities.
+    High-level score extractor with layout-aware helpers.
 
-    The :class:`Extractor` exposes convenience methods to discover engines,
-    extract scores, and filter results by engine tokens.
+    The extractor wraps :func:`crawl_scores` and provides convenience methods for
+    engine filtering, engine listing, and explicit layout-based extraction.
 
-    :ivar include_logs: Tuple of glob patterns used for finding log files.
-    :vartype include_logs: tuple[str] | None
-    :ivar include_tables: Tuple of glob patterns used for finding tables.
-    :vartype include_tables: tuple[str] | None
-    :ivar match_mode: Matching mode for engine filtering; one of
-                      "substring", "exact", "regex".
-    :vartype match_mode: str
+    :param include_logs:
+        Optional custom log-file glob patterns.
+    :type include_logs: Sequence[str] | None
+    :param include_tables:
+        Optional custom table-file glob patterns.
+    :type include_tables: Sequence[str] | None
+    :param match_mode:
+        Matching mode used when filtering extracted rows by engine.
+    :type match_mode: str
+    :param crawl_func:
+        Optional custom crawl function used instead of :func:`crawl_scores`.
+    :type crawl_func: Callable | None
+    :param engine_map:
+        Optional mapping from logical engine groups to concrete engine tokens.
+    :type engine_map: dict | None
+
+    Example
+    -------
+    .. code-block:: python
+
+        extractor = Extractor(
+            match_mode="exact",
+            engine_map={"vina-family": ["vina", "vina-gpu", "qvina", "qvina-gpu"]},
+        )
     """
 
     def __init__(
@@ -277,29 +887,40 @@ class Extractor:
         match_mode: str = "substring",
         crawl_func: Optional[Callable] = None,
         engine_map: Optional[dict] = None,
-    ):
+    ) -> None:
         """
-        Create an :class:`Extractor` instance.
+        Initialize an extractor instance.
 
-        :param include_logs: Optional glob patterns to restrict searched log
-                             files (default: ``("**/*.log","**/*.txt")``).
-        :type include_logs: sequence of str or None
-        :param include_tables: Optional glob patterns to restrict table files
-                               (default: ``("**/*.csv","**/*.tsv")``).
-        :type include_tables: sequence of str or None
-        :param match_mode: How engine filtering is performed:
-                           - ``"substring"``: substring match (default)
-                           - ``"exact"``: exact equality
-                           - ``"regex"``: treat filter tokens as regex
+        :param include_logs:
+            Optional custom log-file glob patterns.
+        :type include_logs: Sequence[str] | None
+        :param include_tables:
+            Optional custom table-file glob patterns.
+        :type include_tables: Sequence[str] | None
+        :param match_mode:
+            Matching mode used when filtering engine labels. Supported values are
+            ``"substring"``, ``"exact"``, and ``"regex"``.
         :type match_mode: str
-        :param crawl_func: Optional callable used to crawl files. If provided,
-                           it must have the same signature as :func:`crawl_scores`.
-                           This is primarily intended for tests.
-        :type crawl_func: callable or None
-        :param engine_map: Optional mapping that expands logical engine groups
-                           to concrete engine names, e.g.
-                           ``{"vina-family": ["vina","vina-gpu"]}``.
-        :type engine_map: dict[str, sequence[str]] or None
+        :param crawl_func:
+            Optional custom crawl function used instead of :func:`crawl_scores`.
+        :type crawl_func: Callable | None
+        :param engine_map:
+            Optional mapping from logical engine groups to concrete engine
+            tokens.
+        :type engine_map: dict | None
+
+        :returns:
+            Configured extractor instance.
+        :rtype: None
+
+        Example
+        -------
+        .. code-block:: python
+
+            extractor = Extractor(
+                include_logs=("**/*.log", "**/*.txt"),
+                match_mode="substring",
+            )
         """
         self.include_logs = tuple(include_logs) if include_logs else None
         self.include_tables = tuple(include_tables) if include_tables else None
@@ -310,8 +931,41 @@ class Extractor:
             for k, vals in (engine_map or {}).items()
         }
 
-    # internal wrapper to call crawl func with defaults
-    def _call_crawl(self, roots, engine_hint=None, labels=None):
+    def _call_crawl(
+        self,
+        roots,
+        *,
+        engine_hint=None,
+        layout: LayoutMode = "auto",
+        recursive: bool = True,
+    ):
+        """
+        Call the configured crawl function with extractor defaults applied.
+
+        :param roots:
+            Input roots to inspect.
+        :type roots: Sequence[pathlib.Path | str]
+        :param engine_hint:
+            Optional engine hint forwarded to the crawl function.
+        :type engine_hint: str | None
+        :param layout:
+            Layout mode for crawling.
+        :type layout: LayoutMode
+        :param recursive:
+            Whether directory-based layouts should recurse into nested folders.
+        :type recursive: bool
+
+        :returns:
+            Parsed dataframe or ``None``.
+        :rtype: pandas.DataFrame | None
+
+        Example
+        -------
+        .. code-block:: python
+
+            extractor = Extractor()
+            df = extractor._call_crawl(["logs"], layout="engine_tree")
+        """
         return self._crawl_func(
             roots,
             include_logs=(
@@ -322,10 +976,11 @@ class Extractor:
             include_tables=(
                 self.include_tables
                 if self.include_tables is not None
-                else ("**/*.csv", "**/*.tsv")
+                else ("**/*.csv", "**/*.tsv", "**/*.tab")
             ),
             engine_hint=engine_hint,
-            labels=labels,
+            layout=layout,
+            recursive=recursive,
         )
 
     def extract_scores(
@@ -333,70 +988,88 @@ class Extractor:
         roots: Sequence[str | Path],
         engines: Optional[Iterable[str]] = None,
         engine_hint: Optional[str] = None,
-        labels: Optional[dict] = None,
+        *,
+        layout: LayoutMode = "auto",
+        recursive: bool = True,
     ) -> Optional[pd.DataFrame]:
         """
-        Crawl the given ``roots`` and return parsed scores filtered by engine.
+        Extract scores and optionally filter the results by engine.
 
-        :param roots: Sequence of directories or files to crawl.
-        :type roots: sequence of :class:`pathlib.Path` or :class:`str`
-        :param engines: If provided, only rows whose ``engine`` matches one
-                        of these tokens will be returned. Matching respects
-                        ``self.match_mode``.
-        :type engines: sequence of str or None
-        :param engine_hint: Optional engine hint forwarded to parsers when
-                            detection is ambiguous.
-        :type engine_hint: str or None
-        :param labels: Optional mapping of ligand_id -> label to include in the
-                       returned DataFrame.
-        :type labels: dict[str, int] or None
+        :param roots:
+            Files or directories to inspect.
+        :type roots: Sequence[str | pathlib.Path]
+        :param engines:
+            Optional iterable of engine filters.
+        :type engines: Iterable[str] | None
+        :param engine_hint:
+            Optional engine hint used during parsing.
+        :type engine_hint: str | None
+        :param layout:
+            Extraction layout mode.
+        :type layout: LayoutMode
+        :param recursive:
+            Whether directory-based layouts should recurse into nested folders.
+        :type recursive: bool
 
-        :returns: Filtered :class:`pandas.DataFrame` or ``None`` if no data.
-        :rtype: pandas.DataFrame or None
+        :returns:
+            Extracted dataframe, optionally filtered by engine, or ``None`` when
+            no data is found.
+        :rtype: pandas.DataFrame | None
 
         Example
         -------
         .. code-block:: python
 
-            ex = Extractor(match_mode="exact")
-            df_vina = ex.extract_scores(["/data/logs"], engines=["vina"])
+            extractor = Extractor(match_mode="exact")
+
+            df = extractor.extract_scores(
+                roots=["logs"],
+                engines=["vina", "smina"],
+                layout="engine_tree",
+            )
         """
-        df = self._call_crawl(roots, engine_hint=engine_hint, labels=labels)
+        df = self._call_crawl(
+            roots,
+            engine_hint=engine_hint,
+            layout=layout,
+            recursive=recursive,
+        )
+
         if df is None or df.empty:
             return df
 
         if engines is None:
             return df.reset_index(drop=True)
 
-        # expand requested tokens via engine_map
         requested: list[str] = []
         for e in engines:
             if e is None:
                 continue
             en = normalize_engine_token(e)
-            if en in self.engine_map:
-                requested.extend(self.engine_map[en])
+            canon = canonicalize_engine_name(en) or en
+            if canon in self.engine_map:
+                requested.extend(self.engine_map[canon])
             else:
-                requested.append(en)
-        requested = list(dict.fromkeys(requested))  # dedupe
+                requested.append(canon)
 
+        requested = list(dict.fromkeys(requested))
         if not requested:
             return df.reset_index(drop=True)
 
         col = df["engine"].fillna("").astype(str).str.lower()
 
         if self.match_mode == "exact":
-            tokens_set: Set[str] = set(requested)
-            mask = col.isin(tokens_set)
+            mask = col.isin(set(requested))
         elif self.match_mode == "regex":
             pattern = "|".join(f"(?:{r})" for r in requested)
             mask = col.str.contains(pattern, regex=True, na=False)
-        else:  # substring
+        else:
             pattern = build_engine_pattern(requested)
-            if pattern == "":
-                mask = pd.Series([True] * len(df), index=df.index)
-            else:
-                mask = col.str.contains(pattern, regex=True, na=False)
+            mask = (
+                pd.Series([True] * len(df), index=df.index)
+                if pattern == ""
+                else col.str.contains(pattern, regex=True, na=False)
+            )
 
         return df[mask].reset_index(drop=True)
 
@@ -404,18 +1077,169 @@ class Extractor:
         self,
         roots: Sequence[str | Path],
         engine_hint: Optional[str] = None,
-        labels: Optional[dict] = None,
+        *,
+        layout: LayoutMode = "auto",
+        recursive: bool = True,
     ) -> set[str]:
         """
-        Crawl `roots` and return the set of unique engine labels found (lowercased).
+        List unique engine names discovered under the given roots.
+
+        :param roots:
+            Files or directories to inspect.
+        :type roots: Sequence[str | pathlib.Path]
+        :param engine_hint:
+            Optional engine hint used during parsing.
+        :type engine_hint: str | None
+        :param layout:
+            Extraction layout mode.
+        :type layout: LayoutMode
+        :param recursive:
+            Whether directory-based layouts should recurse into nested folders.
+        :type recursive: bool
+
+        :returns:
+            Set of lowercased engine names found in the extracted data.
+        :rtype: set[str]
+
+        Example
+        -------
+        .. code-block:: python
+
+            extractor = Extractor()
+            engines = extractor.list_engines(
+                roots=["logs"],
+                layout="engine_tree",
+            )
         """
-        df = self._call_crawl(roots, engine_hint=engine_hint, labels=labels)
+        df = self._call_crawl(
+            roots,
+            engine_hint=engine_hint,
+            layout=layout,
+            recursive=recursive,
+        )
+
         if df is None or df.empty:
             return set()
+
         return set(df["engine"].dropna().astype(str).str.lower().unique().tolist())
 
+    def extract_log_file(
+        self,
+        path: str | Path,
+        *,
+        engine: str,
+    ) -> Optional[pd.DataFrame]:
+        """
+        Extract scores from a single explicit log file.
 
-# default instance + functional wrappers
+        :param path:
+            Path to a ``.log`` or ``.txt`` file.
+        :type path: str | pathlib.Path
+        :param engine:
+            Required engine name for the file.
+        :type engine: str
+
+        :returns:
+            Extracted dataframe or ``None`` when no rows are found.
+        :rtype: pandas.DataFrame | None
+
+        Example
+        -------
+        .. code-block:: python
+
+            extractor = Extractor()
+            df = extractor.extract_log_file(
+                "logs/erlotinib.log",
+                engine="vina",
+            )
+        """
+        return self.extract_scores(
+            [path],
+            engine_hint=engine,
+            layout="single_file",
+        )
+
+    def extract_logs_dir(
+        self,
+        path: str | Path,
+        *,
+        engine: str,
+        recursive: bool = True,
+    ) -> Optional[pd.DataFrame]:
+        """
+        Extract scores from a directory of log files belonging to one engine.
+
+        :param path:
+            Directory containing ``.log`` or ``.txt`` files.
+        :type path: str | pathlib.Path
+        :param engine:
+            Required engine name applied to all discovered files.
+        :type engine: str
+        :param recursive:
+            Whether nested subdirectories should also be searched.
+        :type recursive: bool
+
+        :returns:
+            Extracted dataframe or ``None`` when no rows are found.
+        :rtype: pandas.DataFrame | None
+
+        Example
+        -------
+        .. code-block:: python
+
+            extractor = Extractor()
+            df = extractor.extract_logs_dir(
+                "logs/smina_run",
+                engine="smina",
+                recursive=True,
+            )
+        """
+        return self.extract_scores(
+            [path],
+            engine_hint=engine,
+            layout="flat_dir",
+            recursive=recursive,
+        )
+
+    def extract_engine_folders(
+        self,
+        path: str | Path,
+        *,
+        recursive: bool = True,
+    ) -> Optional[pd.DataFrame]:
+        """
+        Extract scores from a high-level directory whose immediate subfolders are
+        engine names.
+
+        :param path:
+            High-level logs directory.
+        :type path: str | pathlib.Path
+        :param recursive:
+            Whether nested subdirectories inside each engine folder should also
+            be searched.
+        :type recursive: bool
+
+        :returns:
+            Extracted dataframe or ``None`` when no rows are found.
+        :rtype: pandas.DataFrame | None
+
+        Example
+        -------
+        .. code-block:: python
+
+            extractor = Extractor()
+            df = extractor.extract_engine_folders(
+                "logs",
+                recursive=True,
+            )
+        """
+        return self.extract_scores(
+            [path],
+            layout="engine_tree",
+            recursive=recursive,
+        )
+
+
 _default_extractor = Extractor()
 
 
@@ -423,18 +1247,197 @@ def extract_scores(
     roots: Sequence[str | Path],
     engines: Optional[Iterable[str]] = None,
     engine_hint: Optional[str] = None,
-    labels: Optional[dict] = None,
+    *,
+    layout: LayoutMode = "auto",
+    recursive: bool = True,
 ) -> Optional[pd.DataFrame]:
+    """
+    Extract scores using the default :class:`Extractor` instance.
+
+    :param roots:
+        Files or directories to inspect.
+    :type roots: Sequence[str | pathlib.Path]
+    :param engines:
+        Optional iterable of engine filters.
+    :type engines: Iterable[str] | None
+    :param engine_hint:
+        Optional engine hint used during parsing.
+    :type engine_hint: str | None
+    :param layout:
+        Extraction layout mode.
+    :type layout: LayoutMode
+    :param recursive:
+        Whether directory-based layouts should recurse into nested folders.
+    :type recursive: bool
+
+    :returns:
+        Extracted dataframe or ``None`` when no data is found.
+    :rtype: pandas.DataFrame | None
+
+    Example
+    -------
+    .. code-block:: python
+
+        df = extract_scores(
+            roots=["logs"],
+            layout="engine_tree",
+        )
+    """
     return _default_extractor.extract_scores(
-        roots, engines=engines, engine_hint=engine_hint, labels=labels
+        roots,
+        engines=engines,
+        engine_hint=engine_hint,
+        layout=layout,
+        recursive=recursive,
     )
 
 
 def list_engines(
     roots: Sequence[str | Path],
     engine_hint: Optional[str] = None,
-    labels: Optional[dict] = None,
+    *,
+    layout: LayoutMode = "auto",
+    recursive: bool = True,
 ) -> set[str]:
+    """
+    List unique engine names using the default :class:`Extractor` instance.
+
+    :param roots:
+        Files or directories to inspect.
+    :type roots: Sequence[str | pathlib.Path]
+    :param engine_hint:
+        Optional engine hint used during parsing.
+    :type engine_hint: str | None
+    :param layout:
+        Extraction layout mode.
+    :type layout: LayoutMode
+    :param recursive:
+        Whether directory-based layouts should recurse into nested folders.
+    :type recursive: bool
+
+    :returns:
+        Set of lowercased engine names.
+    :rtype: set[str]
+
+    Example
+    -------
+    .. code-block:: python
+
+        engines = list_engines(
+            roots=["logs"],
+            layout="engine_tree",
+        )
+    """
     return _default_extractor.list_engines(
-        roots, engine_hint=engine_hint, labels=labels
+        roots,
+        engine_hint=engine_hint,
+        layout=layout,
+        recursive=recursive,
+    )
+
+
+def extract_log_file(
+    path: str | Path,
+    *,
+    engine: str,
+) -> Optional[pd.DataFrame]:
+    """
+    Extract scores from a single explicit log file using the default extractor.
+
+    :param path:
+        Path to a ``.log`` or ``.txt`` file.
+    :type path: str | pathlib.Path
+    :param engine:
+        Required engine name for the file.
+    :type engine: str
+
+    :returns:
+        Extracted dataframe or ``None`` when no rows are found.
+    :rtype: pandas.DataFrame | None
+
+    Example
+    -------
+    .. code-block:: python
+
+        df = extract_log_file(
+            "logs/erlotinib.log",
+            engine="vina",
+        )
+    """
+    return _default_extractor.extract_log_file(path, engine=engine)
+
+
+def extract_logs_dir(
+    path: str | Path,
+    *,
+    engine: str,
+    recursive: bool = True,
+) -> Optional[pd.DataFrame]:
+    """
+    Extract scores from a flat log directory using the default extractor.
+
+    :param path:
+        Directory containing ``.log`` or ``.txt`` files.
+    :type path: str | pathlib.Path
+    :param engine:
+        Required engine name applied to all discovered files.
+    :type engine: str
+    :param recursive:
+        Whether nested subdirectories should also be searched.
+    :type recursive: bool
+
+    :returns:
+        Extracted dataframe or ``None`` when no rows are found.
+    :rtype: pandas.DataFrame | None
+
+    Example
+    -------
+    .. code-block:: python
+
+        df = extract_logs_dir(
+            "logs/smina_run",
+            engine="smina",
+            recursive=True,
+        )
+    """
+    return _default_extractor.extract_logs_dir(
+        path,
+        engine=engine,
+        recursive=recursive,
+    )
+
+
+def extract_engine_folders(
+    path: str | Path,
+    *,
+    recursive: bool = True,
+) -> Optional[pd.DataFrame]:
+    """
+    Extract scores from a high-level directory whose immediate subfolders are
+    engine names.
+
+    :param path:
+        High-level logs directory.
+    :type path: str | pathlib.Path
+    :param recursive:
+        Whether nested subdirectories inside each engine folder should also be
+        searched.
+    :type recursive: bool
+
+    :returns:
+        Extracted dataframe or ``None`` when no rows are found.
+    :rtype: pandas.DataFrame | None
+
+    Example
+    -------
+    .. code-block:: python
+
+        df = extract_engine_folders(
+            "logs",
+            recursive=True,
+        )
+    """
+    return _default_extractor.extract_engine_folders(
+        path,
+        recursive=recursive,
     )

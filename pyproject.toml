@@ -4,26 +4,18 @@ build-backend = "hatchling.build"
 
 [project]
 name = "prodock"
-version = "0.0.7"
-description = "ProDock — automation utilities for Molecular Docking workflows."
-readme = "README.md"
-# Ensure CHANGELOG.md exists or change the file referenced below
-long-description = { file = "CHANGELOG.md" }
-long-description-content-type = "text/markdown"
+version = "0.1.0"
+description = "ProDock — automation utilities for molecular docking workflows."
+readme = { file = "README.md", content-type = "text/markdown" }
 requires-python = ">=3.11"
-license = { text = "MIT" }
+license = "MIT"
 license-files = ["LICENSE"]
 
 authors = [
   { name = "Hoang-Son Lai Le", email = "lelaihoangson@tamu.edu" },
-  { name = "Thanh-An Pham",    email = "thanh-an.pham@etu.unistra.fr" },
-  { name = "Tieu Long Phan",   email = "tieu@bioinf.uni-leipzig.de" }
+  { name = "Thanh-An Pham", email = "thanh-an.pham@etu.unistra.fr" },
+  { name = "Tieu Long Phan", email = "tieu@bioinf.uni-leipzig.de" }
 ]
-
-# Optional maintainers block (uncomment if you want separate maintainers)
-# maintainers = [
-#   { name = "Maintainer Name", email = "maintainer@example.com" }
-# ]
 
 classifiers = [
   "Development Status :: 4 - Beta",
@@ -31,17 +23,17 @@ classifiers = [
   "Topic :: Scientific/Engineering :: Bio-Informatics",
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.11",
   "License :: OSI Approved :: MIT License",
   "Operating System :: OS Independent"
 ]
 
 keywords = ["docking", "molecular-docking", "bioinformatics", "rdkit", "vina"]
 
-# Runtime dependencies (note: some heavy packages may require platform-specific wheels)
 dependencies = [
   "rdkit>=2025.3.5",
   "prolif>=2.0.3",
-  "openbabel-wheel>=3.1.1.21",
+  "openbabel-wheel==3.1.1.21",
   "meeko>=0.6.1",
   "py3Dmol>=2.5.2",
   "pandas",
@@ -54,24 +46,22 @@ dependencies = [
 
 [project.optional-dependencies]
 docs = [
-  "sphinx>=6.0",
-  "sphinx-rtd-theme",
-  "sphinxcontrib-bibtex"
+  "sphinx>=7.4,<10",
+  "pydata-sphinx-theme>=0.15",
+  "sphinxcontrib-bibtex>=2.6"
 ]
 
-[project.urls]
-homepage      = "https://github.com/Medicine-Artificial-Intelligence/ProDock"
-source        = "https://github.com/Medicine-Artificial-Intelligence/ProDock"
-issues        = "https://github.com/Medicine-Artificial-Intelligence/ProDock/issues"
-documentation = "https://prodock.readthedocs.io/en/latest/"
+[project.scripts]
+prodock = "prodock.cli:main"
 
-# ------------------------------
-# Hatch build configuration
-# ------------------------------
+[project.urls]
+Homepage = "https://github.com/Medicine-Artificial-Intelligence/ProDock"
+Source = "https://github.com/Medicine-Artificial-Intelligence/ProDock"
+Issues = "https://github.com/Medicine-Artificial-Intelligence/ProDock/issues"
+Documentation = "https://prodock.readthedocs.io/en/latest/"
 
 [tool.hatch.build.targets.wheel]
 packages = ["prodock"]
-# include extra top-level files in the wheel (useful when metadata references them)
 include = [
   "README.md",
   "CHANGELOG.md",

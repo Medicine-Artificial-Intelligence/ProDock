@@ -8,3 +8,5 @@ develop/*
 *ipynb
 auto/*
 out/*
+demo/*
+Data/testcase/Multi/4WKQ/results/*

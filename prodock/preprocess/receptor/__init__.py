@@ -1,3 +1,3 @@
-from .receptor import ReceptorPrep
+from .prep import ReceptorPrep
 
 __all__ = ["ReceptorPrep"]

@@ -123,7 +123,7 @@ class ScreenEvaluator:
         fpr, tpr, _ = self.roc_curve(scores, labels)
         if fpr.size == 0:
             return float("nan")
-        return float(np.trapz(tpr, fpr))
+        return float(np.trapezoid(tpr, fpr))
 
     def pr_auc(self, scores: Sequence[float], labels: Sequence[int]) -> float:
         """
@@ -138,7 +138,7 @@ class ScreenEvaluator:
             return float("nan")
         r = np.concatenate([[0.0], recall])
         p = np.concatenate([[1.0], precision])
-        return float(np.trapz(p, r))
+        return float(np.trapezoid(p, r))
 
     def average_precision(
         self, scores: Sequence[float], labels: Sequence[int]
