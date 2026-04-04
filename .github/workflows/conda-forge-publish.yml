@@ -4,21 +4,25 @@ on:
   release:
     types: [published]
   push:
-    branches: [conda, refactor]
+    branches: [conda, refactor, release]
 
 permissions:
   contents: read
 
 jobs:
   build:
-    name: Build (${{ matrix.os }})
-    runs-on: ${{ matrix.os }}
+    name: Build (${{ matrix.label }})
+    runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
       matrix:
-        os:
-          - ubuntu-latest
-          - macos-14
+        include:
+          - label: linux-64
+            runner: ubuntu-latest
+          - label: osx-64
+            runner: macos-13
+          - label: osx-arm64
+            runner: macos-14
 
     steps:
       - name: Checkout code
@@ -48,9 +52,11 @@ jobs:
           rm -rf conda-bld || true
           mkdir -p conda-bld
 
-          conda-build recipe \
-            --output-folder ./conda-bld \
-            --no-anaconda-upload
+          if [ -d recipe ]; then
+            conda-build recipe --output-folder ./conda-bld --no-anaconda-upload
+          else
+            conda-build . --output-folder ./conda-bld --no-anaconda-upload
+          fi
 
           echo "Built files:"
           find conda-bld -type f \( -name "*.conda" -o -name "*.tar.bz2" \) -print
@@ -58,12 +64,11 @@ jobs:
       - name: Upload built packages as artifact
         uses: actions/upload-artifact@v4
         with:
-          name: conda-packages-${{ matrix.os }}
+          name: conda-packages-${{ matrix.label }}
           path: conda-bld/
           if-no-files-found: error
 
   publish_release:
-    name: Upload release packages
     needs: build
     if: github.event_name == 'release'
     runs-on: ubuntu-latest
@@ -97,12 +102,10 @@ jobs:
                 --user tieulongphan \
                 --label main \
                 --no-progress \
-                --force \
                 "$pkg"
             done
 
   publish_beta:
-    name: Upload beta packages
     needs: build
     if: github.event_name == 'push' && github.ref == 'refs/heads/refactor'
     runs-on: ubuntu-latest
@@ -136,6 +139,5 @@ jobs:
                 --user tieulongphan \
                 --label beta \
                 --no-progress \
-                --force \
                 "$pkg"
             done
