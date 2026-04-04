@@ -1,3 +1,4 @@
+import sys
 import json
 import tempfile
 import unittest
@@ -82,6 +83,8 @@ class DummyBackendNoSetExecutable(DummyBackend):
 
 class TestSingleDock(unittest.TestCase):
     def setUp(self) -> None:
+        if not sys.platform.startswith("linux"):
+            self.skipTest("Linux only")
         self.tmpdir = tempfile.TemporaryDirectory()
         self.tmp = Path(self.tmpdir.name)
 
@@ -372,6 +375,8 @@ class TestSingleDock(unittest.TestCase):
 class TestSingleDockQVinaReal(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
+        if not sys.platform.startswith("linux"):
+            cls.skipTest("Linux only")
         cls.qvina_exe = True
         cls.receptor = Path("./Data/testcase/4WKQ/receptor/4WKQ.pdbqt")
         cls.ligand = Path("./Data/testcase/4WKQ/ligand/erlotinib.pdbqt")

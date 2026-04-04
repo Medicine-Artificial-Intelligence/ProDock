@@ -1,5 +1,5 @@
 {% set name = "prodock" %}
-{% set version = "0.1.1d" %}
+{% set version = "0.1.1e" %}
 
 package:
   name: {{ name | lower }}
@@ -15,12 +15,12 @@ build:
 
 requirements:
   host:
-    - python >=3.11,<3.12
+    - python >=3.11,<3.14
     - pip
     - hatchling
 
   run:
-    - python >=3.11,<3.12
+    - python >=3.11,<3.14
     - rdkit >=2025.03.5
     - prolif >=2.0.3
     - meeko >=0.6.1
