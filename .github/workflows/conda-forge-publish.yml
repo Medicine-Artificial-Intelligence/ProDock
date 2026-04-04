@@ -11,32 +11,49 @@ permissions:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    name: Build (${{ matrix.label }})
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-latest
+            label: linux-64
+          - runner: windows-latest
+            label: win-64
+          - runner: macos-15-intel
+            label: osx-64
+          # Add this too if you also want Apple Silicon:
+          # - runner: macos-latest
+          #   label: osx-arm64
+
+    defaults:
+      run:
+        shell: bash -el {0}
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Setup Miniconda
-        uses: conda-incubator/setup-miniconda@v2
+      - name: Setup Miniforge
+        uses: conda-incubator/setup-miniconda@v3
         with:
-          channels: conda-forge
+          miniforge-version: latest
           auto-update-conda: true
-          auto-activate-base: true
+          activate-environment: build
+          python-version: "3.11"
+          channels: conda-forge
 
-      - name: Create build environment (conda-build + anaconda-client)
+      - name: Install build tools
         run: |
-          # ensure conda functions are available for this shell
-          source "$(conda info --base)/etc/profile.d/conda.sh"
-          conda create -n build -y -c conda-forge python=3.11 "conda-build>=3.21" anaconda-client
-          conda activate build
+          conda install -n build -y -c conda-forge "conda-build>=3.21" anaconda-client
+          conda info
           conda info --envs
 
       - name: Build conda package(s)
         run: |
-          source "$(conda info --base)/etc/profile.d/conda.sh"
-          conda activate build
           rm -rf conda-bld || true
           mkdir -p conda-bld
 
@@ -52,7 +69,7 @@ jobs:
       - name: Upload built packages as artifact
         uses: actions/upload-artifact@v4
         with:
-          name: conda-packages
+          name: conda-packages-${{ matrix.label }}
           path: conda-bld/
 
   publish_release:
@@ -60,11 +77,12 @@ jobs:
     if: github.event_name == 'release'
     runs-on: ubuntu-latest
     steps:
-      - name: Download built packages
+      - name: Download all built packages
         uses: actions/download-artifact@v4
         with:
-          name: conda-packages
+          pattern: conda-packages-*
           path: conda-bld
+          merge-multiple: true
 
       - name: Install/upgrade Anaconda client
         run: python3 -m pip install --upgrade anaconda-client
@@ -75,14 +93,18 @@ jobs:
         run: |
           set -euo pipefail
           if [ -z "${ANACONDA_TOKEN:-}" ]; then
-            echo "ANACONDA_TOKEN is not set"; exit 1
+            echo "ANACONDA_TOKEN is not set"
+            exit 1
           fi
 
-          # find packages and upload, robust for filenames with spaces/newlines
           find conda-bld -type f \( -name "*.conda" -o -name "*.tar.bz2" \) -print0 | \
             while IFS= read -r -d '' pkg; do
               echo "Uploading: $pkg"
-              anaconda -t "${ANACONDA_TOKEN}" upload --user tieulongphan --label main --no-progress "$pkg"
+              anaconda -t "${ANACONDA_TOKEN}" upload \
+                --user tieulongphan \
+                --label main \
+                --no-progress \
+                "$pkg"
             done
 
   publish_beta:
@@ -90,11 +112,12 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/refactor'
     runs-on: ubuntu-latest
     steps:
-      - name: Download built packages
+      - name: Download all built packages
         uses: actions/download-artifact@v4
         with:
-          name: conda-packages
+          pattern: conda-packages-*
           path: conda-bld
+          merge-multiple: true
 
       - name: Install/upgrade Anaconda client
         run: python3 -m pip install --upgrade anaconda-client
@@ -105,11 +128,16 @@ jobs:
         run: |
           set -euo pipefail
           if [ -z "${ANACONDA_TOKEN:-}" ]; then
-            echo "ANACONDA_TOKEN is not set"; exit 1
+            echo "ANACONDA_TOKEN is not set"
+            exit 1
           fi
 
           find conda-bld -type f \( -name "*.conda" -o -name "*.tar.bz2" \) -print0 | \
             while IFS= read -r -d '' pkg; do
               echo "Uploading: $pkg"
-              anaconda -t "${ANACONDA_TOKEN}" upload --user tieulongphan --label beta --no-progress "$pkg"
+              anaconda -t "${ANACONDA_TOKEN}" upload \
+                --user tieulongphan \
+                --label beta \
+                --no-progress \
+                "$pkg"
             done

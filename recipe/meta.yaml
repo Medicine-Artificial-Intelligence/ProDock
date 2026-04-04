@@ -1,18 +1,18 @@
 {% set name = "prodock" %}
-{% set version = "0.1.1" %}
+{% set version = "0.1.1b1" %}
 
 package:
   name: {{ name | lower }}
   version: {{ version }}
 
 source:
-  # build from the repository root (adjust if your recipe is elsewhere)
-  path: ..
+  path: .
 
 build:
   number: 0
-  # do not mark as noarch because we include compiled/binary runtime deps
-  # install the package wheel into the build PREFIX using pip / hatchling
+  noarch: python
+  entry_points:
+    - prodock=prodock.cli:main
   script: |
     {{ PYTHON }} -m pip install . --no-deps --ignore-installed -vv
 
@@ -44,8 +44,9 @@ test:
     - pip
   commands:
     - python -c "import prodock; print('prodock import ok')"
-    - python -c "import prodock; import prodock.cli"
+    - python -c "import prodock.cli"
     - prodock --help
+    - pip check
 
 about:
   home: https://github.com/Medicine-Artificial-Intelligence/ProDock
