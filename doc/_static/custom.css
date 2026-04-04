@@ -1157,3 +1157,226 @@ html[data-theme="dark"] .pd-api-card:hover {
     grid-template-columns: 1fr;
   }
 }
+
+.pd-panel {
+  border: 1px solid var(--pst-color-border, #d9dee5);
+  border-radius: 16px;
+  background: var(--pst-color-background, #fff);
+  padding: 1rem 1.15rem;
+  margin: 0.8rem 0 1.15rem 0;
+}
+
+.pd-panel-hero h2 {
+  margin: 0.3rem 0 0.45rem 0;
+  font-size: 1.45rem;
+  line-height: 1.2;
+}
+
+.pd-panel-hero p {
+  margin: 0;
+}
+
+.pd-eyebrow {
+  display: inline-block;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--pst-color-primary, #2a6df4);
+}
+
+/* diagram */
+.pd-diagram-wrap {
+  margin: 1rem 0 1.5rem 0;
+  overflow-x: auto;
+  padding-bottom: 0.4rem;
+}
+
+.pd-diagram-stage {
+  position: relative;
+  min-width: 1470px;
+  height: 300px;
+}
+
+.pd-diagram-main {
+  display: grid;
+  grid-template-columns: 190px 28px 190px 28px 190px 28px 210px 28px 190px 28px 190px;
+  align-items: start;
+  gap: 0;
+  width: 1470px;
+}
+
+.pd-link {
+  position: relative;
+  min-height: 145px;
+}
+
+.pd-link-arrow::before {
+  content: "";
+  position: absolute;
+  left: 4px;
+  right: 10px;
+  top: 72px;
+  height: 2px;
+  background: var(--pst-color-border, #cfd8e3);
+}
+
+.pd-link-arrow::after {
+  content: "";
+  position: absolute;
+  right: 2px;
+  top: 67px;
+  border-left: 8px solid var(--pst-color-border, #cfd8e3);
+  border-top: 6px solid transparent;
+  border-bottom: 6px solid transparent;
+}
+
+.pd-node {
+  position: relative;
+  border: 1px solid var(--pst-color-border, #d9dee5);
+  border-radius: 16px;
+  background: var(--pst-color-background, #fff);
+  padding: 0.95rem 1rem;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.04);
+}
+
+.pd-node-main {
+  min-height: 145px;
+}
+
+.pd-node-side {
+  width: 250px;
+  min-height: 112px;
+}
+
+.pd-node h3 {
+  margin: 0.22rem 0 0.35rem 0;
+  font-size: 1.02rem;
+  line-height: 1.2;
+}
+
+.pd-node p {
+  margin: 0;
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+
+.pd-node-kicker {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--pst-color-primary, #2a6df4);
+}
+
+.pd-node-input {
+  background:
+    linear-gradient(180deg, rgba(120, 140, 160, 0.06), rgba(120, 140, 160, 0.015)),
+    var(--pst-color-background, #fff);
+}
+
+.pd-node-output {
+  background:
+    linear-gradient(180deg, rgba(46, 160, 67, 0.08), rgba(46, 160, 67, 0.015)),
+    var(--pst-color-background, #fff);
+}
+
+.pd-node-branch-source {
+  border-color: color-mix(in srgb, var(--pst-color-primary, #2a6df4) 35%, #d9dee5);
+  box-shadow: 0 10px 24px rgba(42, 109, 244, 0.08);
+}
+
+.pd-branch-arrow {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  top: 100%;
+  width: 2px;
+  height: 54px;
+  background: var(--pst-color-border, #cfd8e3);
+}
+
+.pd-branch-arrow::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: -8px;
+  border-top: 8px solid var(--pst-color-border, #cfd8e3);
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+}
+
+.pd-branch-output {
+  position: absolute;
+  left: 667px;
+  top: 210px;
+  width: 250px;
+  display: flex;
+  justify-content: center;
+}
+
+/* object legend */
+.pd-legend-grid {
+  display: grid;
+  gap: 10px;
+  margin: 1rem 0 1.2rem 0;
+}
+
+.pd-legend-box {
+  display: grid;
+  grid-template-columns: 46px 1fr;
+  gap: 12px;
+  align-items: start;
+  border: 1px solid var(--pst-color-border, #d9dee5);
+  border-radius: 14px;
+  background: var(--pst-color-background, #fff);
+  padding: 0.85rem 1rem;
+}
+
+.pd-legend-icon {
+  width: 46px;
+  height: 46px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  border: 1px solid var(--pst-color-border, #d9dee5);
+  background: rgba(127, 127, 127, 0.06);
+}
+
+.pd-legend-box h3 {
+  margin: 0 0 0.2rem 0;
+  font-size: 1.02rem;
+}
+
+.pd-legend-box p {
+  margin: 0;
+}
+
+/* dark mode */
+html[data-theme="dark"] .pd-panel,
+html[data-theme="dark"] .pd-node,
+html[data-theme="dark"] .pd-legend-box {
+  border-color: #3a4657;
+}
+
+html[data-theme="dark"] .pd-link-arrow::before,
+html[data-theme="dark"] .pd-branch-arrow {
+  background: #556377;
+}
+
+html[data-theme="dark"] .pd-link-arrow::after {
+  border-left-color: #556377;
+}
+
+html[data-theme="dark"] .pd-branch-arrow::after {
+  border-top-color: #556377;
+}
+
+html[data-theme="dark"] .pd-legend-icon {
+  border-color: #3a4657;
+  background: rgba(255, 255, 255, 0.04);
+}

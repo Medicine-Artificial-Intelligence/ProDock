@@ -1,0 +1,12 @@
+{
+    "ligands": [
+    {
+        "id": "erlotinib",
+        "smiles": "COCCOc1cc2c(ncnc2cc1OCCOC)Nc1cccc(c1)C#C"
+    },
+    {
+        "id": "gefitinib",
+        "smiles": "COc1cc2ncnc(c2cc1OCCCN1CCOCC1)Nc1ccc(c(c1)Cl)F"
+    }
+    ]
+}

@@ -1,0 +1,11 @@
+{
+    "receptors": [
+    {
+        "pdb_id": "4WKQ",
+        "receptor_name": "EGFR_4WKQ",
+        "ligand_code": "IRE",
+        "chains": ["A"],
+        "cofactors": []
+    }
+    ]
+}

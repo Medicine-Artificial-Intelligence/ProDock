@@ -71,16 +71,15 @@ class PDBEngine:
 
     .. code-block:: python
 
-        from pathlib import Path
         from prodock.structure.pdb_engine import PDBEngine
-
+        from pathlib import Path
         engine = (
             PDBEngine(
-                pdb_id="1ABC",
-                base_out=Path("output"),
+                pdb_id="1M17",
+                base_out=Path("tutorial/1M17"),
                 chains=["A"],
-                ligand_code="LIG",
-                cofactors=["MG", "ZN"],
+                ligand_code="AQ4",
+                cofactors=[],
             )
             .run_all()
         )
@@ -96,10 +95,11 @@ class PDBEngine:
     .. code-block:: python
 
         engine = PDBEngine(
-            pdb_id="2XYZ",
-            base_out=Path("output"),
-            chains=["A", "B"],
-            ligand_code="ATP",
+            pdb_id="1M17",
+                base_out=Path("tutorial/1M17"),
+                chains=["A"],
+                ligand_code="AQ4",
+                cofactors=[],
         )
 
         (
