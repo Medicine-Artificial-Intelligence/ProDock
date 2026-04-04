@@ -66,6 +66,7 @@ jobs:
         run: |
           echo "Runner: ${{ matrix.name }}"
           echo "OS: $RUNNER_OS"
+          echo "Arch: $RUNNER_ARCH"
           python -V
           conda info
           conda config --show channels
@@ -79,7 +80,7 @@ jobs:
           )
 
           if [[ "$RUNNER_OS" == "macOS" ]]; then
-            PKGS+=("pymol-open-source")
+            PKGS+=("pymol-open-source" "openbabel")
           fi
 
           conda install -y -c conda-forge "${PKGS[@]}"
@@ -90,7 +91,7 @@ jobs:
 
           if [ -f requirements.txt ]; then
             if [[ "$RUNNER_OS" == "macOS" ]]; then
-              grep -vE '^(openmm|pdbfixer|vina|pymol_open_source|OpenMM|PDBFixer|Vina)([[:space:]]|[<>=!~].*)?$' requirements.txt > reqs-pip.txt || true
+              grep -vE '^(openmm|pdbfixer|vina|pymol_open_source|openbabel-wheel|OpenMM|PDBFixer|Vina)([[:space:]]|[<>=!~].*)?$' requirements.txt > reqs-pip.txt || true
             else
               grep -vE '^(openmm|pdbfixer|vina|OpenMM|PDBFixer|Vina)([[:space:]]|[<>=!~].*)?$' requirements.txt > reqs-pip.txt || true
             fi
@@ -141,7 +142,9 @@ jobs:
         run: |
           echo "Runner: ${{ matrix.name }}"
           echo "OS: $RUNNER_OS"
+          echo "Arch: $RUNNER_ARCH"
           python -V
           which python || true
           python -m pip show pymol-open-source || true
+          python -m pip show openbabel-wheel || true
           conda list || true
