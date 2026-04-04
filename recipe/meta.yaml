@@ -1,20 +1,17 @@
 {% set name = "prodock" %}
-{% set version = "0.1.1b1" %}
+{% set version = "0.1.1b" %}
 
 package:
-  name: {{ name | lower }}
+  name: {{ name|lower }}
   version: {{ version }}
 
 source:
-  path: .
+  path: ..
 
 build:
   number: 0
-  noarch: python
-  entry_points:
-    - prodock=prodock.cli:main
-  script: |
-    {{ PYTHON }} -m pip install . --no-deps --ignore-installed -vv
+  skip: true  # [win]
+  script: "{{ PYTHON }} -m pip install . --no-deps --no-build-isolation -vv"
 
 requirements:
   host:
@@ -24,20 +21,20 @@ requirements:
 
   run:
     - python >=3.11,<3.12
+    - tqdm
     - rdkit >=2025.03.5
-    - prolif >=2.0.3
+    - vina  # [not win]
+    - pandas
     - meeko >=0.6.1
     - py3dmol >=2.5.2
-    - pandas
-    - tqdm
     - matplotlib
-    - vina
     - ipywidgets >=8.1.7
     - mdanalysis
+    - openmm ==8.3.1
+    - pdbfixer
     - openbabel >=3.1.1
     - pymol-open-source >=3.1.0
-    - pdbfixer
-    - openmm ==8.3.1
+    - prolif >=2.0.3
 
 test:
   requires:
@@ -52,7 +49,7 @@ about:
   home: https://github.com/Medicine-Artificial-Intelligence/ProDock
   summary: "ProDock — automation utilities for molecular docking workflows."
   license: MIT
-  license_file: LICENSE
+  license_file: ../LICENSE
   dev_url: https://github.com/Medicine-Artificial-Intelligence/ProDock
   doc_url: https://prodock.readthedocs.io/en/latest/
 
