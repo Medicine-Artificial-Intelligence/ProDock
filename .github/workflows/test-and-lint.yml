@@ -15,6 +15,7 @@ env:
   PYTHON_VERSION: "3.11"
   OPENMM_PACKAGE: "openmm=8.3.1"
   PDBFIXER_PACKAGE: "pdbfixer"
+  VINA_PACKAGE: "vina"
   PIP_DISABLE_PIP_VERSION_CHECK: "1"
 
 jobs:
@@ -29,8 +30,6 @@ jobs:
         include:
           - name: Linux (x64)
             runner: ubuntu-latest
-          - name: Windows (x64)
-            runner: windows-latest
           - name: macOS Intel
             runner: macos-15-intel
           - name: macOS Apple Silicon
@@ -49,7 +48,6 @@ jobs:
         with:
           path: |
             ~/.cache/pip
-            ~/AppData/Local/pip/Cache
           key: ${{ runner.os }}-${{ runner.arch }}-pip-${{ hashFiles('requirements*.txt', 'pyproject.toml', 'setup.cfg', 'setup.py') }}
           restore-keys: |
             ${{ runner.os }}-${{ runner.arch }}-pip-
@@ -74,16 +72,17 @@ jobs:
 
       - name: Install conda-managed binary dependencies
         run: |
-          conda install -y \
+          conda install -y -c conda-forge \
             "$OPENMM_PACKAGE" \
-            "$PDBFIXER_PACKAGE"
+            "$PDBFIXER_PACKAGE" \
+            "$VINA_PACKAGE"
 
       - name: Install Python dependencies and package
         run: |
           python -m pip install --upgrade pip setuptools wheel
 
           if [ -f requirements.txt ]; then
-            grep -vE '^(openmm|pdbfixer|OpenMM|PDBFixer)([[:space:]]|[<>=!~].*)?$' requirements.txt > reqs-pip.txt || true
+            grep -vE '^(openmm|pdbfixer|vina|OpenMM|PDBFixer|Vina)([[:space:]]|[<>=!~].*)?$' requirements.txt > reqs-pip.txt || true
             if [ -s reqs-pip.txt ]; then
               python -m pip install -r reqs-pip.txt
             else
