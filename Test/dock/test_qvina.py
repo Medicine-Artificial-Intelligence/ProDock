@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import sys
 import json
 import tempfile
 import unittest
@@ -17,6 +18,8 @@ class TestQVinaEngineUnit(unittest.TestCase):
         """
         Create a temporary workspace for isolated path-based tests.
         """
+        if not sys.platform.startswith("linux"):
+            self.skipTest("Linux only")
         self.tmpdir = tempfile.TemporaryDirectory()
         self.tmp = Path(self.tmpdir.name)
 

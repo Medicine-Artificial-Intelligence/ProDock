@@ -406,7 +406,11 @@ class TestConvertPoseTree(unittest.TestCase):
                 outputs = convert.convert_pose_tree([root], engine="vina")
 
                 self.assertEqual(
-                    outputs, [a.with_suffix(".sdf"), b.with_suffix(".sdf")]
+                    [p.resolve() for p in outputs],
+                    [
+                        a.with_suffix(".sdf").resolve(),
+                        b.with_suffix(".sdf").resolve(),
+                    ],
                 )
                 self.assertEqual(len(calls), 2)
         finally:
