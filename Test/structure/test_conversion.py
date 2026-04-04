@@ -1,4 +1,3 @@
-# Test/structure/test_conversion.py
 from __future__ import annotations
 
 import shutil
@@ -21,6 +20,14 @@ from prodock.structure.conversion import (
 
 TEST_PDB = Path("Data/testcase/4WKQ/receptor/4WKQ.pdb")
 TEST_LIG = Path("Data/testcase/4WKQ/ligand/IRE.sdf")
+
+
+def _resolved(path: str | Path) -> Path:
+    return Path(path).resolve()
+
+
+def _resolved_list(paths) -> list[Path]:
+    return [Path(p).resolve() for p in paths]
 
 
 def _read_text(path: Path) -> str:
@@ -724,7 +731,7 @@ class TestPublicConversionWrappersUnit(unittest.TestCase):
             backend="meeko",
         )
 
-        self.assertEqual(result, out)
+        self.assertEqual(_resolved(result), _resolved(out))
         mock_meeko.assert_called_once()
 
     @patch("prodock.structure.conversion._meeko_pdb_to_pdbqt")
@@ -739,7 +746,7 @@ class TestPublicConversionWrappersUnit(unittest.TestCase):
             backend="meeko",
         )
 
-        self.assertEqual(result, out)
+        self.assertEqual(_resolved(result), _resolved(out))
         mock_meeko.assert_called_once()
 
     @patch("prodock.structure.conversion.convert_with_obabel")
@@ -759,7 +766,7 @@ class TestPublicConversionWrappersUnit(unittest.TestCase):
             flexibility=False,
         )
 
-        self.assertEqual(result, out)
+        self.assertEqual(_resolved(result), _resolved(out))
         mock_obabel.assert_called_once()
         _, kwargs = mock_obabel.call_args
         self.assertTrue(kwargs["validate_receptor"])
@@ -781,7 +788,7 @@ class TestPublicConversionWrappersUnit(unittest.TestCase):
             backend="obabel",
         )
 
-        self.assertEqual(result, out)
+        self.assertEqual(_resolved(result), _resolved(out))
         _, kwargs = mock_obabel.call_args
         self.assertFalse(kwargs["validate_receptor"])
 
@@ -797,7 +804,7 @@ class TestPublicConversionWrappersUnit(unittest.TestCase):
             backend="mgltools",
         )
 
-        self.assertEqual(result, out)
+        self.assertEqual(_resolved(result), _resolved(out))
         mock_mgl.assert_called_once()
 
     @patch("prodock.structure.conversion.convert_with_obabel")
@@ -813,7 +820,7 @@ class TestPublicConversionWrappersUnit(unittest.TestCase):
 
         result = pdbqt_to_pdb(inp, out, backend="obabel")
 
-        self.assertEqual(result, out)
+        self.assertEqual(_resolved(result), _resolved(out))
         mock_obabel.assert_called_once_with(
             inp,
             out,
@@ -851,7 +858,7 @@ class TestPublicConversionWrappersUnit(unittest.TestCase):
 
         result = sdf_to_pdb(TEST_LIG, out, backend="rdkit")
 
-        self.assertEqual(result, out)
+        self.assertEqual(_resolved(result), _resolved(out))
         mock_supplier.assert_called_once()
         mock_mol_to_pdb.assert_called_once_with(mol, str(out))
         self.assertTrue(out.exists())
@@ -904,8 +911,8 @@ class TestPublicConversionWrappersUnit(unittest.TestCase):
         pdb_out = sdf_to_pdb(TEST_LIG, pdb_path, backend="rdkit")
         sdf_out = pdb_to_sdf(pdb_out, sdf_path, backend="rdkit")
 
-        self.assertEqual(pdb_out, pdb_path)
-        self.assertEqual(sdf_out, sdf_path)
+        self.assertEqual(_resolved(pdb_out), _resolved(pdb_path))
+        self.assertEqual(_resolved(sdf_out), _resolved(sdf_path))
 
         self.assertTrue(pdb_path.exists())
         self.assertTrue(sdf_path.exists())
@@ -930,7 +937,7 @@ class TestPublicConversionWrappersUnit(unittest.TestCase):
 
         result = sdf_to_pdb(TEST_LIG, out, backend="obabel")
 
-        self.assertEqual(result, out)
+        self.assertEqual(_resolved(result), _resolved(out))
         mock_obabel.assert_called_once_with(
             TEST_LIG.resolve(),
             out,
@@ -945,7 +952,7 @@ class TestPublicConversionWrappersUnit(unittest.TestCase):
 
         result = sdf_to_pdbqt(TEST_LIG, out, backend="meeko")
 
-        self.assertEqual(result, out)
+        self.assertEqual(_resolved(result), _resolved(out))
         mock_meeko.assert_called_once()
 
     @patch("prodock.structure.conversion.convert_with_obabel")
@@ -959,7 +966,7 @@ class TestPublicConversionWrappersUnit(unittest.TestCase):
 
         result = sdf_to_pdbqt(TEST_LIG, out, backend="obabel")
 
-        self.assertEqual(result, out)
+        self.assertEqual(_resolved(result), _resolved(out))
         mock_obabel.assert_called_once()
         _, kwargs = mock_obabel.call_args
         self.assertFalse(kwargs["validate_receptor"])
@@ -971,7 +978,7 @@ class TestPublicConversionWrappersUnit(unittest.TestCase):
 
         result = sdf_to_pdbqt(TEST_LIG, out, backend="mgltools")
 
-        self.assertEqual(result, out)
+        self.assertEqual(_resolved(result), _resolved(out))
         mock_mgl.assert_called_once()
 
     @patch("prodock.structure.conversion.pdb_to_pdbqt")
@@ -986,7 +993,7 @@ class TestPublicConversionWrappersUnit(unittest.TestCase):
             mode="receptor",
         )
 
-        self.assertEqual(result, out)
+        self.assertEqual(_resolved(result), _resolved(out))
         mock_pdb_to_pdbqt.assert_called_once()
 
     @patch("prodock.structure.conversion.sdf_to_pdbqt")
@@ -1001,7 +1008,7 @@ class TestPublicConversionWrappersUnit(unittest.TestCase):
             mode="ligand",
         )
 
-        self.assertEqual(result, out)
+        self.assertEqual(_resolved(result), _resolved(out))
         mock_sdf_to_pdbqt.assert_called_once()
 
     def test_ensure_pdbqt_returns_existing_pdbqt_as_is(self) -> None:
@@ -1014,7 +1021,7 @@ class TestPublicConversionWrappersUnit(unittest.TestCase):
             backend="obabel",
         )
 
-        self.assertEqual(result, inp.resolve())
+        self.assertEqual(_resolved(result), _resolved(inp))
 
     @patch("prodock.structure.conversion.convert_with_obabel")
     def test_ensure_pdbqt_routes_mol2_via_obabel(self, mock_obabel) -> None:
@@ -1024,6 +1031,7 @@ class TestPublicConversionWrappersUnit(unittest.TestCase):
         expected = outdir / "lig.pdbqt"
 
         def _fake(*args, **kwargs):
+            expected.parent.mkdir(parents=True, exist_ok=True)
             expected.write_text("ATOM\n", encoding="utf-8")
 
         mock_obabel.side_effect = _fake
@@ -1035,7 +1043,7 @@ class TestPublicConversionWrappersUnit(unittest.TestCase):
             mode="ligand",
         )
 
-        self.assertEqual(result, expected)
+        self.assertEqual(_resolved(result), _resolved(expected))
         mock_obabel.assert_called_once()
 
     def test_ensure_pdbqt_mol2_non_obabel_not_supported(self) -> None:
@@ -1056,7 +1064,7 @@ class TestPublicConversionWrappersUnit(unittest.TestCase):
 
         result = pdb_to_sdf(TEST_PDB, out, backend="obabel")
 
-        self.assertEqual(result, out)
+        self.assertEqual(_resolved(result), _resolved(out))
         mock_obabel.assert_called_once_with(
             TEST_PDB.resolve(),
             out,
@@ -1101,7 +1109,7 @@ class TestPublicConversionWrappersUnit(unittest.TestCase):
 
         result = pdb_to_sdf(ligand_pdb, out, backend="rdkit")
 
-        self.assertEqual(result, out)
+        self.assertEqual(_resolved(result), _resolved(out))
         mock_mol_from_pdb.assert_called_once_with(
             str(ligand_pdb.resolve()), removeHs=False
         )
@@ -1123,7 +1131,7 @@ class TestPublicConversionWrappersUnit(unittest.TestCase):
 
         result = pdbqt_to_sdf(inp, out, backend="obabel")
 
-        self.assertEqual(result, out)
+        self.assertEqual(_resolved(result), _resolved(out))
         mock_obabel.assert_called_once_with(
             inp.resolve(),
             out,
@@ -1167,8 +1175,8 @@ class TestPublicConversionWrappersOpenBabelIntegration(unittest.TestCase):
         out1 = sdf_to_pdb(TEST_LIG, pdb_path, backend="obabel")
         out2 = pdb_to_pdbqt(pdb_path, pdbqt_path, mode="ligand", backend="obabel")
 
-        self.assertEqual(out1, pdb_path)
-        self.assertEqual(out2, pdbqt_path)
+        self.assertEqual(_resolved(out1), _resolved(pdb_path))
+        self.assertEqual(_resolved(out2), _resolved(pdbqt_path))
         self.assertTrue(pdb_path.exists())
         self.assertTrue(pdbqt_path.exists())
 
@@ -1183,7 +1191,11 @@ class TestPublicConversionWrappersOpenBabelIntegration(unittest.TestCase):
         out1 = pdb_to_sdf(TEST_PDB, sdf_path, backend="obabel")
         out2 = ensure_pdbqt(TEST_PDB, pdbqt_dir, backend="obabel", mode="receptor")
 
-        self.assertEqual(out1, sdf_path)
+        self.assertEqual(_resolved(out1), _resolved(sdf_path))
         self.assertTrue(sdf_path.exists())
         self.assertTrue(out2.exists())
         self.assertEqual(out2.suffix.lower(), ".pdbqt")
+
+
+if __name__ == "__main__":
+    unittest.main()
