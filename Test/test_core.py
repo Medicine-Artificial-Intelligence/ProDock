@@ -24,8 +24,6 @@ SOURCE_MULTI = REPO_ROOT / "Data" / "testcase" / "Multi"
 IS_LINUX = sys.platform.startswith("linux")
 
 
-
-
 def _reset_pymol_if_available() -> None:
     """Best-effort reset of leaked PyMOL state."""
     try:
@@ -42,6 +40,7 @@ def _reset_pymol_if_available() -> None:
             pass
     except Exception:
         pass
+
 
 @unittest.skipUnless(IS_LINUX, "QVina integration tests run only on Linux")
 class TestProDockPipeline(unittest.TestCase):
