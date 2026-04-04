@@ -8,9 +8,10 @@ from pathlib import Path
 
 from prodock.dock.qvina import QVinaEngine
 
-QVINA_AVAILABLE = True
+IS_LINUX = sys.platform.startswith("linux")
 
 
+@unittest.skipUnless(IS_LINUX, "QVina integration tests run only on Linux")
 class TestQVinaEngineUnit(unittest.TestCase):
     """Unit tests for :class:`prodock.dock.engine.qvina.QVinaEngine`."""
 
@@ -18,8 +19,6 @@ class TestQVinaEngineUnit(unittest.TestCase):
         """
         Create a temporary workspace for isolated path-based tests.
         """
-        if not sys.platform.startswith("linux"):
-            self.skipTest("Linux only")
         self.tmpdir = tempfile.TemporaryDirectory()
         self.tmp = Path(self.tmpdir.name)
 
@@ -332,9 +331,7 @@ class TestQVinaEngineUnit(unittest.TestCase):
         self.assertEqual(Path(resolved), exe.resolve())
 
 
-@unittest.skipUnless(
-    QVINA_AVAILABLE, "qvina executable is required for integration tests"
-)
+@unittest.skipUnless(IS_LINUX, "QVina integration tests run only on Linux")
 class TestQVinaEngineIntegration(unittest.TestCase):
     """
     Integration tests for :class:`prodock.dock.engine.qvina.QVinaEngine`.
