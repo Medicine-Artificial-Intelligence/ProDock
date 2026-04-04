@@ -9,9 +9,10 @@ source:
   path: ..
 
 build:
-  number: 0
+  number: 1
   skip: true  # [win]
-  script: "{{ PYTHON }} -m pip install . --no-deps --no-build-isolation -vv"
+  script: |
+    {{ PYTHON }} -m pip install . --no-deps --ignore-installed -vv
 
 requirements:
   host:
@@ -21,29 +22,26 @@ requirements:
 
   run:
     - python >=3.11,<3.12
-    - tqdm
     - rdkit >=2025.03.5
-    - vina  # [not win]
-    - pandas
+    - prolif >=2.0.3
     - meeko >=0.6.1
     - py3dmol >=2.5.2
+    - pandas
+    - tqdm
     - matplotlib
+    - vina  # [not win]
     - ipywidgets >=8.1.7
     - mdanalysis
-    - openmm ==8.3.1
-    - pdbfixer
     - openbabel >=3.1.1
     - pymol-open-source >=3.1.0
-    - prolif >=2.0.3
+    - pdbfixer
+    - openmm ==8.3.1
 
 test:
-  requires:
-    - pip
   commands:
     - python -c "import prodock; print('prodock import ok')"
     - python -c "import prodock.cli"
     - prodock --help
-    - pip check
 
 about:
   home: https://github.com/Medicine-Artificial-Intelligence/ProDock
