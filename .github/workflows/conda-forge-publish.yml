@@ -4,7 +4,11 @@ on:
   release:
     types: [published]
   push:
-    branches: [conda, refactor, release]
+    branches:
+      - conda
+      - refactor
+      - release
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -17,12 +21,12 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - label: linux-64
+          - label: Linux
             runner: ubuntu-latest
-          - label: osx-64
-            runner: macos-13
-          - label: osx-arm64
-            runner: macos-14
+          - label: macOS Intel
+            runner: macos-26-intel
+          - label: macOS Apple Silicon
+            runner: macos-26
 
     steps:
       - name: Checkout code
@@ -45,7 +49,14 @@ jobs:
           conda activate build
           conda info --envs
 
-      - name: Build conda package
+      - name: Debug GitHub context
+        shell: bash -l {0}
+        run: |
+          echo "event_name=${{ github.event_name }}"
+          echo "ref=${{ github.ref }}"
+          echo "ref_name=${{ github.ref_name }}"
+
+      - name: Build conda package(s)
         shell: bash -l {0}
         run: |
           conda activate build
@@ -69,6 +80,7 @@ jobs:
           if-no-files-found: error
 
   publish_release:
+    name: Upload release packages
     needs: build
     if: github.event_name == 'release'
     runs-on: ubuntu-latest
@@ -102,12 +114,14 @@ jobs:
                 --user tieulongphan \
                 --label main \
                 --no-progress \
+                --force \
                 "$pkg"
             done
 
   publish_beta:
+    name: Upload beta packages
     needs: build
-    if: github.event_name == 'push' && github.ref == 'refs/heads/refactor'
+    if: github.event_name == 'push' && github.ref_name == 'refactor'
     runs-on: ubuntu-latest
 
     steps:
@@ -120,6 +134,12 @@ jobs:
 
       - name: Install/upgrade Anaconda client
         run: python3 -m pip install --upgrade anaconda-client
+
+      - name: Debug GitHub context
+        run: |
+          echo "event_name=${{ github.event_name }}"
+          echo "ref=${{ github.ref }}"
+          echo "ref_name=${{ github.ref_name }}"
 
       - name: Upload packages to Anaconda.org (beta)
         env:
@@ -139,5 +159,6 @@ jobs:
                 --user tieulongphan \
                 --label beta \
                 --no-progress \
+                --force \
                 "$pkg"
             done
