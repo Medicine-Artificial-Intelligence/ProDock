@@ -1,16 +1,15 @@
 {% set name = "prodock" %}
-{% set version = "0.1.1b" %}
+{% set version = "0.1.1c" %}
 
 package:
-  name: {{ name|lower }}
+  name: {{ name | lower }}
   version: {{ version }}
 
 source:
   path: ..
 
 build:
-  number: 1
-  skip: true  # [win]
+  number: 3
   script: |
     {{ PYTHON }} -m pip install . --no-deps --ignore-installed -vv
 
@@ -29,7 +28,7 @@ requirements:
     - pandas
     - tqdm
     - matplotlib
-    - vina  # [not win]
+    - vina
     - ipywidgets >=8.1.7
     - mdanalysis
     - openbabel >=3.1.1
@@ -40,7 +39,7 @@ requirements:
 test:
   commands:
     - python -c "import prodock; print('prodock import ok')"
-    - python -c "import prodock.cli"
+    - python -c "import prodock; import prodock.cli"
     - prodock --help
 
 about:
