@@ -6,7 +6,6 @@ on:
   push:
     branches:
       - conda
-      - refactor
       - release
   workflow_dispatch:
 
@@ -121,7 +120,7 @@ jobs:
   publish_beta:
     name: Upload beta packages
     needs: build
-    if: github.event_name == 'push' && github.ref_name == 'refactor'
+    if: github.event_name == 'push' && github.ref_name == 'conda'
     runs-on: ubuntu-latest
 
     steps:
