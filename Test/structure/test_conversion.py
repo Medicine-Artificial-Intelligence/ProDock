@@ -822,8 +822,8 @@ class TestPublicConversionWrappersUnit(unittest.TestCase):
 
         self.assertEqual(_resolved(result), _resolved(out))
         mock_obabel.assert_called_once_with(
-            inp,
-            out,
+            inp.resolve(),
+            out.resolve(),
             extra_args=None,
             validate_receptor=False,
         )
@@ -860,7 +860,7 @@ class TestPublicConversionWrappersUnit(unittest.TestCase):
 
         self.assertEqual(_resolved(result), _resolved(out))
         mock_supplier.assert_called_once()
-        mock_mol_to_pdb.assert_called_once_with(mol, str(out))
+        mock_mol_to_pdb.assert_called_once_with(mol, str(out.resolve()))
         self.assertTrue(out.exists())
 
     @unittest.skipUnless(TEST_LIG.exists(), f"Missing test ligand: {TEST_LIG}")
@@ -918,11 +918,11 @@ class TestPublicConversionWrappersUnit(unittest.TestCase):
         self.assertTrue(sdf_path.exists())
 
         mock_supplier.assert_called_once()
-        mock_mol_to_pdb.assert_called_once_with(mol_from_sdf, str(pdb_path))
+        mock_mol_to_pdb.assert_called_once_with(mol_from_sdf, str(pdb_path.resolve()))
         mock_mol_from_pdb.assert_called_once_with(
             str(pdb_path.resolve()), removeHs=False
         )
-        mock_sdwriter.assert_called_once_with(str(sdf_path))
+        mock_sdwriter.assert_called_once_with(str(sdf_path.resolve()))
         writer.write.assert_called_once_with(mol_from_pdb)
         writer.close.assert_called_once()
 
@@ -940,7 +940,7 @@ class TestPublicConversionWrappersUnit(unittest.TestCase):
         self.assertEqual(_resolved(result), _resolved(out))
         mock_obabel.assert_called_once_with(
             TEST_LIG.resolve(),
-            out,
+            out.resolve(),
             extra_args=None,
             validate_receptor=False,
         )
@@ -1067,7 +1067,7 @@ class TestPublicConversionWrappersUnit(unittest.TestCase):
         self.assertEqual(_resolved(result), _resolved(out))
         mock_obabel.assert_called_once_with(
             TEST_PDB.resolve(),
-            out,
+            out.resolve(),
             extra_args=None,
             validate_receptor=False,
         )
@@ -1113,7 +1113,7 @@ class TestPublicConversionWrappersUnit(unittest.TestCase):
         mock_mol_from_pdb.assert_called_once_with(
             str(ligand_pdb.resolve()), removeHs=False
         )
-        mock_sdwriter.assert_called_once_with(str(out))
+        mock_sdwriter.assert_called_once_with(str(out.resolve()))
         writer.write.assert_called_once_with(mol)
         writer.close.assert_called_once()
         self.assertTrue(out.exists())
@@ -1134,7 +1134,7 @@ class TestPublicConversionWrappersUnit(unittest.TestCase):
         self.assertEqual(_resolved(result), _resolved(out))
         mock_obabel.assert_called_once_with(
             inp.resolve(),
-            out,
+            out.resolve(),
             extra_args=None,
             validate_receptor=False,
         )
