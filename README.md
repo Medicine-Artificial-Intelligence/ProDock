@@ -14,8 +14,73 @@ Automatic pipeline for molecular modeling
 
 
 **Toolkit for molecular modeling**
-![ProDock](https://raw.githubusercontent.com/Medicine-Artificial-Intelligence/ProDock/main/doc/fig/prodock.png)
+
 For more details on each utility within the repository, please refer to the documentation provided in the respective folders.
+
+![ProDock](https://raw.githubusercontent.com/Medicine-Artificial-Intelligence/ProDock/main/doc/fig/prodock.png)
+
+
+## Overview
+
+**ProDock** is a toolkit for building automated molecular docking workflows. It is designed for campaigns involving multiple receptors, multiple ligands, and multiple docking engines, with support for downstream pose extraction, interaction profiling, visualization, and SQLite-backed result management.
+
+The project aims to provide one consistent workflow for:
+
+- receptor and ligand preparation
+- batch docking across one or more engines
+- pose extraction into standardized tables
+- interaction analysis from docked complexes
+- database storage for poses, scores, and interactions
+- reproducible downstream analysis
+
+This makes ProDock useful both for small docking experiments and for larger benchmark-style or screening-style studies.
+
+## Main capabilities
+
+### Docking workflow
+ProDock supports automated docking workflows across multiple receptor-ligand combinations and can be organized as single-target, multi-ligand, or multi-receptor campaigns.
+
+Typical use cases include:
+
+- one receptor with many ligands
+- many receptors with one ligand set
+- many receptors with many ligands
+- comparison of multiple docking engines on the same campaign
+
+### Post-processing
+After docking, ProDock can parse docking outputs and convert them into structured pose tables with canonical columns such as:
+
+- `receptor_id`
+- `ligand_id`
+- `engine`
+- `pose_rank`
+- `affinity`
+- `mol`
+- `pose_id`
+
+These standardized tables make it easier to compare poses across engines and campaigns.
+
+### Interaction analysis
+ProDock supports protein-ligand interaction extraction and summarization, enabling residue-level interaction profiles for each pose. This is intended for downstream comparison, ranking, and interpretation of docking results.
+
+### Database-backed storage
+ProDock includes SQLite-based storage to keep docking poses and interaction records in a structured and queryable form. This is especially useful when handling many receptors, ligands, docking engines, and poses.
+
+## Database architecture
+
+ProDock stores docking outputs and associated interaction information in a relational SQLite database. This supports scalable querying, reproducible analysis, and easy export into pandas dataframes.
+
+Database architecture figure:
+
+![Database architecture](Data/db.png)
+
+This architecture is intended to support:
+
+- pose-centric storage
+- stable pose identifiers
+- interaction lookup by pose, receptor, ligand, or engine
+- multi-receptor and multi-engine benchmarking workflows
+- clean integration with pandas- and RDKit-based analysis
 
 ## Step-by-Step Installation Guide
 
@@ -111,6 +176,7 @@ git pull
 ## Publication
 
 [**ProDock**]()
+
 
 ## License
 

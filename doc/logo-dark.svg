@@ -1,0 +1,89 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 900" width="900" height="900" fill="none">
+  <defs>
+    <linearGradient id="gMainDark" x1="300" y1="220" x2="650" y2="620" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#4AA8FF"/>
+      <stop offset="0.55" stop-color="#5ED6FF"/>
+      <stop offset="1" stop-color="#91F1F2"/>
+    </linearGradient>
+    <linearGradient id="gDarkDark" x1="250" y1="250" x2="620" y2="700" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#3B88FF"/>
+      <stop offset="1" stop-color="#76D8FF"/>
+    </linearGradient>
+    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="10" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <style>
+      .arrow{fill:url(#gDarkDark)}
+      .label{font-family:Arial, Helvetica, sans-serif;font-weight:700;fill:#BCEBFF}
+    </style>
+  </defs>
+
+  <!-- gears -->
+  <g transform="translate(0,-10)" opacity="0.95">
+    <g transform="translate(320,165) scale(1.05)">
+      <path d="M0-34 L10-34 L16-50 L38-42 L34-24 L44-14 L60-18 L68 4 L54 12 L54 26 L68 34 L60 56 L44 52 L34 62 L38 80 L16 88 L10 72 L0 72 L-8 88 L-30 80 L-26 62 L-36 52 L-52 56 L-60 34 L-46 26 L-46 12 L-60 4 L-52-18 L-36-14 L-26-24 L-30-42 L-8-50 Z" fill="url(#gMainDark)" filter="url(#glow)"/>
+      <circle cx="4" cy="20" r="18" fill="#0E1830" opacity="0.95"/>
+    </g>
+    <g transform="translate(450,145) scale(1.15)">
+      <path d="M0-34 L10-34 L16-50 L38-42 L34-24 L44-14 L60-18 L68 4 L54 12 L54 26 L68 34 L60 56 L44 52 L34 62 L38 80 L16 88 L10 72 L0 72 L-8 88 L-30 80 L-26 62 L-36 52 L-52 56 L-60 34 L-46 26 L-46 12 L-60 4 L-52-18 L-36-14 L-26-24 L-30-42 L-8-50 Z" fill="url(#gMainDark)" filter="url(#glow)"/>
+      <circle cx="4" cy="20" r="18" fill="#0E1830" opacity="0.95"/>
+    </g>
+    <g transform="translate(585,165) scale(1.05)">
+      <path d="M0-34 L10-34 L16-50 L38-42 L34-24 L44-14 L60-18 L68 4 L54 12 L54 26 L68 34 L60 56 L44 52 L34 62 L38 80 L16 88 L10 72 L0 72 L-8 88 L-30 80 L-26 62 L-36 52 L-52 56 L-60 34 L-46 26 L-46 12 L-60 4 L-52-18 L-36-14 L-26-24 L-30-42 L-8-50 Z" fill="url(#gMainDark)" filter="url(#glow)"/>
+      <circle cx="4" cy="20" r="18" fill="#0E1830" opacity="0.95"/>
+    </g>
+  </g>
+
+  <g fill="url(#gDarkDark)" filter="url(#glow)">
+    <path d="M140 285c0-42 37-71 92-71 39 0 67 15 67 39 0 20-15 36-42 36-18 0-27-9-37-9-13 0-21 9-21 19 0 31 44 52 92 52 13 0 24 9 24 24 0 16-12 28-29 28-79 0-146-48-146-118Z"/>
+    <path d="M140 505c0-42 37-71 92-71 39 0 67 15 67 39 0 20-15 36-42 36-18 0-27-9-37-9-13 0-21 9-21 19 0 31 44 52 92 52 13 0 24 9 24 24 0 16-12 28-29 28-79 0-146-48-146-118Z"/>
+  </g>
+
+  <g fill="url(#gMainDark)" filter="url(#glow)">
+    <g transform="translate(0,-20)">
+      <rect x="666" y="301" width="96" height="16" rx="8" transform="rotate(-30 666 301)"/>
+      <rect x="717" y="282" width="78" height="16" rx="8" transform="rotate(35 717 282)"/>
+      <rect x="720" y="323" width="74" height="16" rx="8" transform="rotate(32 720 323)"/>
+      <circle cx="675" cy="327" r="26"/>
+      <circle cx="739" cy="290" r="28"/>
+      <circle cx="795" cy="249" r="24"/>
+      <circle cx="797" cy="349" r="28"/>
+    </g>
+    <g transform="translate(0,185)">
+      <rect x="666" y="301" width="96" height="16" rx="8" transform="rotate(-30 666 301)"/>
+      <rect x="717" y="282" width="78" height="16" rx="8" transform="rotate(35 717 282)"/>
+      <rect x="720" y="323" width="74" height="16" rx="8" transform="rotate(32 720 323)"/>
+      <circle cx="675" cy="327" r="26"/>
+      <circle cx="739" cy="290" r="28"/>
+      <circle cx="795" cy="249" r="24"/>
+      <circle cx="797" cy="349" r="28"/>
+    </g>
+  </g>
+
+  <g class="arrow" opacity="0.98" filter="url(#glow)">
+    <path d="M336 238 L386 321 L355 321 L355 349 L325 349 L325 321 L294 321 Z"/>
+    <path d="M450 214 L480 303 L460 303 L460 349 L430 349 L430 303 L410 303 Z"/>
+    <path d="M564 238 L606 321 L575 321 L575 349 L545 349 L545 321 L514 321 Z"/>
+    <path d="M300 341 L381 377 L360 400 L391 429 L369 451 L337 419 L315 442 Z"/>
+    <path d="M286 504 L381 504 L360 526 L391 556 L369 578 L337 546 L315 568 Z"/>
+    <path d="M300 666 L381 620 L369 651 L398 663 L387 692 L359 681 L347 712 Z"/>
+    <path d="M600 341 L519 377 L540 400 L509 429 L531 451 L563 419 L585 442 Z"/>
+    <path d="M614 504 L519 504 L540 526 L509 556 L531 578 L563 546 L585 568 Z"/>
+    <path d="M600 666 L519 620 L531 651 L502 663 L513 692 L541 681 L553 712 Z"/>
+    <path d="M450 608 L482 724 L458 724 L458 781 L442 781 L442 724 L418 724 Z"/>
+  </g>
+
+  <g filter="url(#glow)">
+    <ellipse cx="450" cy="405" rx="118" ry="46" fill="url(#gMainDark)"/>
+    <path d="M332 405 V505 C332 530 385 548 450 548 C515 548 568 530 568 505 V405" fill="#163B7F"/>
+    <ellipse cx="450" cy="505" rx="118" ry="46" fill="url(#gMainDark)"/>
+    <path d="M332 505 V591 C332 616 385 634 450 634 C515 634 568 616 568 591 V505" fill="#122E62"/>
+    <ellipse cx="450" cy="591" rx="118" ry="46" fill="url(#gMainDark)"/>
+    <ellipse cx="450" cy="405" rx="118" ry="46" fill="none" stroke="#E6FDFF" stroke-width="9" opacity="0.95"/>
+    <ellipse cx="450" cy="505" rx="118" ry="46" fill="none" stroke="#E6FDFF" stroke-width="9" opacity="0.9"/>
+    <ellipse cx="450" cy="591" rx="118" ry="46" fill="none" stroke="#BDEFFF" stroke-width="5" opacity="0.4"/>
+  </g>
+
+  <text x="450" y="862" text-anchor="middle" font-size="92" class="label">ProDock</text>
+</svg>

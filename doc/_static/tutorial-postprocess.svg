@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1220" height="660" viewBox="0 0 1220 660">
+
+<defs>
+  <linearGradient id="bggrad" x1="0" x2="1" y1="0" y2="1">
+    <stop offset="0%" stop-color="#fbfdff"/>
+    <stop offset="100%" stop-color="#eef4f7"/>
+  </linearGradient>
+  <linearGradient id="bluegrad" x1="0" x2="1" y1="0" y2="1">
+    <stop offset="0%" stop-color="#86bddc"/>
+    <stop offset="100%" stop-color="#366c98"/>
+  </linearGradient>
+  <linearGradient id="navygrad" x1="0" x2="1" y1="0" y2="1">
+    <stop offset="0%" stop-color="#2f5d82"/>
+    <stop offset="100%" stop-color="#1c3950"/>
+  </linearGradient>
+  <linearGradient id="ambergrad" x1="0" x2="1" y1="0" y2="1">
+    <stop offset="0%" stop-color="#f6c86d"/>
+    <stop offset="100%" stop-color="#c48d2d"/>
+  </linearGradient>
+  <linearGradient id="sagegrad" x1="0" x2="1" y1="0" y2="1">
+    <stop offset="0%" stop-color="#9ab694"/>
+    <stop offset="100%" stop-color="#6d856d"/>
+  </linearGradient>
+  <linearGradient id="stonegrad" x1="0" x2="1" y1="0" y2="1">
+    <stop offset="0%" stop-color="#c8bcaa"/>
+    <stop offset="100%" stop-color="#8f7c63"/>
+  </linearGradient>
+  <linearGradient id="dbgrad" x1="0" x2="1" y1="0" y2="1">
+    <stop offset="0%" stop-color="#8bc6e8"/>
+    <stop offset="55%" stop-color="#3373ac"/>
+    <stop offset="100%" stop-color="#21517a"/>
+  </linearGradient>
+  <style>
+    .title{font:700 30px Arial, sans-serif; fill:#23435f}
+    .subtitle{font:600 18px Arial, sans-serif; fill:#4579A8}
+    .label{font:700 17px Arial, sans-serif; fill:#27445D}
+    .body{font:400 14px Arial, sans-serif; fill:#5B7282}
+    .small{font:600 13px Arial, sans-serif; fill:#5B7282}
+    .tiny{font:600 11px Arial, sans-serif; fill:#6d7d87}
+  </style>
+</defs>
+
+<rect x="0" y="0" width="1220" height="660" rx="28" fill="url(#bggrad)"/>
+
+<text x="56" y="64" class="title">Postprocess poses and docking logs</text>
+<text x="56" y="96" class="body">Parse logs, crawl pose trees, convert poses to molecules, compute interactions, and derive metrics.</text>
+<rect x="70" y="180" width="220" height="120" rx="22" fill="#ffffff" stroke="#d8e3ea" stroke-width="2" /><text x="92" y="215" class="label">Extractor</text><text x="92" y="242" class="body">crawl logs · parse scores · detect engines</text>
+<rect x="70" y="360" width="220" height="120" rx="22" fill="#ffffff" stroke="#d8e3ea" stroke-width="2" /><text x="92" y="395" class="label">PoseCrawler</text><text x="92" y="422" class="body">collect pose files · select best · convert</text>
+<rect x="380" y="180" width="260" height="120" rx="22" fill="#EEF5ED" stroke="#d8e3ea" stroke-width="2" /><text x="402" y="215" class="label">InteractionProfiler</text><text x="402" y="242" class="body">fingerprints · interaction events · summaries</text>
+<rect x="380" y="360" width="260" height="120" rx="22" fill="#EAF3F8" stroke="#d8e3ea" stroke-width="2" /><text x="402" y="395" class="label">Metrics</text><text x="402" y="422" class="body">dock power · screen power</text>
+<rect x="760" y="170" width="310" height="320" rx="22" fill="#ffffff" stroke="#d8e3ea" stroke-width="2" /><text x="782" y="205" class="label">Reusable outputs</text><text x="782" y="232" class="body">score tables · pose tables · interaction tables · similarity matrices</text>
+<polygon points="292.0,244.0 360.0,244.0 360.0,249.6 378.0,240.0 360.0,230.4 360.0,236.0 292.0,236.0" fill="#4579A8" opacity="0.95"/>
+<polygon points="292.0,424.0 360.0,424.0 360.0,429.6 378.0,420.0 360.0,410.4 360.0,416.0 292.0,416.0" fill="#4579A8" opacity="0.95"/>
+<polygon points="641.6,243.5 739.7,256.2 739.1,261.0 758.0,255.0 741.2,244.4 740.6,249.2 642.4,236.5" fill="#8f7c63" opacity="0.95"/>
+<polygon points="642.7,423.4 741.1,402.2 742.2,407.0 758.0,395.0 738.6,390.6 739.7,395.4 641.3,416.6" fill="#8f7c63" opacity="0.95"/>
+<rect x="810" y="220" width="190" height="120" rx="16" fill="#ffffff" stroke="#d8e3ea" stroke-width="2" /><line x1="826" y1="258" x2="984" y2="258" stroke="#d7e6ef" stroke-width="2"/><line x1="826" y1="278" x2="984" y2="278" stroke="#d7e6ef" stroke-width="2"/><line x1="826" y1="298" x2="984" y2="298" stroke="#d7e6ef" stroke-width="2"/><line x1="872" y1="238" x2="872" y2="322" stroke="#d7e6ef" stroke-width="2"/><line x1="918" y1="238" x2="918" y2="322" stroke="#d7e6ef" stroke-width="2"/><rect x="826" y="238" width="158" height="20" rx="8" fill="#EAF3F8"/><text x="905.0" y="362" class="tiny" text-anchor="middle">scores / poses</text>
+<rect x="810" y="365" width="190" height="120" rx="16" fill="#ffffff" stroke="#d8e3ea" stroke-width="2" /><line x1="826" y1="403" x2="984" y2="403" stroke="#d7e6ef" stroke-width="2"/><line x1="826" y1="423" x2="984" y2="423" stroke="#d7e6ef" stroke-width="2"/><line x1="826" y1="443" x2="984" y2="443" stroke="#d7e6ef" stroke-width="2"/><line x1="872" y1="383" x2="872" y2="467" stroke="#d7e6ef" stroke-width="2"/><line x1="918" y1="383" x2="918" y2="467" stroke="#d7e6ef" stroke-width="2"/><rect x="826" y="383" width="158" height="20" rx="8" fill="#EAF3F8"/><text x="905.0" y="507" class="tiny" text-anchor="middle">interaction events</text>
+<rect x="1040" y="250" width="150" height="120" rx="16" fill="#ffffff" stroke="#d8e3ea" stroke-width="2" /><rect x="1052.0" y="262.0" width="22.2" height="16.2" rx="4" fill="#eaf3f8"/><rect x="1077.2" y="262.0" width="22.2" height="16.2" rx="4" fill="#d6e7f1"/><rect x="1102.4" y="262.0" width="22.2" height="16.2" rx="4" fill="#b5d2e5"/><rect x="1127.6" y="262.0" width="22.2" height="16.2" rx="4" fill="#86bddc"/><rect x="1152.8" y="262.0" width="22.2" height="16.2" rx="4" fill="#4579A8"/><rect x="1052.0" y="281.2" width="22.2" height="16.2" rx="4" fill="#d6e7f1"/><rect x="1077.2" y="281.2" width="22.2" height="16.2" rx="4" fill="#b5d2e5"/><rect x="1102.4" y="281.2" width="22.2" height="16.2" rx="4" fill="#86bddc"/><rect x="1127.6" y="281.2" width="22.2" height="16.2" rx="4" fill="#4579A8"/><rect x="1152.8" y="281.2" width="22.2" height="16.2" rx="4" fill="#eaf3f8"/><rect x="1052.0" y="300.4" width="22.2" height="16.2" rx="4" fill="#b5d2e5"/><rect x="1077.2" y="300.4" width="22.2" height="16.2" rx="4" fill="#86bddc"/><rect x="1102.4" y="300.4" width="22.2" height="16.2" rx="4" fill="#4579A8"/><rect x="1127.6" y="300.4" width="22.2" height="16.2" rx="4" fill="#eaf3f8"/><rect x="1152.8" y="300.4" width="22.2" height="16.2" rx="4" fill="#d6e7f1"/><rect x="1052.0" y="319.6" width="22.2" height="16.2" rx="4" fill="#86bddc"/><rect x="1077.2" y="319.6" width="22.2" height="16.2" rx="4" fill="#4579A8"/><rect x="1102.4" y="319.6" width="22.2" height="16.2" rx="4" fill="#eaf3f8"/><rect x="1127.6" y="319.6" width="22.2" height="16.2" rx="4" fill="#d6e7f1"/><rect x="1152.8" y="319.6" width="22.2" height="16.2" rx="4" fill="#b5d2e5"/><rect x="1052.0" y="338.8" width="22.2" height="16.2" rx="4" fill="#4579A8"/><rect x="1077.2" y="338.8" width="22.2" height="16.2" rx="4" fill="#eaf3f8"/><rect x="1102.4" y="338.8" width="22.2" height="16.2" rx="4" fill="#d6e7f1"/><rect x="1127.6" y="338.8" width="22.2" height="16.2" rx="4" fill="#b5d2e5"/><rect x="1152.8" y="338.8" width="22.2" height="16.2" rx="4" fill="#86bddc"/><text x="1115.0" y="392" class="tiny" text-anchor="middle">similarity</text>
+<rect x="1040" y="395" width="150" height="105" rx="16" fill="#ffffff" stroke="#d8e3ea" stroke-width="2" /><line x1="1062" y1="478" x2="1172" y2="478" stroke="#9fb6c8" stroke-width="2"/><line x1="1062" y1="413" x2="1062" y2="478" stroke="#9fb6c8" stroke-width="2"/><polyline points="1068,460 1100,445 1130,468 1162,429" fill="none" stroke="#4579A8" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><text x="1115.0" y="522" class="tiny" text-anchor="middle">metrics</text>
+
+</svg>
