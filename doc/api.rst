@@ -1,126 +1,63 @@
-====
 API
-====
+===
 
-Chem
-====
+Quick access
+------------
 
-Embeddings
-----------
-.. automodule:: prodock.chem.embed
-   :members:
-   :undoc-members:
-   :show-inheritance:
+.. raw:: html
 
-Embeddings
-----------
-.. automodule:: prodock.chem.conformer
-   :members:
-   :undoc-members:
-   :show-inheritance:
+   <div class="pd-grid-3">
+     <a class="pd-card pd-card-link" href="tutorial/automation.html">
+       <div class="pd-kicker">⚙️ Core</div>
+       <h3>Pipeline entry points</h3>
+       <p><code>ProDockPipeline</code><br><code>prodock()</code></p>
+     </a>
+     <a class="pd-card pd-card-link" href="tutorial.html">
+       <div class="pd-kicker">🧩 Modules</div>
+       <h3>Stage-specific APIs</h3>
+       <p><code>structure</code> · <code>preprocess</code><br><code>dock</code> · <code>postprocess</code> · <code>database</code></p>
+     </a>
+     <a class="pd-card pd-card-link" href="api/full.html">
+       <div class="pd-kicker">📘 Reference</div>
+       <h3>Complete API page</h3>
+       <p>Grouped <code>automodule</code><br>documentation</p>
+     </a>
+   </div>
 
-Optimize
---------
-.. automodule:: prodock.chem.optimize
-   :members:
-   :undoc-members:
-   :show-inheritance:
+Main entry points
+-----------------
 
-Engine
-======
+**⚙️ Core**
+   - :class:`prodock.core.ProDockPipeline`
+   - :func:`prodock.core.prodock`
 
-Autodock Vina
---------------
-.. automodule:: prodock.engine.vina
-   :members:
-   :undoc-members:
-   :show-inheritance:
+**🧬 Structure**
+   - :class:`prodock.structure.conversion`
+   - :class:`prodock.structure.pdb_query.PDBQuery`
+   - :class:`prodock.structure.pdb_engine.PDBEngine`
+   - :class:`prodock.structure.pdbqt_sanitizer.PDBQTSanitizer`
+  
 
-Binary
-------
-.. automodule:: prodock.engine.binary
-   :members:
-   :undoc-members:
-   :show-inheritance:
+**🧪 Preprocess**
+   - :class:`prodock.preprocess.ligand.prep.LigandPrep`
+   - :class:`prodock.preprocess.receptor.prep.ReceptorPrep`
+   - :class:`prodock.preprocess.gridbox.gridbox.GridBox`
 
-Multiple
---------
-.. automodule:: prodock.engine.multiple
-   :members:
-   :undoc-members:
-   :show-inheritance:
+**🚀 Dock**
+   - :class:`prodock.dock.single.SingleDock`
+   - :class:`prodock.dock.batch.BatchDock`
 
-Process
-=======
+**📊 Postprocess**
+   - :class:`prodock.postprocess.extract.core.Extractor`
+   - :class:`prodock.postprocess.pose.core.PoseCrawler`
+   - :class:`prodock.postprocess.interaction.core.InteractionProfiler`
 
-GridBox
---------
-.. automodule:: prodock.process.gridbox
-   :members:
-   :undoc-members:
-   :show-inheritance:
+**🗄️ Database**
+   - :class:`prodock.database.pose_db.PoseDatabase`
+   - :class:`prodock.database.pose_query.PoseQuery`
 
-Ligand
-------
-.. automodule:: prodock.process.ligand
-   :members:
-   :undoc-members:
-   :show-inheritance:
+.. toctree::
+   :maxdepth: 1
+   :hidden:
 
-Receptor
---------
-.. automodule:: prodock.process.receptor
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-IO
-==
-
-rdkit
------
-.. automodule:: prodock.io.rdkit_io
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-parser
-------
-.. automodule:: prodock.io.parser
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-Query
------
-.. automodule:: prodock.io.pdb_query
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-
-Visualization
-=============
-
-ProVis
-------
-.. automodule:: prodock.vis.provis
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-
-ProVisGUI
----------
-.. automodule:: prodock.vis.provis_gui
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-
-DockGUI
--------
-.. automodule:: prodock.vis.dock_gui
-   :members:
-   :undoc-members:
-   :show-inheritance:
+   api/full

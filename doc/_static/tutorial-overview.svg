@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="700" viewBox="0 0 1200 700">
+
+<defs>
+  <linearGradient id="bggrad" x1="0" x2="1" y1="0" y2="1">
+    <stop offset="0%" stop-color="#fbfdff"/>
+    <stop offset="100%" stop-color="#eef4f7"/>
+  </linearGradient>
+  <linearGradient id="bluegrad" x1="0" x2="1" y1="0" y2="1">
+    <stop offset="0%" stop-color="#86bddc"/>
+    <stop offset="100%" stop-color="#366c98"/>
+  </linearGradient>
+  <linearGradient id="navygrad" x1="0" x2="1" y1="0" y2="1">
+    <stop offset="0%" stop-color="#2f5d82"/>
+    <stop offset="100%" stop-color="#1c3950"/>
+  </linearGradient>
+  <linearGradient id="ambergrad" x1="0" x2="1" y1="0" y2="1">
+    <stop offset="0%" stop-color="#f6c86d"/>
+    <stop offset="100%" stop-color="#c48d2d"/>
+  </linearGradient>
+  <linearGradient id="sagegrad" x1="0" x2="1" y1="0" y2="1">
+    <stop offset="0%" stop-color="#9ab694"/>
+    <stop offset="100%" stop-color="#6d856d"/>
+  </linearGradient>
+  <linearGradient id="stonegrad" x1="0" x2="1" y1="0" y2="1">
+    <stop offset="0%" stop-color="#c8bcaa"/>
+    <stop offset="100%" stop-color="#8f7c63"/>
+  </linearGradient>
+  <linearGradient id="dbgrad" x1="0" x2="1" y1="0" y2="1">
+    <stop offset="0%" stop-color="#8bc6e8"/>
+    <stop offset="55%" stop-color="#3373ac"/>
+    <stop offset="100%" stop-color="#21517a"/>
+  </linearGradient>
+  <style>
+    .title{font:700 30px Arial, sans-serif; fill:#23435f}
+    .subtitle{font:600 18px Arial, sans-serif; fill:#4579A8}
+    .label{font:700 17px Arial, sans-serif; fill:#27445D}
+    .body{font:400 14px Arial, sans-serif; fill:#5B7282}
+    .small{font:600 13px Arial, sans-serif; fill:#5B7282}
+    .tiny{font:600 11px Arial, sans-serif; fill:#6d7d87}
+  </style>
+</defs>
+
+<rect x="0" y="0" width="1200" height="700" rx="28" fill="url(#bggrad)"/>
+
+<text x="60" y="68" class="title">From raw structures to reusable docking data</text>
+<text x="60" y="100" class="body">Tutorial pages mirror the package layout and keep each stage focused.</text>
+<g transform="translate(50,150)">
+  <rect x="0" y="0" width="180" height="120" rx="22" fill="#ffffff" stroke="#d8e3ea" stroke-width="2" /><text x="22" y="35" class="label">1 · Structure</text><text x="22" y="62" class="body">query PDB · keep chains · extract bound ligand</text>
+  <rect x="205" y="0" width="190" height="120" rx="22" fill="#ffffff" stroke="#d8e3ea" stroke-width="2" /><text x="227" y="35" class="label">2 · Preprocess</text><text x="227" y="62" class="body">prepare receptor / ligands · compute box</text>
+  <rect x="420" y="-8" width="195" height="136" rx="22" fill="#eef5ed" stroke="#d8e3ea" stroke-width="2" /><text x="442" y="27" class="label">3 · Dock</text><text x="442" y="54" class="body">single, batch, or matrix campaigns</text>
+  <rect x="640" y="0" width="190" height="120" rx="22" fill="#ffffff" stroke="#d8e3ea" stroke-width="2" /><text x="662" y="35" class="label">4 · Postprocess</text><text x="662" y="62" class="body">scores · poses · interactions · metrics</text>
+  <rect x="855" y="0" width="185" height="120" rx="22" fill="#ffffff" stroke="#d8e3ea" stroke-width="2" /><text x="877" y="35" class="label">5 · Database</text><text x="877" y="62" class="body">store poses, scores, interactions</text>
+  <polygon points="180.0,64.0 185.0,64.0 185.0,69.6 203.0,60.0 185.0,50.4 185.0,56.0 180.0,56.0" fill="#5d83a0" opacity="0.95"/><polygon points="395.0,64.0 400.0,64.0 400.0,69.6 418.0,60.0 400.0,50.4 400.0,56.0 395.0,56.0" fill="#5d83a0" opacity="0.95"/><polygon points="615.0,64.0 620.0,64.0 620.0,69.6 638.0,60.0 620.0,50.4 620.0,56.0 615.0,56.0" fill="#5d83a0" opacity="0.95"/><polygon points="830.0,64.0 835.0,64.0 835.0,69.6 853.0,60.0 835.0,50.4 835.0,56.0 830.0,56.0" fill="#5d83a0" opacity="0.95"/>
+  <rect x="440" y="142" width="160" height="30" rx="15.0" fill="#EAF3F8"/><text x="520.0" y="162.0" font-family="Arial,sans-serif" font-size="13" font-weight="700" fill="#27445D" text-anchor="middle">multi-engine registry</text>
+  <rect x="30" y="142" width="176" height="30" rx="15.0" fill="#EEF5ED"/><text x="118.0" y="162.0" font-family="Arial,sans-serif" font-size="13" font-weight="700" fill="#27445D" text-anchor="middle">reference ligand driven</text>
+  <rect x="830" y="142" width="190" height="30" rx="15.0" fill="#F6F1E7"/><text x="925.0" y="162.0" font-family="Arial,sans-serif" font-size="13" font-weight="700" fill="#27445D" text-anchor="middle">query once, analyze many times</text>
+</g>
+<g transform="translate(94,390)">
+  <path d="M20,93.50000000000001 C20,20 99.0,5 136.4,28 C171.6,10 210,60 202,81.6 C210,142 171.6,152 140.8,140 C105.6,168 22,152 18,88.4 Z" fill="url(#bluegrad)" opacity="0.92"/><path d="M58,93.50000000000001 C62,70 92.39999999999999,62 123.20000000000002,88 C149.60000000000002,70 150,100 146,90.10000000000001 C140,84 154.0,100 127.6,86 C94.6,124 65,112 60,93.50000000000001 Z" fill="url(#navygrad)" opacity="0.98"/><line x1="95.0" y1="91.50000000000001" x2="117.0" y2="81.50000000000001" stroke="#f7e6c2" stroke-width="8.0" stroke-linecap="round" opacity="0.95"/><line x1="117.0" y1="81.50000000000001" x2="137.0" y2="94.50000000000001" stroke="#f7e6c2" stroke-width="8.0" stroke-linecap="round" opacity="0.95"/><line x1="137.0" y1="94.50000000000001" x2="159.0" y2="79.50000000000001" stroke="#f7e6c2" stroke-width="8.0" stroke-linecap="round" opacity="0.95"/><line x1="159.0" y1="79.50000000000001" x2="180.0" y2="91.50000000000001" stroke="#f7e6c2" stroke-width="8.0" stroke-linecap="round" opacity="0.95"/><line x1="180.0" y1="91.50000000000001" x2="205.0" y2="83.50000000000001" stroke="#f7e6c2" stroke-width="8.0" stroke-linecap="round" opacity="0.95"/><circle cx="95.0" cy="91.50000000000001" r="9.0" fill="#f24d3d" stroke="#ffffff" stroke-width="2.0"/><circle cx="117.0" cy="81.50000000000001" r="9.0" fill="#ef6a48" stroke="#ffffff" stroke-width="2.0"/><circle cx="137.0" cy="94.50000000000001" r="9.0" fill="#f4b93b" stroke="#ffffff" stroke-width="2.0"/><circle cx="159.0" cy="79.50000000000001" r="9.0" fill="#ef6a48" stroke="#ffffff" stroke-width="2.0"/><circle cx="180.0" cy="91.50000000000001" r="9.0" fill="#f4b93b" stroke="#ffffff" stroke-width="2.0"/><circle cx="205.0" cy="83.50000000000001" r="9.0" fill="#f0d05a" stroke="#ffffff" stroke-width="2.0"/><circle cx="147.0" cy="67.50000000000001" r="6.0" fill="#57b8d9" stroke="#fff" stroke-width="2.0"/><line x1="137.0" y1="94.50000000000001" x2="147.0" y2="67.50000000000001" stroke="#f7e6c2" stroke-width="5.0" stroke-linecap="round"/><text x="110.0" y="198" class="small" text-anchor="middle">structure input</text>
+  <rect x="270" y="18" width="180" height="130" rx="22" fill="#fff" stroke="#d8e3ea" stroke-width="2" /><text x="292" y="53" class="label">Automation</text><text x="292" y="80" class="body">RECEPTORS + LIGANDS → campaign json</text>
+  <ellipse cx="570.0" cy="58" rx="65.0" ry="18" fill="#a8d2ee" stroke="#21517a" stroke-width="2"/><rect x="505" y="58" width="130" height="94" fill="url(#dbgrad)" stroke="#21517a" stroke-width="2"/><ellipse cx="570.0" cy="58" rx="65.0" ry="18" fill="none" stroke="#e8f5fc" stroke-width="4" opacity="0.92"/><ellipse cx="570.0" cy="94" rx="65.0" ry="18" fill="none" stroke="#e8f5fc" stroke-width="4" opacity="0.92"/><ellipse cx="570.0" cy="130" rx="65.0" ry="18" fill="none" stroke="#e8f5fc" stroke-width="4" opacity="0.92"/><ellipse cx="570.0" cy="152" rx="65.0" ry="18" fill="url(#dbgrad)" stroke="#21517a" stroke-width="2"/><text x="570.0" y="198" class="small" text-anchor="middle">database</text>
+  <rect x="700" y="46" width="140" height="118" rx="16" fill="#ffffff" stroke="#d8e3ea" stroke-width="2" /><rect x="712.0" y="58.0" width="20.2" height="15.8" rx="4" fill="#eaf3f8"/><rect x="735.2" y="58.0" width="20.2" height="15.8" rx="4" fill="#d6e7f1"/><rect x="758.4" y="58.0" width="20.2" height="15.8" rx="4" fill="#b5d2e5"/><rect x="781.6" y="58.0" width="20.2" height="15.8" rx="4" fill="#86bddc"/><rect x="804.8" y="58.0" width="20.2" height="15.8" rx="4" fill="#4579A8"/><rect x="712.0" y="76.8" width="20.2" height="15.8" rx="4" fill="#d6e7f1"/><rect x="735.2" y="76.8" width="20.2" height="15.8" rx="4" fill="#b5d2e5"/><rect x="758.4" y="76.8" width="20.2" height="15.8" rx="4" fill="#86bddc"/><rect x="781.6" y="76.8" width="20.2" height="15.8" rx="4" fill="#4579A8"/><rect x="804.8" y="76.8" width="20.2" height="15.8" rx="4" fill="#eaf3f8"/><rect x="712.0" y="95.6" width="20.2" height="15.8" rx="4" fill="#b5d2e5"/><rect x="735.2" y="95.6" width="20.2" height="15.8" rx="4" fill="#86bddc"/><rect x="758.4" y="95.6" width="20.2" height="15.8" rx="4" fill="#4579A8"/><rect x="781.6" y="95.6" width="20.2" height="15.8" rx="4" fill="#eaf3f8"/><rect x="804.8" y="95.6" width="20.2" height="15.8" rx="4" fill="#d6e7f1"/><rect x="712.0" y="114.4" width="20.2" height="15.8" rx="4" fill="#86bddc"/><rect x="735.2" y="114.4" width="20.2" height="15.8" rx="4" fill="#4579A8"/><rect x="758.4" y="114.4" width="20.2" height="15.8" rx="4" fill="#eaf3f8"/><rect x="781.6" y="114.4" width="20.2" height="15.8" rx="4" fill="#d6e7f1"/><rect x="804.8" y="114.4" width="20.2" height="15.8" rx="4" fill="#b5d2e5"/><rect x="712.0" y="133.2" width="20.2" height="15.8" rx="4" fill="#4579A8"/><rect x="735.2" y="133.2" width="20.2" height="15.8" rx="4" fill="#eaf3f8"/><rect x="758.4" y="133.2" width="20.2" height="15.8" rx="4" fill="#d6e7f1"/><rect x="781.6" y="133.2" width="20.2" height="15.8" rx="4" fill="#b5d2e5"/><rect x="804.8" y="133.2" width="20.2" height="15.8" rx="4" fill="#86bddc"/><text x="770.0" y="186" class="tiny" text-anchor="middle">similarity</text>
+  <rect x="875" y="46" width="180" height="118" rx="16" fill="#ffffff" stroke="#d8e3ea" stroke-width="2" /><line x1="891" y1="84" x2="1039" y2="84" stroke="#d7e6ef" stroke-width="2"/><line x1="891" y1="104" x2="1039" y2="104" stroke="#d7e6ef" stroke-width="2"/><line x1="891" y1="124" x2="1039" y2="124" stroke="#d7e6ef" stroke-width="2"/><line x1="937" y1="64" x2="937" y2="146" stroke="#d7e6ef" stroke-width="2"/><line x1="983" y1="64" x2="983" y2="146" stroke="#d7e6ef" stroke-width="2"/><rect x="891" y="64" width="148" height="20" rx="8" fill="#EAF3F8"/><text x="965.0" y="186" class="tiny" text-anchor="middle">interaction summary</text>
+  <polygon points="222.0,89.0 250.0,89.0 250.0,94.6 268.0,85.0 250.0,75.4 250.0,81.0 222.0,81.0" fill="#4579A8" opacity="0.95"/>
+  <polygon points="448.6,88.7 484.7,102.4 482.8,107.6 503.0,105.0 489.5,89.7 487.6,94.9 451.4,81.3" fill="#4579A8" opacity="0.95"/>
+  <polygon points="638.0,109.0 680.0,109.0 680.0,114.6 698.0,105.0 680.0,95.4 680.0,101.0 638.0,101.0" fill="#4579A8" opacity="0.95"/>
+  <polygon points="842.0,109.0 855.0,109.0 855.0,114.6 873.0,105.0 855.0,95.4 855.0,101.0 842.0,101.0" fill="#4579A8" opacity="0.95"/>
+</g>
+
+</svg>

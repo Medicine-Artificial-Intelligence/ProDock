@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="660" viewBox="0 0 1200 660">
+
+<defs>
+  <linearGradient id="bggrad" x1="0" x2="1" y1="0" y2="1">
+    <stop offset="0%" stop-color="#fbfdff"/>
+    <stop offset="100%" stop-color="#eef4f7"/>
+  </linearGradient>
+  <linearGradient id="bluegrad" x1="0" x2="1" y1="0" y2="1">
+    <stop offset="0%" stop-color="#86bddc"/>
+    <stop offset="100%" stop-color="#366c98"/>
+  </linearGradient>
+  <linearGradient id="navygrad" x1="0" x2="1" y1="0" y2="1">
+    <stop offset="0%" stop-color="#2f5d82"/>
+    <stop offset="100%" stop-color="#1c3950"/>
+  </linearGradient>
+  <linearGradient id="ambergrad" x1="0" x2="1" y1="0" y2="1">
+    <stop offset="0%" stop-color="#f6c86d"/>
+    <stop offset="100%" stop-color="#c48d2d"/>
+  </linearGradient>
+  <linearGradient id="sagegrad" x1="0" x2="1" y1="0" y2="1">
+    <stop offset="0%" stop-color="#9ab694"/>
+    <stop offset="100%" stop-color="#6d856d"/>
+  </linearGradient>
+  <linearGradient id="stonegrad" x1="0" x2="1" y1="0" y2="1">
+    <stop offset="0%" stop-color="#c8bcaa"/>
+    <stop offset="100%" stop-color="#8f7c63"/>
+  </linearGradient>
+  <linearGradient id="dbgrad" x1="0" x2="1" y1="0" y2="1">
+    <stop offset="0%" stop-color="#8bc6e8"/>
+    <stop offset="55%" stop-color="#3373ac"/>
+    <stop offset="100%" stop-color="#21517a"/>
+  </linearGradient>
+  <style>
+    .title{font:700 30px Arial, sans-serif; fill:#23435f}
+    .subtitle{font:600 18px Arial, sans-serif; fill:#4579A8}
+    .label{font:700 17px Arial, sans-serif; fill:#27445D}
+    .body{font:400 14px Arial, sans-serif; fill:#5B7282}
+    .small{font:600 13px Arial, sans-serif; fill:#5B7282}
+    .tiny{font:600 11px Arial, sans-serif; fill:#6d7d87}
+  </style>
+</defs>
+
+<rect x="0" y="0" width="1200" height="660" rx="28" fill="url(#bggrad)"/>
+
+<text x="56" y="64" class="title">Preprocess inputs for docking</text>
+<text x="56" y="96" class="body">Prepare ligand conformers, convert receptor files, and compute a search box from a reference ligand or explicit coordinates.</text>
+<rect x="70" y="160" width="260" height="120" rx="22" fill="#EAF3F8" stroke="#d8e3ea" stroke-width="2" /><text x="92" y="195" class="label">LigandPrep</text><text x="92" y="222" class="body">SMILES / SDF → 3D conformer → PDBQT</text>
+<rect x="70" y="340" width="260" height="120" rx="22" fill="#EEF5ED" stroke="#d8e3ea" stroke-width="2" /><text x="92" y="375" class="label">ReceptorPrep</text><text x="92" y="402" class="body">protein PDB → cleaned receptor → PDBQT</text>
+<rect x="445" y="250" width="260" height="130" rx="22" fill="#ffffff" stroke="#d8e3ea" stroke-width="2" /><text x="467" y="285" class="label">GridBox</text><text x="467" y="312" class="body">reference ligand or explicit center / size</text>
+<rect x="820" y="250" width="260" height="130" rx="22" fill="#F6F1E7" stroke="#d8e3ea" stroke-width="2" /><text x="842" y="285" class="label">Prepared inputs</text><text x="842" y="312" class="body">receptor.pdbqt + ligand.pdbqt + box</text>
+<polygon points="330.0,223.5 425.4,279.4 422.6,284.2 443.0,285.0 432.3,267.6 429.5,272.5 334.0,216.5" fill="#4579A8" opacity="0.95"/>
+<polygon points="333.8,403.6 428.6,356.6 431.1,361.6 443.0,345.0 422.6,344.4 425.1,349.4 330.2,396.4" fill="#4579A8" opacity="0.95"/>
+<polygon points="705.0,319.0 800.0,319.0 800.0,324.6 818.0,315.0 800.0,305.4 800.0,311.0 705.0,311.0" fill="#4579A8" opacity="0.95"/>
+<path d="M850,505.25 C850,440 924.5,425 960.2,448 C993.8,430 1030,480 1022,494.4 C1030,547 993.8,557 964.4,545 C930.8,573 852,557 848,500.6 Z" fill="url(#bluegrad)" opacity="0.92"/><path d="M888,505.25 C892,490 918.2,482 947.6,508 C972.8,490 970,520 966,502.15 C960,489 977.0,505 951.8,491 C920.3,529 895,517 890,505.25 Z" fill="url(#navygrad)" opacity="0.98"/><line x1="925.0" y1="503.25" x2="947.0" y2="493.25" stroke="#f7e6c2" stroke-width="8.0" stroke-linecap="round" opacity="0.95"/><line x1="947.0" y1="493.25" x2="967.0" y2="506.25" stroke="#f7e6c2" stroke-width="8.0" stroke-linecap="round" opacity="0.95"/><line x1="967.0" y1="506.25" x2="989.0" y2="491.25" stroke="#f7e6c2" stroke-width="8.0" stroke-linecap="round" opacity="0.95"/><line x1="989.0" y1="491.25" x2="1010.0" y2="503.25" stroke="#f7e6c2" stroke-width="8.0" stroke-linecap="round" opacity="0.95"/><line x1="1010.0" y1="503.25" x2="1035.0" y2="495.25" stroke="#f7e6c2" stroke-width="8.0" stroke-linecap="round" opacity="0.95"/><circle cx="925.0" cy="503.25" r="9.0" fill="#f24d3d" stroke="#ffffff" stroke-width="2.0"/><circle cx="947.0" cy="493.25" r="9.0" fill="#ef6a48" stroke="#ffffff" stroke-width="2.0"/><circle cx="967.0" cy="506.25" r="9.0" fill="#f4b93b" stroke="#ffffff" stroke-width="2.0"/><circle cx="989.0" cy="491.25" r="9.0" fill="#ef6a48" stroke="#ffffff" stroke-width="2.0"/><circle cx="1010.0" cy="503.25" r="9.0" fill="#f4b93b" stroke="#ffffff" stroke-width="2.0"/><circle cx="1035.0" cy="495.25" r="9.0" fill="#f0d05a" stroke="#ffffff" stroke-width="2.0"/><circle cx="977.0" cy="479.25" r="6.0" fill="#57b8d9" stroke="#fff" stroke-width="2.0"/><line x1="967.0" y1="506.25" x2="977.0" y2="479.25" stroke="#f7e6c2" stroke-width="5.0" stroke-linecap="round"/><text x="935.0" y="603" class="small" text-anchor="middle">reference ligand driven</text>
+<rect x="90" y="295" width="110" height="28" rx="14.0" fill="#ffffff"/><text x="145.0" y="314.0" font-family="Arial,sans-serif" font-size="13" font-weight="700" fill="#27445D" text-anchor="middle">embed</text><rect x="208" y="295" width="110" height="28" rx="14.0" fill="#ffffff"/><text x="263.0" y="314.0" font-family="Arial,sans-serif" font-size="13" font-weight="700" fill="#27445D" text-anchor="middle">optimize</text>
+<rect x="90" y="475" width="120" height="28" rx="14.0" fill="#ffffff"/><text x="150.0" y="494.0" font-family="Arial,sans-serif" font-size="13" font-weight="700" fill="#27445D" text-anchor="middle">meeko / obabel</text><rect x="458" y="410" width="110" height="28" rx="14.0" fill="#ffffff"/><text x="513.0" y="429.0" font-family="Arial,sans-serif" font-size="13" font-weight="700" fill="#27445D" text-anchor="middle">center</text><rect x="575" y="410" width="90" height="28" rx="14.0" fill="#ffffff"/><text x="620.0" y="429.0" font-family="Arial,sans-serif" font-size="13" font-weight="700" fill="#27445D" text-anchor="middle">size</text>
+
+</svg>

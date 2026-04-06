@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1180" height="680" viewBox="0 0 1180 680">
+
+<defs>
+  <linearGradient id="bggrad" x1="0" x2="1" y1="0" y2="1">
+    <stop offset="0%" stop-color="#fbfdff"/>
+    <stop offset="100%" stop-color="#eef4f7"/>
+  </linearGradient>
+  <linearGradient id="bluegrad" x1="0" x2="1" y1="0" y2="1">
+    <stop offset="0%" stop-color="#86bddc"/>
+    <stop offset="100%" stop-color="#366c98"/>
+  </linearGradient>
+  <linearGradient id="navygrad" x1="0" x2="1" y1="0" y2="1">
+    <stop offset="0%" stop-color="#2f5d82"/>
+    <stop offset="100%" stop-color="#1c3950"/>
+  </linearGradient>
+  <linearGradient id="ambergrad" x1="0" x2="1" y1="0" y2="1">
+    <stop offset="0%" stop-color="#f6c86d"/>
+    <stop offset="100%" stop-color="#c48d2d"/>
+  </linearGradient>
+  <linearGradient id="sagegrad" x1="0" x2="1" y1="0" y2="1">
+    <stop offset="0%" stop-color="#9ab694"/>
+    <stop offset="100%" stop-color="#6d856d"/>
+  </linearGradient>
+  <linearGradient id="stonegrad" x1="0" x2="1" y1="0" y2="1">
+    <stop offset="0%" stop-color="#c8bcaa"/>
+    <stop offset="100%" stop-color="#8f7c63"/>
+  </linearGradient>
+  <linearGradient id="dbgrad" x1="0" x2="1" y1="0" y2="1">
+    <stop offset="0%" stop-color="#8bc6e8"/>
+    <stop offset="55%" stop-color="#3373ac"/>
+    <stop offset="100%" stop-color="#21517a"/>
+  </linearGradient>
+  <style>
+    .title{font:700 30px Arial, sans-serif; fill:#23435f}
+    .subtitle{font:600 18px Arial, sans-serif; fill:#4579A8}
+    .label{font:700 17px Arial, sans-serif; fill:#27445D}
+    .body{font:400 14px Arial, sans-serif; fill:#5B7282}
+    .small{font:600 13px Arial, sans-serif; fill:#5B7282}
+    .tiny{font:600 11px Arial, sans-serif; fill:#6d7d87}
+  </style>
+</defs>
+
+<rect x="0" y="0" width="1180" height="680" rx="28" fill="url(#bggrad)"/>
+
+<text x="56" y="64" class="title">Store and query docking results</text>
+<text x="56" y="96" class="body">PoseDatabase keeps normalized identifiers, serialized molecules, score payloads, and interaction rows in one SQLite file.</text>
+<ellipse cx="140.0" cy="233" rx="70.0" ry="18" fill="#a8d2ee" stroke="#21517a" stroke-width="2"/><rect x="70" y="233" width="140" height="114" fill="url(#dbgrad)" stroke="#21517a" stroke-width="2"/><ellipse cx="140.0" cy="233" rx="70.0" ry="18" fill="none" stroke="#e8f5fc" stroke-width="4" opacity="0.92"/><ellipse cx="140.0" cy="269" rx="70.0" ry="18" fill="none" stroke="#e8f5fc" stroke-width="4" opacity="0.92"/><ellipse cx="140.0" cy="305" rx="70.0" ry="18" fill="none" stroke="#e8f5fc" stroke-width="4" opacity="0.92"/><ellipse cx="140.0" cy="347" rx="70.0" ry="18" fill="url(#dbgrad)" stroke="#21517a" stroke-width="2"/><text x="140.0" y="393" class="small" text-anchor="middle">SQLite database</text>
+<rect x="280" y="150" width="190" height="120" rx="18" fill="#EEF5ED" stroke="#d8e3ea" stroke-width="2" /><rect x="280" y="150" width="190" height="42" rx="18" fill="#eef4f7" stroke="#d8e3ea" stroke-width="2"/><text x="375.0" y="178" class="label" text-anchor="middle">catalogs</text><text x="298" y="216" class="tiny">receptors</text><text x="452" y="216" class="tiny" text-anchor="end"></text><text x="298" y="242" class="tiny">ligands</text><text x="452" y="242" class="tiny" text-anchor="end"></text><text x="298" y="268" class="tiny">engines</text><text x="452" y="268" class="tiny" text-anchor="end"></text>
+<rect x="525" y="135" width="240" height="146" rx="18" fill="#ffffff" stroke="#d8e3ea" stroke-width="2" /><rect x="525" y="135" width="240" height="42" rx="18" fill="#eef4f7" stroke="#d8e3ea" stroke-width="2"/><text x="645.0" y="163" class="label" text-anchor="middle">poses</text><text x="543" y="201" class="tiny">pose_id</text><text x="747" y="201" class="tiny" text-anchor="end"></text><text x="543" y="227" class="tiny">pose_rank</text><text x="747" y="227" class="tiny" text-anchor="end"></text><text x="543" y="253" class="tiny">mol_blob</text><text x="747" y="253" class="tiny" text-anchor="end"></text><text x="543" y="279" class="tiny">metadata_json</text><text x="747" y="279" class="tiny" text-anchor="end"></text>
+<rect x="825" y="150" width="190" height="94" rx="18" fill="#EAF3F8" stroke="#d8e3ea" stroke-width="2" /><rect x="825" y="150" width="190" height="42" rx="18" fill="#eef4f7" stroke="#d8e3ea" stroke-width="2"/><text x="920.0" y="178" class="label" text-anchor="middle">scores</text><text x="843" y="216" class="tiny">affinity</text><text x="997" y="216" class="tiny" text-anchor="end"></text><text x="843" y="242" class="tiny">score_json</text><text x="997" y="242" class="tiny" text-anchor="end"></text>
+<rect x="825" y="390" width="240" height="120" rx="18" fill="#F6F1E7" stroke="#d8e3ea" stroke-width="2" /><rect x="825" y="390" width="240" height="42" rx="18" fill="#eef4f7" stroke="#d8e3ea" stroke-width="2"/><text x="945.0" y="418" class="label" text-anchor="middle">interactions</text><text x="843" y="456" class="tiny">interaction_type</text><text x="1047" y="456" class="tiny" text-anchor="end"></text><text x="843" y="482" class="tiny">residue_id</text><text x="1047" y="482" class="tiny" text-anchor="end"></text><text x="843" y="508" class="tiny">distance / angle</text><text x="1047" y="508" class="tiny" text-anchor="end"></text>
+<polygon points="212.5,293.1 266.5,249.4 270.0,253.8 278.0,235.0 258.0,238.9 261.5,243.2 207.5,286.9" fill="#4579A8" opacity="0.95"/>
+<polygon points="470.0,234.0 505.0,234.0 505.0,239.6 523.0,230.0 505.0,220.4 505.0,226.0 470.0,226.0" fill="#4579A8" opacity="0.95"/>
+<polygon points="767.0,234.0 805.0,234.0 805.0,239.6 823.0,230.0 805.0,220.4 805.0,226.0 767.0,226.0" fill="#4579A8" opacity="0.95"/>
+<polygon points="642.9,302.8 806.6,429.7 803.6,433.6 823.0,438.0 813.9,420.3 810.9,424.2 647.1,297.2" fill="#8f7c63" opacity="0.95"/>
+<rect x="300" y="470" width="180" height="120" rx="16" fill="#ffffff" stroke="#d8e3ea" stroke-width="2" /><line x1="316" y1="508" x2="464" y2="508" stroke="#d7e6ef" stroke-width="2"/><line x1="316" y1="528" x2="464" y2="528" stroke="#d7e6ef" stroke-width="2"/><line x1="316" y1="548" x2="464" y2="548" stroke="#d7e6ef" stroke-width="2"/><line x1="362" y1="488" x2="362" y2="572" stroke="#d7e6ef" stroke-width="2"/><line x1="408" y1="488" x2="408" y2="572" stroke="#d7e6ef" stroke-width="2"/><rect x="316" y="488" width="148" height="20" rx="8" fill="#EAF3F8"/><text x="390.0" y="612" class="tiny" text-anchor="middle">query_poses</text>
+<rect x="520" y="470" width="180" height="120" rx="16" fill="#ffffff" stroke="#d8e3ea" stroke-width="2" /><line x1="536" y1="508" x2="684" y2="508" stroke="#d7e6ef" stroke-width="2"/><line x1="536" y1="528" x2="684" y2="528" stroke="#d7e6ef" stroke-width="2"/><line x1="536" y1="548" x2="684" y2="548" stroke="#d7e6ef" stroke-width="2"/><line x1="582" y1="488" x2="582" y2="572" stroke="#d7e6ef" stroke-width="2"/><line x1="628" y1="488" x2="628" y2="572" stroke="#d7e6ef" stroke-width="2"/><rect x="536" y="488" width="148" height="20" rx="8" fill="#EAF3F8"/><text x="610.0" y="612" class="tiny" text-anchor="middle">query_scores</text>
+<rect x="740" y="470" width="180" height="120" rx="16" fill="#ffffff" stroke="#d8e3ea" stroke-width="2" /><line x1="756" y1="508" x2="904" y2="508" stroke="#d7e6ef" stroke-width="2"/><line x1="756" y1="528" x2="904" y2="528" stroke="#d7e6ef" stroke-width="2"/><line x1="756" y1="548" x2="904" y2="548" stroke="#d7e6ef" stroke-width="2"/><line x1="802" y1="488" x2="802" y2="572" stroke="#d7e6ef" stroke-width="2"/><line x1="848" y1="488" x2="848" y2="572" stroke="#d7e6ef" stroke-width="2"/><rect x="756" y="488" width="148" height="20" rx="8" fill="#EAF3F8"/><text x="830.0" y="612" class="tiny" text-anchor="middle">query_interactions</text>
+<polygon points="644.0,372.2 403.9,459.1 402.5,455.1 388.0,468.0 407.4,468.6 405.9,464.7 646.0,377.8" fill="#5d83a0" opacity="0.95"/>
+<polygon points="642.2,373.9 611.9,450.2 608.0,448.6 608.0,468.0 621.3,453.9 617.4,452.4 647.8,376.1" fill="#5d83a0" opacity="0.95"/>
+<polygon points="643.6,377.7 810.6,462.5 808.7,466.3 828.0,468.0 815.2,453.4 813.3,457.2 646.4,372.3" fill="#5d83a0" opacity="0.95"/>
+
+</svg>
