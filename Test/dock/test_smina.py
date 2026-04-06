@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import sys
 import json
 import tempfile
 import unittest
@@ -7,7 +8,10 @@ from pathlib import Path
 
 from prodock.dock.smina import SminaEngine
 
+IS_LINUX = sys.platform.startswith("linux")
 
+
+@unittest.skipUnless(IS_LINUX, "QVina integration tests run only on Linux")
 class TestSminaEngineUnit(unittest.TestCase):
     """Unit tests for :class:`prodock.dock.smina.SminaEngine`."""
 
@@ -280,6 +284,7 @@ class TestSminaEngineUnit(unittest.TestCase):
         self.assertEqual(Path(resolved), exe.resolve())
 
 
+@unittest.skipUnless(IS_LINUX, "QVina integration tests run only on Linux")
 class TestSminaEngineIntegration(unittest.TestCase):
     """
     Integration tests for :class:`prodock.dock.smina.SminaEngine`.

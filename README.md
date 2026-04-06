@@ -13,16 +13,10 @@ Automatic pipeline for molecular modeling
 [![Stars](https://img.shields.io/github/stars/Medicine-Artificial-Intelligence/prodock.svg?style=social&label=Star)](https://github.com/Medicine-Artificial-Intelligence/prodock/stargazers)
 
 
-**Toolkit for molecular modeling**
-
-For more details on each utility within the repository, please refer to the documentation provided in the respective folders.
-
-![ProDock](https://raw.githubusercontent.com/Medicine-Artificial-Intelligence/ProDock/main/doc/fig/prodock.png)
-
-
 ## Overview
 
-**ProDock** is a toolkit for building automated molecular docking workflows. It is designed for campaigns involving multiple receptors, multiple ligands, and multiple docking engines, with support for downstream pose extraction, interaction profiling, visualization, and SQLite-backed result management.
+**ProDock** is a toolkit for building automated molecular docking workflows. It is designed for campaigns involving multiple receptors, multiple ligands, and multiple docking engines, with support for downstream pose extraction, interaction profiling, visualization, and SQLite-backed result management. Please visit [Documentation](https://prodock.readthedocs.io/en/latest/) for more details.
+
 
 The project aims to provide one consistent workflow for:
 

@@ -5,12 +5,18 @@ Full API
 
    <div class="pd-api-intro">
      <p class="pd-api-lead">
-       ProDock exposes a workflow-oriented API for structure handling,
-       preprocessing, docking, postprocessing, and database-backed analysis.
+       ProDock exposes a modular, workflow-oriented API spanning structure intake,
+       preprocessing, docking, postprocessing, database persistence, command-line
+       automation, and reusable I/O utilities.
+     </p>
+     <p class="pd-api-sublead">
+       Browse the package by pipeline stage or infrastructure layer. The layout below
+       mirrors a full docking campaign: prepare inputs, run engines, analyze poses,
+       and persist results for downstream many-to-many querying.
      </p>
    </div>
 
-   <div class="pd-api-grid-2x3">
+   <div class="pd-api-grid-2x4">
 
      <a class="pd-api-card pd-core" href="core.html">
        <div class="pd-api-icon" aria-hidden="true">
@@ -22,7 +28,7 @@ Full API
        <div class="pd-api-body">
          <div class="pd-api-title">Core</div>
          <div class="pd-api-text">
-           High-level workflow.
+           Top-level workflow orchestration, campaign execution, and result containers.
          </div>
        </div>
      </a>
@@ -38,7 +44,7 @@ Full API
        <div class="pd-api-body">
          <div class="pd-api-title">Structure</div>
          <div class="pd-api-text">
-           Protein and ligand structure parsing, preparation, and utilities.
+           Protein and ligand structure loading, parsing, preparation, and geometry helpers.
          </div>
        </div>
      </a>
@@ -53,7 +59,7 @@ Full API
        <div class="pd-api-body">
          <div class="pd-api-title">Preprocess</div>
          <div class="pd-api-text">
-           Input cleaning, normalization, and preparation before docking.
+           Input cleaning, normalization, format conversion, and docking-ready preparation.
          </div>
        </div>
      </a>
@@ -69,7 +75,7 @@ Full API
        <div class="pd-api-body">
          <div class="pd-api-title">Dock</div>
          <div class="pd-api-text">
-           Docking engines, campaigns, and batch execution workflows.
+           Engine wrappers, campaign builders, batch docking, and parallel execution workflows.
          </div>
        </div>
      </a>
@@ -87,7 +93,7 @@ Full API
        <div class="pd-api-body">
          <div class="pd-api-title">Postprocess</div>
          <div class="pd-api-text">
-           Pose extraction, interaction analysis, similarity, and visualization.
+           Pose crawling, interaction analysis, similarity metrics, and result visualization.
          </div>
        </div>
      </a>
@@ -103,7 +109,39 @@ Full API
        <div class="pd-api-body">
          <div class="pd-api-title">Database</div>
          <div class="pd-api-text">
-           Structured storage and many-to-many querying across docking results.
+           SQLite-backed storage, pose records, interaction tables, and many-to-many querying.
+         </div>
+       </div>
+     </a>
+
+     <a class="pd-api-card pd-cli" href="cli.html">
+       <div class="pd-api-icon" aria-hidden="true">
+         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+           <path d="M4 6.5h16v11H4z"/>
+           <path d="m8 10 2 2-2 2"/>
+           <path d="M12.5 14H16"/>
+         </svg>
+       </div>
+       <div class="pd-api-body">
+         <div class="pd-api-title">CLI</div>
+         <div class="pd-api-text">
+           JSON-first command-line entry points for reproducible end-to-end docking runs.
+         </div>
+       </div>
+     </a>
+
+     <a class="pd-api-card pd-io" href="io.html">
+       <div class="pd-api-icon" aria-hidden="true">
+         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+           <path d="M8 7H6.8A2.8 2.8 0 0 0 4 9.8v7.4A2.8 2.8 0 0 0 6.8 20h10.4a2.8 2.8 0 0 0 2.8-2.8V9.8A2.8 2.8 0 0 0 17.2 7H16"/>
+           <path d="M12 4v9"/>
+           <path d="m8.8 10.2 3.2 3.2 3.2-3.2"/>
+         </svg>
+       </div>
+       <div class="pd-api-body">
+         <div class="pd-api-title">IO</div>
+         <div class="pd-api-text">
+           Parsing, RDKit conversion, logging, and utility helpers shared across workflows.
          </div>
        </div>
      </a>
@@ -120,3 +158,5 @@ Full API
    dock
    postprocess
    database
+   cli
+   io

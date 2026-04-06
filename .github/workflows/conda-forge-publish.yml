@@ -1,17 +1,32 @@
-name: Publish to Anaconda (conda)
+name: Publish to Anaconda (conda-forge)
 
 on:
   release:
     types: [published]
   push:
-    branches: [conda]
+    branches:
+      - conda
+      - release
+  workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    name: Build (${{ matrix.label }})
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - label: Linux
+            runner: ubuntu-latest
+          - label: macOS Intel
+            runner: macos-26-intel
+          - label: macOS Apple Silicon
+            runner: macos-26
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -19,31 +34,38 @@ jobs:
           fetch-depth: 0
 
       - name: Setup Miniconda
-        uses: conda-incubator/setup-miniconda@v2
+        uses: conda-incubator/setup-miniconda@v3
         with:
           channels: conda-forge
+          channel-priority: strict
           auto-update-conda: true
           auto-activate-base: true
 
-      - name: Create build environment (conda-build + anaconda-client)
+      - name: Create build environment
+        shell: bash -l {0}
         run: |
-          # ensure conda functions are available for this shell
-          source "$(conda info --base)/etc/profile.d/conda.sh"
           conda create -n build -y -c conda-forge python=3.11 "conda-build>=3.21" anaconda-client
           conda activate build
           conda info --envs
 
-      - name: Build conda package(s)
+      - name: Debug GitHub context
+        shell: bash -l {0}
         run: |
-          source "$(conda info --base)/etc/profile.d/conda.sh"
+          echo "event_name=${{ github.event_name }}"
+          echo "ref=${{ github.ref }}"
+          echo "ref_name=${{ github.ref_name }}"
+
+      - name: Build conda package(s)
+        shell: bash -l {0}
+        run: |
           conda activate build
           rm -rf conda-bld || true
           mkdir -p conda-bld
 
           if [ -d recipe ]; then
-            conda-build recipe --output-folder ./conda-bld
+            conda-build recipe --output-folder ./conda-bld --no-anaconda-upload
           else
-            conda-build . --output-folder ./conda-bld
+            conda-build . --output-folder ./conda-bld --no-anaconda-upload
           fi
 
           echo "Built files:"
@@ -52,19 +74,23 @@ jobs:
       - name: Upload built packages as artifact
         uses: actions/upload-artifact@v4
         with:
-          name: conda-packages
+          name: conda-packages-${{ matrix.label }}
           path: conda-bld/
+          if-no-files-found: error
 
   publish_release:
+    name: Upload release packages
     needs: build
     if: github.event_name == 'release'
     runs-on: ubuntu-latest
+
     steps:
       - name: Download built packages
         uses: actions/download-artifact@v4
         with:
-          name: conda-packages
+          pattern: conda-packages-*
           path: conda-bld
+          merge-multiple: true
 
       - name: Install/upgrade Anaconda client
         run: python3 -m pip install --upgrade anaconda-client
@@ -72,44 +98,66 @@ jobs:
       - name: Upload packages to Anaconda.org (main)
         env:
           ANACONDA_TOKEN: ${{ secrets.ANACONDA_TOKEN }}
+        shell: bash
         run: |
           set -euo pipefail
           if [ -z "${ANACONDA_TOKEN:-}" ]; then
-            echo "ANACONDA_TOKEN is not set"; exit 1
+            echo "ANACONDA_TOKEN is not set"
+            exit 1
           fi
 
-          # find packages and upload, robust for filenames with spaces/newlines
           find conda-bld -type f \( -name "*.conda" -o -name "*.tar.bz2" \) -print0 | \
             while IFS= read -r -d '' pkg; do
               echo "Uploading: $pkg"
-              anaconda -t "${ANACONDA_TOKEN}" upload --user tieulongphan --label main --no-progress "$pkg"
+              anaconda -t "${ANACONDA_TOKEN}" upload \
+                --user tieulongphan \
+                --label main \
+                --no-progress \
+                --force \
+                "$pkg"
             done
 
   publish_beta:
+    name: Upload beta packages
     needs: build
-    if: github.event_name == 'push' && github.ref == 'refs/heads/conda'
+    if: github.event_name == 'push' && github.ref_name == 'conda'
     runs-on: ubuntu-latest
+
     steps:
       - name: Download built packages
         uses: actions/download-artifact@v4
         with:
-          name: conda-packages
+          pattern: conda-packages-*
           path: conda-bld
+          merge-multiple: true
 
       - name: Install/upgrade Anaconda client
         run: python3 -m pip install --upgrade anaconda-client
 
+      - name: Debug GitHub context
+        run: |
+          echo "event_name=${{ github.event_name }}"
+          echo "ref=${{ github.ref }}"
+          echo "ref_name=${{ github.ref_name }}"
+
       - name: Upload packages to Anaconda.org (beta)
         env:
           ANACONDA_TOKEN: ${{ secrets.ANACONDA_TOKEN }}
+        shell: bash
         run: |
           set -euo pipefail
           if [ -z "${ANACONDA_TOKEN:-}" ]; then
-            echo "ANACONDA_TOKEN is not set"; exit 1
+            echo "ANACONDA_TOKEN is not set"
+            exit 1
           fi
 
           find conda-bld -type f \( -name "*.conda" -o -name "*.tar.bz2" \) -print0 | \
             while IFS= read -r -d '' pkg; do
               echo "Uploading: $pkg"
-              anaconda -t "${ANACONDA_TOKEN}" upload --user tieulongphan --label beta --no-progress "$pkg"
+              anaconda -t "${ANACONDA_TOKEN}" upload \
+                --user tieulongphan \
+                --label beta \
+                --no-progress \
+                --force \
+                "$pkg"
             done

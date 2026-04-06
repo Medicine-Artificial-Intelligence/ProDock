@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import shutil
 import unittest
 from pathlib import Path
@@ -10,6 +11,15 @@ from prodock.dock import BatchDock
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SOURCE_MULTI = REPO_ROOT / "Data" / "testcase" / "Multi"
+
+# This real integration test runs only when explicitly enabled locally.
+# Example:
+#   RUN_REAL_DOCKING_TESTS=1 python -m unittest -v
+RUN_REAL_DOCKING_TESTS = os.environ.get("RUN_REAL_DOCKING_TESTS", "").lower() in {
+    "1",
+    "true",
+    "yes",
+}
 
 
 def _is_relative_to(path: Path, root: Path) -> bool:
@@ -30,6 +40,19 @@ def _load_json(path: Path) -> dict[str, Any]:
 def _iter_key_values(obj: Any, target_keys: set[str]) -> list[str]:
     """
     Recursively collect string values for matching keys from a JSON-like object.
+
+    Parameters
+    ----------
+    obj
+        JSON-like object composed of nested dictionaries, lists, and scalar
+        values.
+    target_keys
+        Keys to match while traversing the object.
+
+    Returns
+    -------
+    list[str]
+        All string values associated with any key in ``target_keys``.
     """
     values: list[str] = []
 
@@ -58,6 +81,17 @@ def _collect_result_dirs_from_campaign(campaign_json: Path) -> set[Path]:
     into the receptor-level result directory::
 
         /.../4WKQ/results
+
+    Parameters
+    ----------
+    campaign_json
+        Path to the campaign configuration JSON file.
+
+    Returns
+    -------
+    set[Path]
+        Set of receptor-level ``results`` directories inferred from the
+        campaign payload.
     """
     payload = _load_json(campaign_json)
     dir_values = _iter_key_values(payload, {"out_dir", "log_dir"})
@@ -73,6 +107,18 @@ def _collect_result_dirs_from_campaign(campaign_json: Path) -> set[Path]:
 def _safe_rmtree(path: Path, *, allowed_root: Path) -> None:
     """
     Remove a directory tree only if it is inside ``allowed_root``.
+
+    Parameters
+    ----------
+    path
+        Directory to remove.
+    allowed_root
+        Root directory under which deletion is permitted.
+
+    Raises
+    ------
+    RuntimeError
+        If ``path`` is outside ``allowed_root``.
     """
     resolved = path.resolve()
     allowed = allowed_root.resolve()
@@ -89,11 +135,22 @@ def _safe_rmtree(path: Path, *, allowed_root: Path) -> None:
 def _cleanup_result_dirs(result_dirs: set[Path], *, allowed_root: Path) -> None:
     """
     Remove all result directories collected from a campaign.
+
+    Parameters
+    ----------
+    result_dirs
+        Result directories to remove.
+    allowed_root
+        Root directory under which deletion is permitted.
     """
     for path in sorted(result_dirs):
         _safe_rmtree(path, allowed_root=allowed_root)
 
 
+@unittest.skipUnless(
+    RUN_REAL_DOCKING_TESTS,
+    "Skipping real docking test. Set RUN_REAL_DOCKING_TESTS=1 to run locally.",
+)
 class TestBatchDockReal(unittest.TestCase):
     """
     Real integration test for :class:`prodock.dock.BatchDock`.
@@ -101,22 +158,30 @@ class TestBatchDockReal(unittest.TestCase):
     This test uses the repository campaign fixture directly, but cleans the
     generated receptor ``results`` folders before and after execution so the
     fixture tree remains reusable.
+
+    Notes
+    -----
+    - This test is intended for local execution only.
+    - It is skipped by default unless ``RUN_REAL_DOCKING_TESTS=1`` is set.
     """
 
     maxDiff = None
 
     @classmethod
     def setUpClass(cls) -> None:
+        """Initialize shared campaign paths for the test class."""
         cls.campaign = SOURCE_MULTI / "campaign.json"
         cls.allowed_root = SOURCE_MULTI
         cls.result_dirs: set[Path] = set()
 
     @classmethod
     def tearDownClass(cls) -> None:
+        """Clean any generated result directories after all tests finish."""
         if cls.result_dirs:
             _cleanup_result_dirs(cls.result_dirs, allowed_root=cls.allowed_root)
 
     def setUp(self) -> None:
+        """Validate fixture availability and remove stale outputs before each test."""
         self.assertTrue(
             self.campaign.exists(),
             f"Missing campaign file: {self.campaign}",
@@ -133,12 +198,18 @@ class TestBatchDockReal(unittest.TestCase):
         _cleanup_result_dirs(self.result_dirs, allowed_root=self.allowed_root)
 
     def tearDown(self) -> None:
+        """Remove generated outputs after each test."""
         if self.result_dirs:
             _cleanup_result_dirs(self.result_dirs, allowed_root=self.allowed_root)
 
     def _assert_result_paths_inside_allowed_root(self, results: list[Any]) -> None:
         """
         Assert that all produced output and log paths stay inside the fixture root.
+
+        Parameters
+        ----------
+        results
+            Result objects returned by :meth:`BatchDock.run_from_config`.
         """
         for res in results:
             if not res.success:
@@ -161,7 +232,15 @@ class TestBatchDockReal(unittest.TestCase):
 
     def test_run_from_real_campaign(self) -> None:
         """
-        Real integration test using the actual campaign file and docking backend.
+        Run a real docking campaign from the repository fixture.
+
+        This test verifies that:
+
+        - at least one docking result is produced
+        - at least one job succeeds
+        - successful jobs create non-empty output and log files
+        - produced files remain inside the allowed fixture tree
+        - expected receptor-level ``results`` directories exist after execution
         """
         runner = BatchDock(n_jobs=4, progress=True)
         results = runner.run_from_config(str(self.campaign))
