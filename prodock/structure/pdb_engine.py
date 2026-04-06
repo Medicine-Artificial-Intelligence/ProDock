@@ -448,10 +448,11 @@ class PDBEngine:
         :rtype: bool
         """
         assert self.ref_path is not None
-        from .conversion import convert_with_obabel
+        from .conversion import pdb_to_sdf
 
         try:
-            convert_with_obabel(tmp_pdb, self.ref_path, extra_args=("-h",))
+            # convert_with_obabel(tmp_pdb, self.ref_path, extra_args=("-h",), sanitize_rebuild=True)
+            pdb_to_sdf(tmp_pdb, self.ref_path, backend="rdkit")
         except Exception as exc:
             logger.warning("Reference ligand conversion failed: %s", exc)
             return False
