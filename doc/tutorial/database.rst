@@ -5,81 +5,143 @@ Database
    :alt: ProDock database workflow
    :class: pd-visual
 
-ProDock stores docking campaigns in a normalized SQLite database so that poses,
-scores, and interactions remain reusable after docking has finished. Instead of
-keeping analysis locked inside engine-specific output folders, the database layer
-turns results into structured, queryable records that can be filtered,
-reconstructed, and compared across receptors, ligands, and docking engines.
 
-Why use the database layer?
----------------------------
+.. raw:: html
 
-Docking campaigns often start as scattered files: ``.pdbqt`` poses, score logs,
-interaction tables, and engine-specific naming conventions. That is manageable
-for a small test case, but it quickly becomes fragile when a campaign contains
-multiple receptors, many ligands, several docking engines, and repeated
-postprocessing steps.
+   <div class="pd-card-grid pd-card-grid-2">
+     <div class="pd-icon-card">
+       <div class="pd-icon-wrap" aria-hidden="true">
+         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+           <ellipse cx="12" cy="5" rx="6.5" ry="2.8"/>
+           <path d="M5.5 5v6c0 1.5 2.9 2.8 6.5 2.8s6.5-1.3 6.5-2.8V5"/>
+           <path d="M5.5 11v6c0 1.5 2.9 2.8 6.5 2.8s6.5-1.3 6.5-2.8v-6"/>
+         </svg>
+       </div>
+       <h3>Campaign storage</h3>
+       <p>
+         Store receptors, ligands, engines, poses, scores, and interactions in
+         one SQLite database instead of scattered output files.
+       </p>
+     </div>
 
-The ProDock database solves this by separating **storage** from **analysis**:
+     <div class="pd-icon-card">
+       <div class="pd-icon-wrap" aria-hidden="true">
+         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+           <circle cx="11" cy="11" r="5.5"/>
+           <path d="M16 16l4 4"/>
+           <path d="M8.8 11h4.4M11 8.8v4.4"/>
+         </svg>
+       </div>
+       <h3>Query analysis</h3>
+       <p>
+         Reopen the campaign later and filter poses by receptor, ligand, engine,
+         rank, affinity, or interaction content without rebuilding results.
+       </p>
+     </div>
+   </div>
 
-- :class:`prodock.database.PoseDatabase` handles schema creation, insertion,
-  updating, and persistence.
-- :class:`prodock.database.PoseQuery` provides a standalone read/query API for
-  filtering, summarizing, and rebuilding analysis-ready views from an existing
-  database.
+Database architecture
+---------------------
 
-This design gives several practical advantages:
+ProDock stores docking campaigns in a compact normalized SQLite schema. The
+main design idea is simple:
 
-- avoid repeated pose conversion and repeated parsing of engine output
-- keep molecules, score payloads, and interaction rows in one consistent schema
-- query campaigns later by receptor, ligand, engine, rank, affinity, or residue
-- build interaction summaries and fingerprints directly from stored results
-- decouple heavy workflow generation from lightweight downstream analysis
+- write results once,
+- query them many times later.
 
-What is stored?
----------------
+The schema is organized so that receptor, ligand, and engine identifiers are
+stored once, while pose-specific, score-specific, and interaction-specific
+records remain linked through stable pose keys.
 
-The database uses a compact normalized schema with three main levels of
-information:
+.. image:: ../_static/db-architecture.svg
+   :alt: ProDock database architecture
+   :class: pd-visual
 
-- **dimension tables** for receptors, ligands, and engines
-- **pose records** for identity, molecule storage, and pose metadata
-- **analysis tables** for score payloads and residue-level interactions
+This gives three practical benefits:
 
-In practice, this means a pose can be addressed in two ways:
+- compact storage across many receptors, ligands, and engines,
+- easy reconstruction of analysis tables,
+- consistent filtering across identity, score, and interaction layers.
 
-- ``pose_db_id``: internal SQLite primary key
-- ``pose_id``: optional stable external identifier such as
+The database is organized into three layers:
+
+- **dimension tables** for receptors, ligands, and engines,
+- **pose records** for pose identity, serialized molecules, and metadata,
+- **analysis tables** for score payloads and residue-level interactions.
+
+In practice, this means one campaign can be explored later without reparsing
+engine logs, reconverting pose files, or recomputing interaction summaries.
+
+.. raw:: html
+
+   <div class="pd-panel pd-panel-soft">
+     <div class="pd-section-head">
+       <div class="pd-section-icon" aria-hidden="true">
+         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round">
+           <rect x="4" y="5" width="16" height="14" rx="2"/>
+           <path d="M8 9h8M8 13h5"/>
+           <circle cx="16.5" cy="13.5" r="1.5"/>
+         </svg>
+       </div>
+       <div>
+         <h2>Writer and reader</h2>
+         <p>The database layer is split into one writer API and one read/query API.</p>
+       </div>
+     </div>
+   </div>
+
+The two main public objects are:
+
+- :class:`PoseDatabase` — create the schema and insert or update campaign data
+- :class:`PoseQuery` — open an existing database and run analysis-friendly queries
+
+This separation keeps workflow generation and downstream analysis cleanly
+decoupled.
+
+
+Pose identity
+-------------
+
+A stored pose can be addressed in two ways:
+
+- ``pose_db_id`` — internal SQLite integer primary key
+- ``pose_id`` — optional stable external id such as
   ``"1M17__erlotinib__qvina__pose1"``
 
-If no external ``pose_id`` is stored, the logical identity of a pose is still
-well defined by:
+If no external ``pose_id`` is stored, a pose is still uniquely identified by:
 
 .. code-block:: text
 
    (receptor_id, ligand_id, engine, pose_rank)
 
-This makes the database robust both for automated internal workflows and for
-human-readable campaign exports.
+This makes the schema robust both for automated inserts and for human-readable
+campaign exports.
 
-Write once, query many times
-----------------------------
+Write campaign data
+-------------------
 
-A useful way to think about the API is:
+.. raw:: html
 
-- :class:`PoseDatabase` is the **writer**
-- :class:`PoseQuery` is the **reader**
+   <div class="pd-panel pd-panel-soft">
+     <div class="pd-section-head">
+       <div class="pd-section-icon" aria-hidden="true">
+         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round">
+           <ellipse cx="12" cy="5" rx="6.5" ry="2.8"/>
+           <path d="M5.5 5v6c0 1.5 2.9 2.8 6.5 2.8s6.5-1.3 6.5-2.8V5"/>
+           <path d="M5.5 11v6c0 1.5 2.9 2.8 6.5 2.8s6.5-1.3 6.5-2.8v-6"/>
+         </svg>
+       </div>
+       <div>
+         <h2>PoseDatabase</h2>
+         <p>Store pose tables, score rows, molecules, and interactions in one campaign database.</p>
+       </div>
+     </div>
+   </div>
 
-Typical workflow:
+Use :class:`PoseDatabase` when you already have a pose dataframe from docking or
+postprocessing and want to persist it for later analysis.
 
-1. collect or generate a pose table from docking/postprocessing
-2. insert it once into SQLite with :class:`PoseDatabase`
-3. reopen the database later with :class:`PoseQuery`
-4. run filtering, interaction analysis, and summary queries without rebuilding
-   the dataset
-
-Minimal write example
----------------------
+Minimal write example:
 
 .. code-block:: python
 
@@ -88,8 +150,7 @@ Minimal write example
    db = PoseDatabase("poses.sqlite")
    db.insert_dataframe(pose_dataframe)
 
-This is the simplest entry point when you already have a pandas DataFrame with
-the required pose columns:
+The dataframe is expected to contain the core pose columns:
 
 - ``receptor_id``
 - ``ligand_id``
@@ -98,63 +159,7 @@ the required pose columns:
 - ``affinity``
 - ``mol``
 
-Insert poses and interactions together
---------------------------------------
-
-If your workflow already produced interaction payloads, they can be stored at
-the same time as the poses. This is especially useful after automated
-postprocessing.
-
-.. code-block:: python
-
-   from prodock.database import PoseDatabase
-
-   db = PoseDatabase("poses.sqlite")
-
-   db.insert_dataframe(
-       pose_dataframe,
-       interactions_by_pose=interactions_by_pose,
-       replace=True,
-       replace_interactions=True,
-   )
-
-Here, ``interactions_by_pose`` is keyed by stored ``pose_id`` values and can use
-either a compact summary format or a detailed nested event format.
-
-Example summary payload:
-
-.. code-block:: python
-
-   {
-       "1M17__erlotinib__qvina__pose1": {
-           "Hydrophobic": ["LEU23.A", "VAL31.A"],
-           "HBDonor": ["ASP45.A"],
-       }
-   }
-
-Example detailed payload:
-
-.. code-block:: python
-
-   {
-       "1M17__erlotinib__qvina__pose1": {
-           "Hydrophobic": {
-               "LEU23.A": [
-                   {
-                       "distance": 3.8,
-                       "indices": {"ligand": [4], "protein": [102]},
-                       "metadata": {"source": "prolif"},
-                   }
-               ]
-           }
-       }
-   }
-
-Build a database directly from a DataFrame
-------------------------------------------
-
-For one-step creation, :class:`PoseDatabase` can also construct the full SQLite
-file directly from a DataFrame.
+A one-step construction pattern is also available:
 
 .. code-block:: python
 
@@ -163,18 +168,60 @@ file directly from a DataFrame.
    db = PoseDatabase.from_dataframe(
        "poses.sqlite",
        pose_dataframe,
-       interactions_by_pose=interactions_by_pose,
    )
 
-This pattern is convenient for scripted workflows and tutorial notebooks because
-it combines initialization and import in one step.
+If interaction payloads are already available, they can be stored at import time:
 
-Read-only querying with PoseQuery
----------------------------------
+.. code-block:: python
 
-Once a campaign has been stored, downstream analysis should usually be done
-through :class:`PoseQuery`. By default, it opens the database in SQLite
-read-only mode.
+   db.insert_dataframe(
+       pose_dataframe,
+       interactions_by_pose=interactions_by_pose,
+       replace=True,
+       replace_interactions=True,
+   )
+
+.. raw:: html
+
+   <div class="pd-mini-callout">
+     <strong>See API:</strong>
+     <a href="../api/database.html">Database API reference</a>
+   </div>
+
+Query stored campaigns
+----------------------
+
+.. raw:: html
+
+   <div class="pd-panel pd-panel-soft">
+     <div class="pd-section-head">
+       <div class="pd-section-icon" aria-hidden="true">
+         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round">
+           <circle cx="11" cy="11" r="5.5"/>
+           <path d="M16 16l4 4"/>
+           <path d="M8.8 11h4.4M11 8.8v4.4"/>
+         </svg>
+       </div>
+       <div>
+         <h2>PoseQuery</h2>
+         <p>Open an existing database and query poses, scores, and interactions through a read-focused API.</p>
+       </div>
+     </div>
+   </div>
+
+Use :class:`PoseQuery` after a campaign has already been stored. By default, it
+opens the database in read-only mode.
+
+Typical query patterns include:
+
+- pose tables filtered by receptor, ligand, engine, or rank,
+- score tables without loading molecules,
+- exact retrieval of one stored pose,
+- interaction-aware filtering,
+- interaction summaries and fingerprint matrices,
+- campaign-level summaries.
+
+Basic examples:
 
 .. code-block:: python
 
@@ -187,16 +234,17 @@ read-only mode.
        engine="qvina",
        as_dataframe=True,
    )
+
+   scores = q.scores(
+       receptor_id="1M17",
+       top_rank=3,
+       as_dataframe=True,
+   )
+
    print(poses[["pose_id", "pose_rank", "affinity"]].head())
+   print(scores[["pose_id", "affinity"]].head())
 
-This separation is useful because it makes analysis code cleaner and reduces the
-risk of accidentally modifying stored campaign results.
-
-Query one exact pose
---------------------
-
-A single pose can be retrieved by internal id, external ``pose_id``, or the
-logical key.
+Retrieve one exact pose:
 
 .. code-block:: python
 
@@ -208,34 +256,27 @@ logical key.
        include_interactions=True,
        interaction_mode="summary",
    )
+
    print(pose)
 
-This is helpful when inspecting the best-ranked pose of one
-receptor-ligand-engine combination.
+.. raw:: html
 
-Query score tables
-------------------
+   <div class="pd-mini-callout">
+     <strong>See API:</strong>
+     <a href="../api/database.html">Database API reference</a>
+   </div>
 
-Score records can be queried independently from pose records. This is useful
-when the molecule object is not needed and only ranking or score payloads are of
-interest.
+Interaction querying
+--------------------
 
-.. code-block:: python
-
-   scores = q.scores(
-       receptor_id="1M17",
-       top_rank=3,
-       as_dataframe=True,
-   )
-   print(scores[["pose_id", "affinity"]])
-
-Interaction-aware pose queries
-------------------------------
-
-One of the main advantages of storing interactions in the same database is that
-pose queries can be filtered by interaction content.
+One advantage of keeping interactions in the same schema is that pose queries
+can also filter by interaction content.
 
 .. code-block:: python
+
+   from prodock.database import PoseQuery
+
+   q = PoseQuery("poses.sqlite")
 
    selected = q.poses(
        receptor_id="1M17",
@@ -243,17 +284,10 @@ pose queries can be filtered by interaction content.
        residue_id="LEU23.A",
        as_dataframe=True,
    )
+
    print(selected[["pose_id", "affinity"]])
 
-This allows you to search for poses that satisfy both scoring constraints and
-interaction constraints in one query layer.
-
-Compact interaction summaries
------------------------------
-
-For many downstream tasks, a compact summary is easier to work with than raw
-interaction rows. ProDock can rebuild summary payloads directly from the stored
-interaction table.
+Compact summaries can be rebuilt directly from stored interaction rows:
 
 .. code-block:: python
 
@@ -261,24 +295,10 @@ interaction table.
        receptor_id="1M17",
        return_by="pose_id",
    )
+
    print(summary)
 
-The returned format is:
-
-.. code-block:: python
-
-   {
-       "pose_id": {
-           "Hydrophobic": ["LEU23.A", "VAL31.A"],
-           "HBDonor": ["ASP45.A"],
-       }
-   }
-
-Detailed interaction payloads
------------------------------
-
-When per-event atom indices, distances, angles, or richer metadata are needed,
-the detailed interaction format can be reconstructed as well.
+Detailed event payloads can also be reconstructed:
 
 .. code-block:: python
 
@@ -286,17 +306,10 @@ the detailed interaction format can be reconstructed as well.
        receptor_id="1M17",
        return_by="pose_key",
    )
+
    print(details)
 
-This is especially useful when interaction analysis must be exported to other
-tools or when notebook workflows need event-level inspection.
-
-Interaction fingerprint matrices
---------------------------------
-
-The stored interaction table can also be converted directly into a
-pose-by-feature interaction matrix. Features are defined as
-``interaction_type::residue_id``.
+Fingerprint matrices are also available:
 
 .. code-block:: python
 
@@ -305,88 +318,34 @@ pose-by-feature interaction matrix. Features are defined as
        mode="binary",
        index_by="pose_key",
    )
+
    print(fp.head())
 
-This representation is useful for:
 
-- pose clustering
-- similarity analysis
-- interaction pattern comparison
-- machine-learning style downstream workflows
+Minimal end-to-end example
+--------------------------
 
-Campaign-level summary
-----------------------
+.. raw:: html
 
-For a fast overview of the database contents, ProDock provides a campaign-level
-summary grouped by receptor, ligand, and engine.
-
-.. code-block:: python
-
-   print(q.summary())
-
-The summary includes:
-
-- number of stored poses
-- best affinity value
-- maximum stored pose rank
-- number of linked interaction rows
-
-This is often the most convenient first check after importing a new campaign.
-
-Reusing an existing database connection
----------------------------------------
-
-Advanced workflows may already have an open :class:`PoseDatabase` object. In
-that case, :class:`PoseQuery` can reuse the active SQLite connection instead of
-opening the file again.
+   <div class="pd-example-head">
+     <div class="pd-example-badge">Example</div>
+     <h2>Write once, query later</h2>
+   </div>
 
 .. code-block:: python
 
    from prodock.database import PoseDatabase, PoseQuery
 
-   db = PoseDatabase("poses.sqlite", create=False)
-   q = PoseQuery(connection=db.connection)
-
-   print(q.receptors())
-   print(q.ligands())
-   print(q.engines())
-
-This pattern is convenient inside larger scripted pipelines.
-
-Visual schema
--------------
-
-.. image:: ../_static/db-architecture.svg
-   :alt: ProDock database architecture
-   :class: pd-visual
-
-The schema is organized so that receptor, ligand, and engine identifiers are
-stored once, while pose-specific and interaction-specific records remain linked
-through stable keys. This keeps the database compact while still supporting
-many-to-many campaign queries across receptors, ligands, engines, and pose
-ranks.
-
-Original detailed schema
-------------------------
-
-.. image:: ../fig/db-schema-original.png
-   :alt: Original detailed database schema
-   :class: pd-visual
-
-Recommended usage pattern
--------------------------
-
-For most projects, the recommended pattern is:
-
-.. code-block:: python
-
-   from prodock.database import PoseDatabase, PoseQuery
-
-   # Step 1: write results once
+   # Step 1: write campaign results
    db = PoseDatabase("poses.sqlite")
-   db.insert_dataframe(pose_dataframe, interactions_by_pose=interactions_by_pose)
+   db.insert_dataframe(
+       pose_dataframe,
+       interactions_by_pose=interactions_by_pose,
+       replace=True,
+       replace_interactions=True,
+   )
 
-   # Step 2: analyze later through the read-only query API
+   # Step 2: reopen with the read/query API
    q = PoseQuery("poses.sqlite")
 
    best = q.poses(
@@ -397,9 +356,21 @@ For most projects, the recommended pattern is:
        as_dataframe=True,
    )
 
-   fp = q.fingerprint(receptor_id="1M17", mode="binary")
+   fp = q.fingerprint(
+       receptor_id="1M17",
+       mode="binary",
+       index_by="pose_key",
+   )
+
    summary = q.summary()
 
-This write-once, query-many design is the main reason the database layer scales
-well from a small tutorial example to larger multi-receptor, multi-ligand,
-multi-engine docking campaigns.
+   print(best.head())
+   print(fp.head())
+   print(summary.head())
+
+See also
+--------
+
+- :doc:`../api/database` — full reference for ``PoseDatabase`` and ``PoseQuery``
+- :doc:`../api/postprocess` — build pose tables and interaction payloads before database import
+- :doc:`../tutorial/postprocess` — postprocess docking outputs into reusable tables and summaries

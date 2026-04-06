@@ -1,5 +1,5 @@
 {% set name = "prodock" %}
-{% set version = "0.1.2b" %}
+{% set version = "0.1.3a" %}
 
 package:
   name: {{ name | lower }}
