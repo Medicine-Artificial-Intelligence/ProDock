@@ -1,0 +1,13 @@
+{
+    "project_dir": "Demo",
+    "config": {
+    "engines": ["qvina", "qvina-w"],
+    "extract_interaction": true,
+    "db_name": "demo.db",
+    "cpu": 8,
+    "n_jobs": 8,
+    "exhaustiveness": 16,
+    "n_poses": 20,
+    "save_to_database": true
+    }
+}

@@ -71,16 +71,15 @@ class PDBEngine:
 
     .. code-block:: python
 
-        from pathlib import Path
         from prodock.structure.pdb_engine import PDBEngine
-
+        from pathlib import Path
         engine = (
             PDBEngine(
-                pdb_id="1ABC",
-                base_out=Path("output"),
+                pdb_id="1M17",
+                base_out=Path("tutorial/1M17"),
                 chains=["A"],
-                ligand_code="LIG",
-                cofactors=["MG", "ZN"],
+                ligand_code="AQ4",
+                cofactors=[],
             )
             .run_all()
         )
@@ -96,10 +95,11 @@ class PDBEngine:
     .. code-block:: python
 
         engine = PDBEngine(
-            pdb_id="2XYZ",
-            base_out=Path("output"),
-            chains=["A", "B"],
-            ligand_code="ATP",
+            pdb_id="1M17",
+                base_out=Path("tutorial/1M17"),
+                chains=["A"],
+                ligand_code="AQ4",
+                cofactors=[],
         )
 
         (
@@ -448,10 +448,11 @@ class PDBEngine:
         :rtype: bool
         """
         assert self.ref_path is not None
-        from .conversion import convert_with_obabel
+        from .conversion import pdb_to_sdf
 
         try:
-            convert_with_obabel(tmp_pdb, self.ref_path, extra_args=("-h",))
+            # convert_with_obabel(tmp_pdb, self.ref_path, extra_args=("-h",), sanitize_rebuild=True)
+            pdb_to_sdf(tmp_pdb, self.ref_path, backend="rdkit")
         except Exception as exc:
             logger.warning("Reference ligand conversion failed: %s", exc)
             return False
