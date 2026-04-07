@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
-from typing import List, Dict, Optional, Literal
+from typing import Dict, List, Optional, Literal
 
 from prodock.io.logging import get_logger
 
@@ -15,32 +15,23 @@ class PDBQTSanitizer:
     """
     Backend-aware PDBQT sanitizer and validator.
 
-    This sanitizer is tuned for backend-specific behavior:
+    This sanitizer is designed for ligand PDBQT compatibility with older
+    Vina/QuickVina-family parsers that are sensitive to fixed-column formatting.
 
-    - ``backend="meeko"``:
-      more tolerant alias mapping and more active repair of atom-type-like
-      trailing tokens such as ``OA``, ``HD``, ``CG0``, ``G0``, ``A``, ``CL1``,
-      and related variants.
+    Main behavior
+    -------------
+    - rebuilds ATOM/HETATM lines into one consistent fixed-width format
+    - preserves legacy AutoDock/Vina atom types such as ``A``, ``OA``, ``NA``,
+      ``SA``, and ``HD``
+    - selectively downgrades unsupported pseudo-types such as ``CG0`` and ``G0``
+    - keeps torsion-tree records unchanged
 
-    - ``backend="obabel"``:
-      lighter validation and sanitization, preferring canonical element fields
-      and avoiding unnecessary rewriting unless something is clearly malformed.
-
-    Features
-    --------
-    - validation of fixed-column element fields (PDB columns 77--78)
-    - validation of trailing atom-type-like tokens
-    - backend-aware alias mapping
-    - optional rebuilding of ``ATOM`` / ``HETATM`` records into fixed-width
-      PDB-style lines
-    - in-place overwrite with optional backup
-
-    Example
-    -------
+    Recommended usage
+    -----------------
     .. code-block:: python
 
         sanitizer = PDBQTSanitizer("ligand.pdbqt", backend="meeko")
-        warnings = sanitizer.validate(strict=True)
+        sanitizer.validate(strict=False)
         sanitizer.sanitize(rebuild=True, aggressive=False)
         sanitizer.write("ligand.sanitized.pdbqt")
 
@@ -52,6 +43,21 @@ class PDBQTSanitizer:
         Sanitizer behavior profile.
     :type backend: Literal["meeko", "obabel"]
     """
+
+    _ATOM_RE = re.compile(r"^(ATOM|HETATM)\b")
+    _FLOAT_RE = re.compile(r"^[+-]?(?:\d+\.?\d*|\.\d+)$")
+    _TAG_WHITELIST = {
+        "REMARK",
+        "ROOT",
+        "ENDROOT",
+        "BRANCH",
+        "ENDBRANCH",
+        "TORSDOF",
+        "MODEL",
+        "ENDMDL",
+        "TER",
+        "END",
+    }
 
     _VALID_ELEMENTS = {
         "H",
@@ -70,60 +76,123 @@ class PDBQTSanitizer:
         "K",
         "Na",
         "Ca",
+        "Mn",
+        "Cu",
     }
 
-    _ATOM_RE = re.compile(r"^(ATOM|HETATM)\b")
-    _FLOAT_RE = re.compile(r"^[+-]?\d+(\.\d+)?$")
-    _TAG_WHITELIST = {
-        "REMARK",
-        "ROOT",
-        "ENDROOT",
-        "BRANCH",
-        "ENDBRANCH",
-        "TORSDOF",
-        "MODEL",
-        "ENDMDL",
-        "TER",
-        "END",
+    # Legacy/commonly accepted AutoDock/Vina PDBQT atom types
+    _VALID_PDBQT_TYPES = {
+        "H",
+        "HD",
+        "HS",
+        "C",
+        "A",
+        "N",
+        "NA",
+        "NS",
+        "OA",
+        "OS",
+        "F",
+        "P",
+        "S",
+        "SA",
+        "Cl",
+        "Br",
+        "I",
+        "Mg",
+        "Zn",
+        "Fe",
+        "Ca",
+        "Mn",
+        "Cu",
+        "Na",
+        "K",
     }
 
-    _COMMON_ALIAS_MAP_MEEKO: Dict[str, str] = {
-        "OA": "O",
-        "OH": "O",
-        "OD": "O",
-        "OS": "O",
-        "HD": "H",
-        "HG": "H",
-        "HG1": "H",
+    # Backend-specific pseudo-type normalization to legacy-compatible PDBQT type
+    _TYPE_ALIAS_MAP_MEEKO: Dict[str, str] = {
+        "CG0": "C",
+        "G0": "C",
+        "CG": "C",
+        "G": "C",
+        "C0": "C",
+        "AA": "A",
+        "OH": "OA",
+        "OD": "OA",
+        "SD": "SA",
+        "HG": "HD",
+        "HG1": "HD",
         "HA": "H",
         "HB": "H",
         "HC": "H",
-        "CG": "C",
-        "CG0": "C",
-        "G0": "C",
-        "G": "C",
-        "A": "C",
-        "AA": "C",
-        "C0": "C",
-        "NA": "N",
-        "N0": "N",
-        "SA": "S",
-        "SD": "S",
-        "CL": "Cl",
         "CL1": "Cl",
-        "BR": "Br",
         "BR1": "Br",
-    }
-
-    _COMMON_ALIAS_MAP_OBABEL: Dict[str, str] = {
         "CL": "Cl",
         "BR": "Br",
-        "NA": "Na",
-        "CA": "Ca",
         "MG": "Mg",
         "ZN": "Zn",
         "FE": "Fe",
+        # keep valid legacy types unchanged
+        "OA": "OA",
+        "OS": "OS",
+        "HD": "HD",
+        "A": "A",
+        "NA": "NA",
+        "SA": "SA",
+        "C": "C",
+        "N": "N",
+        "O": "O",
+        "S": "S",
+        "H": "H",
+        "F": "F",
+        "P": "P",
+        "I": "I",
         "K": "K",
+        "NA+": "Na",
+    }
+
+    _TYPE_ALIAS_MAP_OBABEL: Dict[str, str] = {
+        "CL": "Cl",
+        "BR": "Br",
+        "MG": "Mg",
+        "ZN": "Zn",
+        "FE": "Fe",
+        "OA": "OA",
+        "OS": "OS",
+        "HD": "HD",
+        "A": "A",
+        "NA": "NA",
+        "SA": "SA",
+        "C": "C",
+        "N": "N",
+        "O": "O",
+        "S": "S",
+        "H": "H",
+        "F": "F",
+        "P": "P",
+        "I": "I",
+        "K": "K",
+    }
+
+    _ELEMENT_TO_DEFAULT_PDBQT = {
+        "H": "H",
+        "C": "C",
+        "N": "N",
+        "O": "O",
+        "F": "F",
+        "P": "P",
+        "S": "S",
+        "Cl": "Cl",
+        "Br": "Br",
+        "I": "I",
+        "Mg": "Mg",
+        "Zn": "Zn",
+        "Fe": "Fe",
+        "K": "K",
+        "Na": "Na",
+        "Ca": "Ca",
+        "Mn": "Mn",
+        "Cu": "Cu",
     }
 
     def __init__(
@@ -143,11 +212,19 @@ class PDBQTSanitizer:
             self.read(self._path)
 
     # -------------------------
-    # I/O helpers
+    # I/O
     # -------------------------
     def read(self, path: str | Path) -> "PDBQTSanitizer":
         """
         Load a PDBQT file into memory.
+
+        :param path:
+            Input file path.
+        :type path: str | pathlib.Path
+
+        :returns:
+            Current instance.
+        :rtype: PDBQTSanitizer
         """
         p = Path(path)
         if not p.exists():
@@ -162,7 +239,15 @@ class PDBQTSanitizer:
 
     def write(self, out_path: str | Path) -> Path:
         """
-        Write sanitized content.
+        Write sanitized content to disk.
+
+        :param out_path:
+            Output file path.
+        :type out_path: str | pathlib.Path
+
+        :returns:
+            Written path.
+        :rtype: pathlib.Path
         """
         if not self._sanitized:
             raise RuntimeError("Call sanitize(...) before write().")
@@ -172,13 +257,6 @@ class PDBQTSanitizer:
         logger.info("Wrote sanitized PDBQT to %s", out)
         return out
 
-    def set_backend(self, backend: SanitizeBackend) -> "PDBQTSanitizer":
-        """
-        Set sanitizer backend profile.
-        """
-        self.backend = backend
-        return self
-
     def sanitize_inplace(
         self,
         rebuild: bool = True,
@@ -186,7 +264,23 @@ class PDBQTSanitizer:
         backup: bool = True,
     ) -> Path:
         """
-        Sanitize and overwrite original file.
+        Sanitize and overwrite the loaded file.
+
+        :param rebuild:
+            Rebuild ATOM/HETATM lines into fixed-width PDBQT format.
+        :type rebuild: bool
+
+        :param aggressive:
+            Allow stronger fallback heuristics for malformed lines.
+        :type aggressive: bool
+
+        :param backup:
+            Create ``.bak`` backup when overwriting.
+        :type backup: bool
+
+        :returns:
+            Written path.
+        :rtype: pathlib.Path
         """
         if self._path is None:
             raise RuntimeError("No file loaded. Call read(path) first.")
@@ -198,27 +292,79 @@ class PDBQTSanitizer:
                 logger.debug("Created backup %s", bak)
         return self.write(self._path)
 
-    # -------------------------
-    # backend helpers
-    # -------------------------
-    def _alias_map(self) -> Dict[str, str]:
-        if self.backend == "meeko":
-            return self._COMMON_ALIAS_MAP_MEEKO
-        if self.backend == "obabel":
-            return self._COMMON_ALIAS_MAP_OBABEL
-        return {}
-
-    def _prefer_trailing_mapping(self) -> bool:
-        return self.backend == "meeko"
-
-    def _default_fallback_element(self) -> str:
-        return "C"
-
-    # -------------------------
-    # internal heuristics
-    # -------------------------
     @classmethod
-    def _canonicalize_element(cls, token: str) -> str:
+    def sanitize_file(
+        cls,
+        path: str | Path,
+        out_path: Optional[str | Path] = None,
+        *,
+        backend: SanitizeBackend = "meeko",
+        rebuild: bool = True,
+        aggressive: bool = False,
+        backup: bool = True,
+    ) -> Path:
+        """
+        Convenience wrapper for sanitizing a file.
+
+        :param path:
+            Input PDBQT path.
+        :type path: str | pathlib.Path
+
+        :param out_path:
+            Output path. If ``None``, overwrite original.
+        :type out_path: Optional[str | pathlib.Path]
+
+        :param backend:
+            Sanitizer behavior profile.
+        :type backend: Literal["meeko", "obabel"]
+
+        :param rebuild:
+            Rebuild ATOM/HETATM lines into fixed-width PDBQT format.
+        :type rebuild: bool
+
+        :param aggressive:
+            Allow stronger fallback heuristics for malformed lines.
+        :type aggressive: bool
+
+        :param backup:
+            Create backup if overwriting.
+        :type backup: bool
+
+        :returns:
+            Sanitized file path.
+        :rtype: pathlib.Path
+        """
+        p = Path(path)
+        s = cls(p, backend=backend)
+        s.validate(strict=False)
+        s.sanitize(rebuild=rebuild, aggressive=aggressive)
+
+        if out_path is None:
+            if backup:
+                bak = p.with_suffix(p.suffix + ".bak")
+                if not bak.exists():
+                    bak.write_text("\n".join(s.lines) + "\n", encoding="utf-8")
+            s.write(p)
+            return p
+
+        outp = Path(out_path)
+        s.write(outp)
+        return outp
+
+    # -------------------------
+    # Backend helpers
+    # -------------------------
+    def _type_alias_map(self) -> Dict[str, str]:
+        if self.backend == "meeko":
+            return self._TYPE_ALIAS_MAP_MEEKO
+        return self._TYPE_ALIAS_MAP_OBABEL
+
+    @staticmethod
+    def _strip_digits(s: str) -> str:
+        return re.sub(r"\d+", "", s)
+
+    @staticmethod
+    def _canonicalize_element(token: str) -> str:
         t = (token or "").strip()
         if not t:
             return ""
@@ -227,26 +373,33 @@ class PDBQTSanitizer:
         return t[0].upper() + t[1:].lower()
 
     @classmethod
-    def _strip_digits(cls, s: str) -> str:
-        return re.sub(r"\d+", "", s)
+    def _is_valid_element_token(cls, token: str) -> bool:
+        return token in cls._VALID_ELEMENTS
 
-    def _is_valid_element_token(self, token: str) -> bool:
-        if not token:
-            return False
-        t = token.strip()
-        m = re.fullmatch(r"[A-Z][a-z]?", t)
-        return bool(m and t in self._VALID_ELEMENTS)
+    @classmethod
+    def _is_valid_pdbqt_type(cls, token: str) -> bool:
+        return token in cls._VALID_PDBQT_TYPES
 
-    def _map_alias(self, raw: str, atomname: str = "") -> str:
+    def _normalize_pdbqt_type(self, raw: str) -> str:
         """
-        Map raw token to element using backend-aware alias maps and heuristics.
+        Normalize raw trailing token into a legacy-compatible PDBQT atom type.
+
+        :param raw:
+            Raw trailing token.
+        :type raw: str
+
+        :returns:
+            Normalized PDBQT atom type or empty string.
+        :rtype: str
         """
         r = (raw or "").strip()
         if not r:
             return ""
 
-        amap = self._alias_map()
+        if self._is_valid_pdbqt_type(r):
+            return r
 
+        amap = self._type_alias_map()
         if r in amap:
             return amap[r]
 
@@ -254,40 +407,73 @@ class PDBQTSanitizer:
         if r2 in amap:
             return amap[r2]
 
-        can = self._canonicalize_element(r2)
-        if can in self._VALID_ELEMENTS:
-            return can
-
-        cand2 = r2[:2].capitalize()
-        if cand2 in self._VALID_ELEMENTS:
-            return cand2
-
-        cand1 = r2[:1].upper()
-        if cand1 in self._VALID_ELEMENTS:
-            return cand1
-
-        if atomname:
-            a = self._strip_digits(atomname).strip()
-            if a:
-                can_atom = self._canonicalize_element(a[:2])
-                if can_atom in self._VALID_ELEMENTS:
-                    return can_atom
-                one = a[:1].upper()
-                if one in self._VALID_ELEMENTS:
-                    return one
+        elem = self._canonicalize_element(r2)
+        if elem in self._ELEMENT_TO_DEFAULT_PDBQT:
+            return self._ELEMENT_TO_DEFAULT_PDBQT[elem]
 
         return ""
 
+    def _default_type_from_element(self, elem: str) -> str:
+        """
+        Convert chemical element to conservative default PDBQT type.
+
+        :param elem:
+            Element token.
+        :type elem: str
+
+        :returns:
+            Default PDBQT type or empty string.
+        :rtype: str
+        """
+        return self._ELEMENT_TO_DEFAULT_PDBQT.get(self._canonicalize_element(elem), "")
+
+    def _infer_element_from_atom_name(self, atom_name: str) -> str:
+        """
+        Infer chemical element from atom name.
+
+        :param atom_name:
+            Atom name.
+        :type atom_name: str
+
+        :returns:
+            Inferred element or empty string.
+        :rtype: str
+        """
+        a = self._strip_digits(atom_name or "").strip()
+        if not a:
+            return ""
+
+        cand2 = self._canonicalize_element(a[:2])
+        if cand2 in self._VALID_ELEMENTS:
+            return cand2
+
+        cand1 = a[:1].upper()
+        if cand1 in self._VALID_ELEMENTS:
+            return cand1
+
+        return ""
+
+    # -------------------------
+    # Parsing helpers
+    # -------------------------
     def _extract_atom_fields(self, ln: str) -> Dict[str, str]:
         """
-        Best-effort extraction of common atom fields from a whitespace-split PDBQT line.
+        Best-effort extraction of common atom fields from a whitespace tokenized line.
+
+        :param ln:
+            Input ATOM/HETATM line.
+        :type ln: str
+
+        :returns:
+            Parsed field dictionary.
+        :rtype: Dict[str, str]
         """
         toks = ln.split()
 
         record = toks[0] if len(toks) > 0 else ""
         serial = toks[1] if len(toks) > 1 else "0"
         atom_name = toks[2] if len(toks) > 2 else ""
-        res_name = toks[3] if len(toks) > 3 else ""
+        res_name = toks[3] if len(toks) > 3 else "UNK"
         res_seq = toks[4] if len(toks) > 4 else "1"
 
         float_idx = None
@@ -302,71 +488,350 @@ class PDBQTSanitizer:
             "atom_name": atom_name,
             "res_name": res_name,
             "res_seq": res_seq,
-            "float_idx": str(float_idx) if float_idx is not None else "",
+            "float_idx": "" if float_idx is None else str(float_idx),
         }
 
-    def _extract_trailing_token(self, ln: str) -> str:
+    def _extract_trailing_type(self, ln: str) -> str:
         """
-        Try to extract the most likely trailing atom-type token.
+        Extract likely trailing PDBQT atom type token.
+
+        :param ln:
+            Input ATOM/HETATM line.
+        :type ln: str
+
+        :returns:
+            Trailing atom-type-like token or empty string.
+        :rtype: str
         """
         toks = ln.split()
         if not toks:
             return ""
 
-        float_idx = None
-        for idx in range(5, len(toks)):
-            if self._FLOAT_RE.match(toks[idx]):
-                float_idx = idx
-                break
-
-        if float_idx is not None:
-            tail_start = float_idx + 5
-            if tail_start < len(toks):
-                last = toks[-1]
-                if not self._FLOAT_RE.match(last):
-                    return last
-                if len(toks) >= 2 and not self._FLOAT_RE.match(toks[-2]):
-                    return toks[-2]
-                return ""
-
-        last = toks[-1]
-        if not self._FLOAT_RE.match(last):
-            return last
+        # Walk backward to find the last non-float token after the record fields.
+        for tok in reversed(toks[1:]):
+            if not self._FLOAT_RE.match(tok):
+                return tok
         return ""
 
-    def _fixed_element(self, ln: str) -> str:
+    def _extract_fixed_element(self, ln: str) -> str:
+        """
+        Extract fixed-column element from columns 77-78 if present.
+
+        :param ln:
+            Input ATOM/HETATM line.
+        :type ln: str
+
+        :returns:
+            Fixed-column element token or empty string.
+        :rtype: str
+        """
         if len(ln) >= 78:
             return ln[76:78].strip()
         return ""
 
-    def _choose_element(
+    def _extract_xyz_and_tail_floats(
+        self,
+        ln: str,
+    ) -> tuple[Optional[float], Optional[float], Optional[float], List[str], List[str]]:
+        """
+        Extract x/y/z and floating tail after z.
+
+        For common ligand PDBQT forms, this accepts patterns like:
+        - ATOM ... x y z q type
+        - ATOM ... x y z occ temp type
+        - ATOM ... x y z occ temp charge type
+
+        :param ln:
+            Input ATOM/HETATM line.
+        :type ln: str
+
+        :returns:
+            Tuple of ``(x, y, z, float_tail, tokens)``.
+        :rtype: tuple[Optional[float], Optional[float], Optional[float], List[str], List[str]]
+        """
+        toks = ln.split()
+        fields = self._extract_atom_fields(ln)
+        float_idx_str = fields["float_idx"]
+        if float_idx_str == "":
+            return None, None, None, [], toks
+
+        idx = int(float_idx_str)
+        if idx + 2 >= len(toks):
+            return None, None, None, [], toks
+
+        try:
+            x = float(toks[idx])
+            y = float(toks[idx + 1])
+            z = float(toks[idx + 2])
+        except Exception:
+            return None, None, None, [], toks
+
+        tail = toks[idx + 3 :] # noqa
+        float_tail = [t for t in tail if self._FLOAT_RE.match(t)]
+        return x, y, z, float_tail, toks
+
+    def _extract_charge_occ_temp(self, ln: str) -> tuple[float, float, float]:
+        """
+        Extract ``charge``, ``occupancy``, and ``tempFactor`` from a line.
+
+        Heuristic rules
+        ---------------
+        - 1 float after z:
+            treat as charge
+        - 2 floats after z:
+            treat as occupancy, tempFactor; charge=0.0
+        - 3+ floats after z:
+            treat as occupancy, tempFactor, charge using first three floats
+
+        :param ln:
+            Input ATOM/HETATM line.
+        :type ln: str
+
+        :returns:
+            Tuple ``(charge, occupancy, tempFactor)``.
+        :rtype: tuple[float, float, float]
+        """
+        _, _, _, float_tail, _ = self._extract_xyz_and_tail_floats(ln)
+
+        def to_f(s: str, default: float = 0.0) -> float:
+            try:
+                return float(s)
+            except Exception:
+                return default
+
+        if len(float_tail) == 1:
+            return to_f(float_tail[0]), 0.00, 0.00
+        if len(float_tail) == 2:
+            return 0.00, to_f(float_tail[0]), to_f(float_tail[1])
+        if len(float_tail) >= 3:
+            return to_f(float_tail[2]), to_f(float_tail[0]), to_f(float_tail[1])
+
+        return 0.00, 0.00, 0.00
+
+    def _choose_pdbqt_type(
         self,
         *,
-        fixed_elem: str,
         trailing_tok: str,
+        fixed_elem: str,
         atom_name: str,
+        aggressive: bool = False,
     ) -> str:
         """
-        Backend-aware element selection.
+        Choose the best PDBQT atom type.
+
+        Priority
+        --------
+        1. valid trailing PDBQT type
+        2. normalized trailing type
+        3. default type from valid fixed element
+        4. default type from atom-name-inferred element
+        5. ``C`` fallback if aggressive=True
+
+        :param trailing_tok:
+            Trailing atom-type-like token.
+        :type trailing_tok: str
+
+        :param fixed_elem:
+            Fixed-column element token.
+        :type fixed_elem: str
+
+        :param atom_name:
+            Atom name field.
+        :type atom_name: str
+
+        :param aggressive:
+            Whether to allow stronger fallback.
+        :type aggressive: bool
+
+        :returns:
+            Chosen PDBQT type or empty string.
+        :rtype: str
         """
-        if self._is_valid_element_token(fixed_elem):
-            return fixed_elem
+        if trailing_tok and self._is_valid_pdbqt_type(trailing_tok):
+            return trailing_tok
 
-        if self._prefer_trailing_mapping() and trailing_tok:
-            mapped = self._map_alias(trailing_tok, atomname=atom_name)
-            if mapped:
-                return mapped
+        mapped = self._normalize_pdbqt_type(trailing_tok)
+        if mapped:
+            return mapped
 
-        mapped_atom = self._map_alias(atom_name, atomname=atom_name)
-        if mapped_atom:
-            return mapped_atom
+        if fixed_elem and self._is_valid_element_token(fixed_elem):
+            from_elem = self._default_type_from_element(fixed_elem)
+            if from_elem:
+                return from_elem
 
-        if trailing_tok:
-            mapped = self._map_alias(trailing_tok, atomname=atom_name)
-            if mapped:
-                return mapped
+        inferred = self._infer_element_from_atom_name(atom_name)
+        if inferred:
+            from_name = self._default_type_from_element(inferred)
+            if from_name:
+                return from_name
 
-        return self._default_fallback_element()
+        if aggressive:
+            return "C"
+
+        return ""
+
+    # -------------------------
+    # Formatting
+    # -------------------------
+    def _format_atom_name(self, atom_name: str, element: str = "") -> str:
+        """
+        Format atom name into 4-character PDB atom-name field.
+
+        :param atom_name:
+            Atom name.
+        :type atom_name: str
+
+        :param element:
+            Optional element hint.
+        :type element: str
+
+        :returns:
+            4-character atom name.
+        :rtype: str
+        """
+        name = (atom_name or "").strip()[:4]
+        if len(name) == 4:
+            return name
+        if len(name) == 1:
+            return f" {name}  "
+        if len(name) == 2:
+            return f" {name} "
+        if len(name) == 3:
+            return f" {name}"
+        return "    "
+
+    def _rebuild_atom_line(
+        self,
+        *,
+        record: str,
+        serial: str,
+        atom_name: str,
+        res_name: str,
+        res_seq: str,
+        x: float,
+        y: float,
+        z: float,
+        occupancy: float,
+        temp_factor: float,
+        charge: float,
+        pdbqt_type: str,
+    ) -> str:
+        """
+        Rebuild a fixed-width, qvina-friendly PDBQT ATOM/HETATM line.
+
+        Column target
+        -------------
+        - 1-6   record
+        - 7-11  serial
+        - 13-16 atom name
+        - 17    altLoc
+        - 18-20 residue name
+        - 22    chain ID
+        - 23-26 residue sequence
+        - 27    insertion code
+        - 31-38 x
+        - 39-46 y
+        - 47-54 z
+        - 55-60 occupancy
+        - 61-66 tempFactor
+        - 71-76 charge
+        - 79-80 atom type
+
+        :param record:
+            Record name.
+        :type record: str
+
+        :param serial:
+            Atom serial.
+        :type serial: str
+
+        :param atom_name:
+            Atom name.
+        :type atom_name: str
+
+        :param res_name:
+            Residue name.
+        :type res_name: str
+
+        :param res_seq:
+            Residue sequence.
+        :type res_seq: str
+
+        :param x:
+            X coordinate.
+        :type x: float
+
+        :param y:
+            Y coordinate.
+        :type y: float
+
+        :param z:
+            Z coordinate.
+        :type z: float
+
+        :param occupancy:
+            Occupancy placeholder or parsed value.
+        :type occupancy: float
+
+        :param temp_factor:
+            Temp-factor placeholder or parsed value.
+        :type temp_factor: float
+
+        :param charge:
+            Partial charge.
+        :type charge: float
+
+        :param pdbqt_type:
+            Final PDBQT atom type.
+        :type pdbqt_type: str
+
+        :returns:
+            Rebuilt fixed-width line.
+        :rtype: str
+        """
+        try:
+            serial_i = int(serial)
+        except Exception:
+            serial_i = 0
+
+        try:
+            res_seq_i = int(res_seq)
+        except Exception:
+            res_seq_i = 1
+
+        atype = (pdbqt_type or "C")[:2]
+        element_hint = self._canonicalize_element(self._strip_digits(atype))
+        atom_name_fmt = self._format_atom_name(atom_name, element_hint)
+        res_name_fmt = (res_name or "UNL")[:3]
+
+        alt_loc = " "
+        chain_id = " "
+        i_code = " "
+
+        # Build exactly to classic fixed-width positions.
+        line = (
+            f"{record:<6}"  # 1-6
+            f"{serial_i:>5d}"  # 7-11
+            f" "  # 12
+            f"{atom_name_fmt}"  # 13-16
+            f"{alt_loc}"  # 17
+            f"{res_name_fmt:>3s}"  # 18-20
+            f" "  # 21
+            f"{chain_id}"  # 22
+            f"{res_seq_i:>4d}"  # 23-26
+            f"{i_code}"  # 27
+            f"   "  # 28-30
+            f"{x:>8.3f}"  # 31-38
+            f"{y:>8.3f}"  # 39-46
+            f"{z:>8.3f}"  # 47-54
+            f"{occupancy:>6.2f}"  # 55-60
+            f"{temp_factor:>6.2f}"  # 61-66
+            f"    "  # 67-70
+            f"{charge:>6.3f}"  # 71-76
+            f"  "  # 77-78
+            f"{atype:>2s}"  # 79-80
+        )
+        return line
 
     # -------------------------
     # Validation
@@ -374,6 +839,14 @@ class PDBQTSanitizer:
     def validate(self, strict: bool = False) -> List[str]:
         """
         Validate the loaded PDBQT and collect warnings.
+
+        :param strict:
+            Emit stronger warnings when type inference is needed.
+        :type strict: bool
+
+        :returns:
+            Warning list.
+        :rtype: List[str]
         """
         if not self.lines:
             raise RuntimeError("No file loaded. Call read(path) first.")
@@ -394,55 +867,46 @@ class PDBQTSanitizer:
                     self.warnings.append(f"Line {i}: unknown top-level tag '{first}'")
                 continue
 
+            x, y, z, _, _ = self._extract_xyz_and_tail_floats(ln)
+            if x is None or y is None or z is None:
+                self.warnings.append(f"Line {i}: could not parse x/y/z coordinates")
+                continue
+
             atom_name = ln[12:16].strip() if len(ln) >= 16 else ""
-            fixed_element = self._fixed_element(ln)
-            trailing = self._extract_trailing_token(ln)
+            fixed_elem = self._extract_fixed_element(ln)
+            trailing = self._extract_trailing_type(ln)
 
-            if fixed_element:
-                if not self._is_valid_element_token(fixed_element):
-                    suggestion = (
-                        self._map_alias(trailing, atomname=atom_name) or "<none>"
-                    )
-                    self.warnings.append(
-                        f"Line {i}: fixed-column element token '{fixed_element}' is invalid; "
-                        f"suggested='{suggestion}'."
-                    )
-                elif strict and trailing:
-                    if not self._is_valid_element_token(trailing):
-                        mapped = self._map_alias(trailing, atomname=atom_name)
-                        if mapped and mapped != fixed_element:
-                            self.warnings.append(
-                                f"Line {i}: trailing token '{trailing}' differs from "
-                                f"fixed element '{fixed_element}'; mapped='{mapped}'."
-                            )
-            else:
-                if trailing:
-                    if self._is_valid_element_token(trailing):
-                        pass
+            if trailing:
+                if not self._is_valid_pdbqt_type(trailing):
+                    mapped = self._normalize_pdbqt_type(trailing)
+                    if mapped:
+                        self.warnings.append(
+                            f"Line {i}: trailing PDBQT type '{trailing}' is non-canonical; suggested='{mapped}'."
+                        )
                     else:
-                        mapped = self._map_alias(trailing, atomname=atom_name)
-                        if mapped:
-                            self.warnings.append(
-                                f"Line {i}: trailing token '{trailing}' is non-canonical; "
-                                f"suggested='{mapped}'."
-                            )
-                        else:
-                            self.warnings.append(
-                                f"Line {i}: trailing token '{trailing}' cannot be mapped; "
-                                f"atom='{atom_name}'."
-                            )
-                elif strict:
+                        self.warnings.append(
+                            f"Line {i}: trailing token '{trailing}' is not a recognized PDBQT type."
+                        )
+            elif strict:
+                guess = self._choose_pdbqt_type(
+                    trailing_tok="",
+                    fixed_elem=fixed_elem,
+                    atom_name=atom_name,
+                    aggressive=False,
+                )
+                if guess:
                     self.warnings.append(
-                        f"Line {i}: no element detected (fixed-column or trailing)."
+                        f"Line {i}: missing trailing PDBQT atom type; suggested='{guess}'."
                     )
-
-            if atom_name and not re.match(r"^[A-Za-z0-9_\-\.]+$", atom_name):
-                self.warnings.append(f"Line {i}: suspicious atom name '{atom_name}'.")
+                else:
+                    self.warnings.append(
+                        f"Line {i}: missing trailing PDBQT atom type and could not infer one."
+                    )
 
         return list(self.warnings)
 
     # -------------------------
-    # Sanitization / Rebuild
+    # Sanitization
     # -------------------------
     def sanitize(
         self,
@@ -452,14 +916,19 @@ class PDBQTSanitizer:
         """
         Produce sanitized content.
 
-        Notes
-        -----
-        backend="meeko":
-            more likely to rewrite trailing atom-type aliases into a canonical element
+        For older qvina, ``rebuild=True`` is strongly recommended.
 
-        backend="obabel":
-            prefers existing valid fixed-column element when available and avoids
-            unnecessary changes
+        :param rebuild:
+            Rebuild ATOM/HETATM lines into fixed-width PDBQT format.
+        :type rebuild: bool
+
+        :param aggressive:
+            Allow stronger fallback heuristics for atom-type inference.
+        :type aggressive: bool
+
+        :returns:
+            Current instance.
+        :rtype: PDBQTSanitizer
         """
         if not self.lines:
             raise RuntimeError("No file loaded. Call read(path) first.")
@@ -489,173 +958,107 @@ class PDBQTSanitizer:
             res_name = fields["res_name"]
             res_seq = fields["res_seq"]
 
-            float_idx_str = fields["float_idx"]
-            if float_idx_str == "":
+            x, y, z, _, _ = self._extract_xyz_and_tail_floats(ln)
+            if x is None or y is None or z is None:
                 out_lines.append(ln)
                 self.warnings.append(
-                    f"Line {i}: cannot parse coordinates, left unchanged"
+                    f"Line {i}: could not parse coordinates, left unchanged"
                 )
                 continue
 
-            float_idx = int(float_idx_str)
-            if float_idx + 2 >= len(toks):
-                out_lines.append(ln)
-                self.warnings.append(
-                    f"Line {i}: incomplete coordinates, left unchanged"
-                )
-                continue
-
-            try:
-                x = float(toks[float_idx])
-                y = float(toks[float_idx + 1])
-                z = float(toks[float_idx + 2])
-            except Exception:
-                out_lines.append(ln)
-                self.warnings.append(
-                    f"Line {i}: invalid numeric coordinates, left unchanged"
-                )
-                continue
-
-            occ = toks[float_idx + 3] if len(toks) > float_idx + 3 else "0.00"
-            temp = toks[float_idx + 4] if len(toks) > float_idx + 4 else "0.00"
-            trailing = (
-                toks[float_idx + 5 :] if len(toks) > float_idx + 5 else []  # noqa
-            )  # noqa
-            trailing_tok = trailing[-1] if trailing else ""
-
-            fixed_elem = self._fixed_element(ln)
-            element = self._choose_element(
+            trailing = self._extract_trailing_type(ln)
+            fixed_elem = self._extract_fixed_element(ln)
+            pdbqt_type = self._choose_pdbqt_type(
+                trailing_tok=trailing,
                 fixed_elem=fixed_elem,
-                trailing_tok=trailing_tok,
                 atom_name=atom_name,
+                aggressive=aggressive,
             )
 
-            if aggressive:
-                up = element.upper()
-                if up == "CL":
-                    element = "Cl"
-                elif up == "BR":
-                    element = "Br"
-                elif up == "NA" and self.backend == "obabel":
-                    element = "Na"
-                elif up == "CA" and self.backend == "obabel":
-                    element = "Ca"
-                elif up == "MG":
-                    element = "Mg"
-                elif up == "ZN":
-                    element = "Zn"
-                elif up == "FE":
-                    element = "Fe"
-
-            if rebuild:
-                try:
-                    serial_i = int(serial)
-                except Exception:
-                    serial_i = 0
-                try:
-                    res_seq_i = int(res_seq)
-                except Exception:
-                    res_seq_i = 1
-                try:
-                    occ_f = float(occ)
-                except Exception:
-                    occ_f = 0.00
-                try:
-                    temp_f = float(temp)
-                except Exception:
-                    temp_f = 0.00
-
-                name_fmt = atom_name if len(atom_name) <= 4 else atom_name[:4]
-                alt_loc = " "
-                chain_id = " "
-                i_code = " "
-
-                base = (
-                    f"{record:<6}{serial_i:>5} {name_fmt:^4}{alt_loc}{res_name:>3}"
-                    f" {chain_id}{res_seq_i:>4}{i_code}   "
-                    f"{x:8.3f}{y:8.3f}{z:8.3f}{occ_f:6.2f}{temp_f:6.2f}"
+            if not pdbqt_type:
+                out_lines.append(ln)
+                self.warnings.append(
+                    f"Line {i}: could not infer PDBQT atom type, left unchanged"
                 )
+                continue
 
-                if len(base) < 76:
-                    base = base + " " * (76 - len(base))
+            charge, occupancy, temp_factor = self._extract_charge_occ_temp(ln)
 
-                element_field = f"{element:>2}"
-                rebuilt = base[:76] + element_field
+            if not rebuild:
+                # Kept only for optional light-touch mode.
+                # For old qvina, rebuild=True is preferred.
+                rebuilt = self._rebuild_atom_line(
+                    record=record,
+                    serial=serial,
+                    atom_name=atom_name,
+                    res_name=res_name,
+                    res_seq=res_seq,
+                    x=x,
+                    y=y,
+                    z=z,
+                    occupancy=occupancy,
+                    temp_factor=temp_factor,
+                    charge=charge,
+                    pdbqt_type=pdbqt_type,
+                )
                 out_lines.append(rebuilt)
-
                 if rebuilt.rstrip() != ln.rstrip():
                     self.warnings.append(
-                        f"Line {i}: rebuilt ATOM/HETATM; element='{element}' backend='{self.backend}'"
+                        f"Line {i}: normalized ATOM/HETATM in fixed-width mode; "
+                        f"charge={charge:.3f} type='{pdbqt_type}' backend='{self.backend}'"
                     )
-            else:
-                if trailing_tok:
-                    mapped = self._map_alias(trailing_tok, atomname=atom_name)
-                    should_replace = (
-                        mapped and mapped != trailing_tok and self.backend == "meeko"
-                    )
-                    if should_replace:
-                        core = " ".join(toks[: float_idx + 5])
-                        newln = core + " " + mapped
-                        out_lines.append(newln)
-                        self.warnings.append(
-                            f"Line {i}: replaced trailing '{trailing_tok}' -> '{mapped}'"
-                        )
-                    else:
-                        out_lines.append(ln)
-                else:
-                    out_lines.append(ln)
+                continue
+
+            rebuilt = self._rebuild_atom_line(
+                record=record,
+                serial=serial,
+                atom_name=atom_name,
+                res_name=res_name,
+                res_seq=res_seq,
+                x=x,
+                y=y,
+                z=z,
+                occupancy=occupancy,
+                temp_factor=temp_factor,
+                charge=charge,
+                pdbqt_type=pdbqt_type,
+            )
+            out_lines.append(rebuilt)
+
+            if rebuilt.rstrip() != ln.rstrip():
+                self.warnings.append(
+                    f"Line {i}: rebuilt ATOM/HETATM; "
+                    f"charge={charge:.3f} type='{pdbqt_type}' backend='{self.backend}'"
+                )
 
         self.sanitized_lines = out_lines
         self._sanitized = True
         return self
 
-    @classmethod
-    def sanitize_file(
-        cls,
-        path: str | Path,
-        out_path: Optional[str | Path] = None,
-        *,
-        backend: SanitizeBackend = "meeko",
-        rebuild: bool = True,
-        aggressive: bool = False,
-        backup: bool = True,
-    ) -> Path:
-        """
-        Convenience wrapper for sanitizing a file.
-
-        :param path: input PDBQT
-        :param out_path: output path; if None, overwrite original
-        :param backend: "meeko" or "obabel"
-        :param rebuild: rebuild ATOM/HETATM records
-        :param aggressive: apply stronger capitalization/element normalization
-        :param backup: create .bak when overwriting
-        :returns: path to sanitized file
-        """
-        p = Path(path)
-        s = cls(p, backend=backend)
-        s.validate(strict=False)
-        s.sanitize(rebuild=rebuild, aggressive=aggressive)
-
-        if out_path is None:
-            if backup:
-                bak = p.with_suffix(p.suffix + ".bak")
-                if not bak.exists():
-                    bak.write_text("\n".join(s.lines) + "\n", encoding="utf-8")
-            s.write(p)
-            return p
-
-        outp = Path(out_path)
-        s.write(outp)
-        return outp
-
     def __repr__(self) -> str:
+        """
+        Return concise object representation.
+
+        :returns:
+            Representation string.
+        :rtype: str
+        """
         return (
             f"<PDBQTSanitizer path={self._path.name if self._path else None} "
             f"backend={self.backend} lines={len(self.lines)} sanitized={self._sanitized}>"
         )
 
     def help(self) -> str:
+        """
+        Return brief usage help.
+
+        :returns:
+            Usage string.
+        :rtype: str
+        """
         return (
-            "PDBQTSanitizer(path, backend='meeko'|'obabel').validate(strict=False) -> warnings; "
-            "sanitize(rebuild=True) -> produce sanitized_lines; write(path) -> save file."
+            "PDBQTSanitizer(path, backend='meeko'|'obabel')."
+            "validate(strict=False) -> warnings; "
+            "sanitize(rebuild=True) -> produce sanitized_lines; "
+            "write(path) -> save file."
         )

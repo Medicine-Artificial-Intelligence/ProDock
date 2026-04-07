@@ -70,6 +70,9 @@ from .algorithms import (
     union_boxes,
 )
 
+from prodock.io.logging import get_logger
+
+logger = get_logger(__name__)
 # Each mapping receives ``(gb, args)`` and must return the mutated GridBox.
 ALGO_MAP: Dict[str, Callable[["GridBox", Dict[str, Any]], "GridBox"]] = {
     "scale": lambda gb, args: gb.from_ligand_scale(

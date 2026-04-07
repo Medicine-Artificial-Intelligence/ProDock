@@ -1139,13 +1139,37 @@ class TestPublicConversionWrappersUnit(unittest.TestCase):
             validate_receptor=False,
         )
 
-    def test_pdbqt_to_sdf_non_obabel_not_supported(self) -> None:
+    def test_pdbqt_to_sdf_invalid_backend_raises_value_error(self) -> None:
         inp = self.tmpdir / "in.pdbqt"
         out = self.tmpdir / "out.sdf"
         inp.write_text("ATOM\n", encoding="utf-8")
 
-        with self.assertRaises(NotImplementedError):
+        with self.assertRaises(ValueError) as ctx:
             pdbqt_to_sdf(inp, out, backend="meekox")  # type: ignore[arg-type]
+
+        self.assertIn("backend must be one of", str(ctx.exception).lower())
+    
+    @patch("prodock.structure.conversion._meeko_pdbqt_to_sdf")
+    def test_pdbqt_to_sdf_meeko_route(self, mock_meeko) -> None:
+        inp = self.tmpdir / "in.pdbqt"
+        out = self.tmpdir / "out.sdf"
+        inp.write_text(
+            "REMARK SMILES C\n"
+            "REMARK SMILES IDX 1 1\n"
+            "ATOM\n",
+            encoding="utf-8",
+        )
+        mock_meeko.return_value = out
+
+        result = pdbqt_to_sdf(inp, out, backend="meeko")
+
+        self.assertEqual(_resolved(result), _resolved(out))
+        mock_meeko.assert_called_once_with(
+            inp.resolve(),
+            out.resolve(),
+            is_dlg=False,
+            sanitize=True,
+        )
 
 
 @unittest.skipUnless(TEST_PDB.exists(), f"Missing test input: {TEST_PDB}")
