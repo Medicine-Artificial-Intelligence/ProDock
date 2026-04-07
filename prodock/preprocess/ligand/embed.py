@@ -54,7 +54,9 @@ except Exception as e:
 
 from prodock.io.logging import get_logger, StructuredAdapter
 
-logger = StructuredAdapter(get_logger("prodock.chem.embed"), {"component": "embed"})
+logger = StructuredAdapter(
+    get_logger("prodock.preprocess.ligand.embed"), {"component": "embed"}
+)
 logger._base_logger = getattr(logger, "_base_logger", getattr(logger, "logger", None))
 
 
@@ -581,7 +583,7 @@ class Embedder:
 
     @staticmethod
     def _embed_multiple_confs(
-        mol: Chem.Mol, params: AllChem.EmbedParameters, n_confs: int
+        mol: Chem.Mol, params: AllChem.EmbedParameters, n_confs: int, rs: int = 42
     ) -> int:
         """
         Embed multiple conformers for a molecule.
@@ -606,7 +608,11 @@ class Embedder:
                     mol, numConfs=int(n_confs), params=params
                 )
             except TypeError:
-                cids = AllChem.EmbedMultipleConfs(mol, numConfs=int(n_confs))
+                cids = AllChem.EmbedMultipleConfs(
+                    mol,
+                    numConfs=int(n_confs),
+                    randomSeed=int(rs),
+                )
             return len(cids) if cids is not None else 0
         except Exception:
             logger.debug("Embedder: EmbedMultipleConfs exception", exc_info=False)

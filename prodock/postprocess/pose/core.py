@@ -246,7 +246,7 @@ class PoseCrawler:
     def crawl_mols(
         self,
         *,
-        backend: str = "obabel",
+        backend: str = "auto",
         sanitize: bool = True,
         remove_hs: bool = False,
         save_sdf: bool = False,
