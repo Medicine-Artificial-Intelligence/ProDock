@@ -44,7 +44,6 @@ import logging
 import warnings
 
 from .exceptions import InvalidLigandInputError, MissingDependencyError
-from prodock.structure.conversion import load_sdf_for_interactions
 
 PathLike = str | Path
 NamedMol = Tuple[str, Any]

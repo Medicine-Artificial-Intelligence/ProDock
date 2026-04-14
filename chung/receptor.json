@@ -1,34 +1,6 @@
 {
     "receptors": [
     {
-        "pdb_id": "2ITY",
-        "receptor_name": "EGFR_2ITY",
-        "ligand_code": "IRE",
-        "chains": ["A"],
-        "cofactors": []
-    },
-    {
-        "pdb_id": "1M17",
-        "receptor_name": "EGFR_1M17",
-        "ligand_code": "AQ4",
-        "chains": ["A"],
-        "cofactors": []
-    },
-    {
-        "pdb_id": "4G5J",
-        "receptor_name": "EGFR_4G5J",
-        "ligand_code": "0WM",
-        "chains": ["A"],
-        "cofactors": ["0WN"]
-    },
-    {
-        "pdb_id": "4I23",
-        "receptor_name": "EGFR_4I23",
-        "ligand_code": "1C9",
-        "chains": ["A"],
-        "cofactors": []
-    },
-    {
         "pdb_id": "4ZAU",
         "receptor_name": "EGFR_4ZAU",
         "ligand_code": "YY3",

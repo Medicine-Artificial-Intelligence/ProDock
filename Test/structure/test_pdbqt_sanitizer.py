@@ -155,8 +155,7 @@ class TestPDBQTSanitizer(unittest.TestCase):
         warns = s.validate(strict=False)
         self.assertTrue(
             any(
-                "trailing PDBQT type 'CG0' is non-canonical; suggested='C'"
-                in w
+                "trailing PDBQT type 'CG0' is non-canonical; suggested='C'" in w
                 for w in warns
             )
         )
@@ -168,8 +167,7 @@ class TestPDBQTSanitizer(unittest.TestCase):
         warns = s.validate(strict=False)
         self.assertTrue(
             any(
-                "trailing token 'XXY' is not a recognized PDBQT type"
-                in w
+                "trailing token 'XXY' is not a recognized PDBQT type" in w
                 for w in warns
             )
         )
@@ -190,10 +188,7 @@ class TestPDBQTSanitizer(unittest.TestCase):
             warns = s.validate(strict=True)
 
         self.assertTrue(
-            any(
-                "missing trailing PDBQT atom type; suggested='Cl'" in w
-                for w in warns
-            ),
+            any("missing trailing PDBQT atom type; suggested='Cl'" in w for w in warns),
             msg=f"Warnings were: {warns}",
         )
 

@@ -80,7 +80,6 @@ class PDBQTSanitizer:
         "Cu",
     }
 
-    # Legacy/commonly accepted AutoDock/Vina PDBQT atom types
     _VALID_PDBQT_TYPES = {
         "H",
         "HD",
@@ -109,7 +108,6 @@ class PDBQTSanitizer:
         "K",
     }
 
-    # Backend-specific pseudo-type normalization to legacy-compatible PDBQT type
     _TYPE_ALIAS_MAP_MEEKO: Dict[str, str] = {
         "CG0": "C",
         "G0": "C",
@@ -132,7 +130,6 @@ class PDBQTSanitizer:
         "MG": "Mg",
         "ZN": "Zn",
         "FE": "Fe",
-        # keep valid legacy types unchanged
         "OA": "OA",
         "OS": "OS",
         "HD": "HD",
@@ -380,6 +377,20 @@ class PDBQTSanitizer:
     def _is_valid_pdbqt_type(cls, token: str) -> bool:
         return token in cls._VALID_PDBQT_TYPES
 
+    @classmethod
+    def _looks_like_chain_id(cls, token: str) -> bool:
+        t = (token or "").strip()
+        if len(t) != 1:
+            return False
+        return not bool(cls._FLOAT_RE.match(t))
+
+    @staticmethod
+    def _to_float(s: str, default: float = 0.0) -> float:
+        try:
+            return float(s)
+        except Exception:
+            return default
+
     def _normalize_pdbqt_type(self, raw: str) -> str:
         """
         Normalize raw trailing token into a legacy-compatible PDBQT atom type.
@@ -456,29 +467,85 @@ class PDBQTSanitizer:
     # -------------------------
     # Parsing helpers
     # -------------------------
+    def _parse_fixed_atom_line(self, ln: str) -> Dict[str, str]:
+        """
+        Parse a standard fixed-column PDBQT/PDB atom line.
+
+        Returns an empty dict when the line is not plausibly fixed-column.
+        """
+        if not self._ATOM_RE.match(ln):
+            return {}
+
+        if len(ln) < 54:
+            return {}
+
+        x = ln[30:38].strip()
+        y = ln[38:46].strip()
+        z = ln[46:54].strip()
+
+        # Only trust fixed-column parsing when x/y/z slices are all floats.
+        if not (
+            self._FLOAT_RE.match(x)
+            and self._FLOAT_RE.match(y)
+            and self._FLOAT_RE.match(z)
+        ):
+            return {}
+
+        return {
+            "record": ln[0:6].strip()
+            or ("HETATM" if ln.startswith("HETATM") else "ATOM"),
+            "serial": ln[6:11].strip() or "0",
+            "atom_name": ln[12:16].strip(),
+            "alt_loc": ln[16:17].strip(),
+            "res_name": ln[17:20].strip() or "UNK",
+            "chain_id": ln[21:22].strip(),
+            "res_seq": ln[22:26].strip() or "1",
+            "i_code": ln[26:27].strip(),
+            "x": x,
+            "y": y,
+            "z": z,
+            "occupancy": ln[54:60].strip() if len(ln) >= 60 else "",
+            "temp_factor": ln[60:66].strip() if len(ln) >= 66 else "",
+            "charge": ln[70:76].strip() if len(ln) >= 76 else "",
+            "pdbqt_type": ln[78:80].strip() if len(ln) >= 80 else "",
+        }
+
     def _extract_atom_fields(self, ln: str) -> Dict[str, str]:
         """
-        Best-effort extraction of common atom fields from a whitespace tokenized line.
+        Best-effort extraction of common atom fields.
 
-        :param ln:
-            Input ATOM/HETATM line.
-        :type ln: str
-
-        :returns:
-            Parsed field dictionary.
-        :rtype: Dict[str, str]
+        Prefer fixed-column parsing for real PDB/PDBQT lines and fall back
+        to token parsing for minimal whitespace-delimited records.
         """
+        fixed = self._parse_fixed_atom_line(ln)
+        if fixed:
+            fixed["float_idx"] = ""
+            return fixed
+
         toks = ln.split()
 
         record = toks[0] if len(toks) > 0 else ""
         serial = toks[1] if len(toks) > 1 else "0"
         atom_name = toks[2] if len(toks) > 2 else ""
         res_name = toks[3] if len(toks) > 3 else "UNK"
-        res_seq = toks[4] if len(toks) > 4 else "1"
 
-        float_idx = None
-        for idx in range(5, len(toks)):
-            if self._FLOAT_RE.match(toks[idx]):
+        chain_id = ""
+        res_seq = "1"
+
+        if len(toks) > 5 and self._looks_like_chain_id(toks[4]):
+            chain_id = toks[4]
+            res_seq = toks[5]
+        elif len(toks) > 4:
+            res_seq = toks[4]
+
+        float_idx: Optional[int] = None
+        start = 6 if chain_id else 5
+        for idx in range(start, len(toks) - 2):
+            if (
+                self._FLOAT_RE.match(toks[idx])
+                and self._FLOAT_RE.match(toks[idx + 1])
+                and self._FLOAT_RE.match(toks[idx + 2])
+            ):
                 float_idx = idx
                 break
 
@@ -486,8 +553,11 @@ class PDBQTSanitizer:
             "record": record,
             "serial": serial,
             "atom_name": atom_name,
+            "alt_loc": "",
             "res_name": res_name,
+            "chain_id": chain_id,
             "res_seq": res_seq,
+            "i_code": "",
             "float_idx": "" if float_idx is None else str(float_idx),
         }
 
@@ -495,19 +565,17 @@ class PDBQTSanitizer:
         """
         Extract likely trailing PDBQT atom type token.
 
-        :param ln:
-            Input ATOM/HETATM line.
-        :type ln: str
-
-        :returns:
-            Trailing atom-type-like token or empty string.
-        :rtype: str
+        Prefer fixed columns 79-80 only when present.
+        Otherwise fall back to token parsing.
         """
+        fixed = self._parse_fixed_atom_line(ln)
+        if fixed and fixed["pdbqt_type"]:
+            return fixed["pdbqt_type"]
+
         toks = ln.split()
         if not toks:
             return ""
 
-        # Walk backward to find the last non-float token after the record fields.
         for tok in reversed(toks[1:]):
             if not self._FLOAT_RE.match(tok):
                 return tok
@@ -540,15 +608,24 @@ class PDBQTSanitizer:
         - ATOM ... x y z q type
         - ATOM ... x y z occ temp type
         - ATOM ... x y z occ temp charge type
-
-        :param ln:
-            Input ATOM/HETATM line.
-        :type ln: str
-
-        :returns:
-            Tuple of ``(x, y, z, float_tail, tokens)``.
-        :rtype: tuple[Optional[float], Optional[float], Optional[float], List[str], List[str]]
         """
+        fixed = self._parse_fixed_atom_line(ln)
+        if fixed:
+            try:
+                x = float(fixed["x"])
+                y = float(fixed["y"])
+                z = float(fixed["z"])
+            except Exception:
+                return None, None, None, [], ln.split()
+
+            float_tail: List[str] = []
+            for key in ("occupancy", "temp_factor", "charge"):
+                val = fixed.get(key, "")
+                if val and self._FLOAT_RE.match(val):
+                    float_tail.append(val)
+
+            return x, y, z, float_tail, ln.split()
+
         toks = ln.split()
         fields = self._extract_atom_fields(ln)
         float_idx_str = fields["float_idx"]
@@ -566,7 +643,7 @@ class PDBQTSanitizer:
         except Exception:
             return None, None, None, [], toks
 
-        tail = toks[idx + 3 :] # noqa
+        tail = toks[idx + 3 :]  # noqa
         float_tail = [t for t in tail if self._FLOAT_RE.match(t)]
         return x, y, z, float_tail, toks
 
@@ -582,29 +659,26 @@ class PDBQTSanitizer:
             treat as occupancy, tempFactor; charge=0.0
         - 3+ floats after z:
             treat as occupancy, tempFactor, charge using first three floats
-
-        :param ln:
-            Input ATOM/HETATM line.
-        :type ln: str
-
-        :returns:
-            Tuple ``(charge, occupancy, tempFactor)``.
-        :rtype: tuple[float, float, float]
         """
+        fixed = self._parse_fixed_atom_line(ln)
+        if fixed:
+            occ = self._to_float(fixed.get("occupancy", ""), 0.0)
+            temp = self._to_float(fixed.get("temp_factor", ""), 0.0)
+            charge = self._to_float(fixed.get("charge", ""), 0.0)
+            return charge, occ, temp
+
         _, _, _, float_tail, _ = self._extract_xyz_and_tail_floats(ln)
 
-        def to_f(s: str, default: float = 0.0) -> float:
-            try:
-                return float(s)
-            except Exception:
-                return default
-
         if len(float_tail) == 1:
-            return to_f(float_tail[0]), 0.00, 0.00
+            return self._to_float(float_tail[0]), 0.00, 0.00
         if len(float_tail) == 2:
-            return 0.00, to_f(float_tail[0]), to_f(float_tail[1])
+            return 0.00, self._to_float(float_tail[0]), self._to_float(float_tail[1])
         if len(float_tail) >= 3:
-            return to_f(float_tail[2]), to_f(float_tail[0]), to_f(float_tail[1])
+            return (
+                self._to_float(float_tail[2]),
+                self._to_float(float_tail[0]),
+                self._to_float(float_tail[1]),
+            )
 
         return 0.00, 0.00, 0.00
 
@@ -626,26 +700,6 @@ class PDBQTSanitizer:
         3. default type from valid fixed element
         4. default type from atom-name-inferred element
         5. ``C`` fallback if aggressive=True
-
-        :param trailing_tok:
-            Trailing atom-type-like token.
-        :type trailing_tok: str
-
-        :param fixed_elem:
-            Fixed-column element token.
-        :type fixed_elem: str
-
-        :param atom_name:
-            Atom name field.
-        :type atom_name: str
-
-        :param aggressive:
-            Whether to allow stronger fallback.
-        :type aggressive: bool
-
-        :returns:
-            Chosen PDBQT type or empty string.
-        :rtype: str
         """
         if trailing_tok and self._is_valid_pdbqt_type(trailing_tok):
             return trailing_tok
@@ -707,7 +761,10 @@ class PDBQTSanitizer:
         serial: str,
         atom_name: str,
         res_name: str,
+        chain_id: str,
         res_seq: str,
+        alt_loc: str,
+        i_code: str,
         x: float,
         y: float,
         z: float,
@@ -718,76 +775,6 @@ class PDBQTSanitizer:
     ) -> str:
         """
         Rebuild a fixed-width, qvina-friendly PDBQT ATOM/HETATM line.
-
-        Column target
-        -------------
-        - 1-6   record
-        - 7-11  serial
-        - 13-16 atom name
-        - 17    altLoc
-        - 18-20 residue name
-        - 22    chain ID
-        - 23-26 residue sequence
-        - 27    insertion code
-        - 31-38 x
-        - 39-46 y
-        - 47-54 z
-        - 55-60 occupancy
-        - 61-66 tempFactor
-        - 71-76 charge
-        - 79-80 atom type
-
-        :param record:
-            Record name.
-        :type record: str
-
-        :param serial:
-            Atom serial.
-        :type serial: str
-
-        :param atom_name:
-            Atom name.
-        :type atom_name: str
-
-        :param res_name:
-            Residue name.
-        :type res_name: str
-
-        :param res_seq:
-            Residue sequence.
-        :type res_seq: str
-
-        :param x:
-            X coordinate.
-        :type x: float
-
-        :param y:
-            Y coordinate.
-        :type y: float
-
-        :param z:
-            Z coordinate.
-        :type z: float
-
-        :param occupancy:
-            Occupancy placeholder or parsed value.
-        :type occupancy: float
-
-        :param temp_factor:
-            Temp-factor placeholder or parsed value.
-        :type temp_factor: float
-
-        :param charge:
-            Partial charge.
-        :type charge: float
-
-        :param pdbqt_type:
-            Final PDBQT atom type.
-        :type pdbqt_type: str
-
-        :returns:
-            Rebuilt fixed-width line.
-        :rtype: str
         """
         try:
             serial_i = int(serial)
@@ -804,32 +791,31 @@ class PDBQTSanitizer:
         atom_name_fmt = self._format_atom_name(atom_name, element_hint)
         res_name_fmt = (res_name or "UNL")[:3]
 
-        alt_loc = " "
-        chain_id = " "
-        i_code = " "
+        alt_loc = (alt_loc or " ")[:1]
+        chain_id = (chain_id or " ")[:1]
+        i_code = (i_code or " ")[:1]
 
-        # Build exactly to classic fixed-width positions.
         line = (
-            f"{record:<6}"  # 1-6
-            f"{serial_i:>5d}"  # 7-11
-            f" "  # 12
-            f"{atom_name_fmt}"  # 13-16
-            f"{alt_loc}"  # 17
-            f"{res_name_fmt:>3s}"  # 18-20
-            f" "  # 21
-            f"{chain_id}"  # 22
-            f"{res_seq_i:>4d}"  # 23-26
-            f"{i_code}"  # 27
-            f"   "  # 28-30
-            f"{x:>8.3f}"  # 31-38
-            f"{y:>8.3f}"  # 39-46
-            f"{z:>8.3f}"  # 47-54
-            f"{occupancy:>6.2f}"  # 55-60
-            f"{temp_factor:>6.2f}"  # 61-66
-            f"    "  # 67-70
-            f"{charge:>6.3f}"  # 71-76
-            f"  "  # 77-78
-            f"{atype:>2s}"  # 79-80
+            f"{record:<6}"
+            f"{serial_i:>5d}"
+            f" "
+            f"{atom_name_fmt}"
+            f"{alt_loc}"
+            f"{res_name_fmt:>3s}"
+            f" "
+            f"{chain_id}"
+            f"{res_seq_i:>4d}"
+            f"{i_code}"
+            f"   "
+            f"{x:>8.3f}"
+            f"{y:>8.3f}"
+            f"{z:>8.3f}"
+            f"{occupancy:>6.2f}"
+            f"{temp_factor:>6.2f}"
+            f"    "
+            f"{charge:>6.3f}"
+            f"  "
+            f"{atype:>2s}"
         )
         return line
 
@@ -872,7 +858,7 @@ class PDBQTSanitizer:
                 self.warnings.append(f"Line {i}: could not parse x/y/z coordinates")
                 continue
 
-            atom_name = ln[12:16].strip() if len(ln) >= 16 else ""
+            atom_name = self._extract_atom_fields(ln).get("atom_name", "")
             fixed_elem = self._extract_fixed_element(ln)
             trailing = self._extract_trailing_type(ln)
 
@@ -946,7 +932,7 @@ class PDBQTSanitizer:
                 continue
 
             toks = ln.split()
-            if len(toks) < 6:
+            if len(toks) < 6 and not self._parse_fixed_atom_line(ln):
                 out_lines.append(ln)
                 self.warnings.append(f"Line {i}: short ATOM/HETATM left unchanged")
                 continue
@@ -956,7 +942,10 @@ class PDBQTSanitizer:
             serial = fields["serial"]
             atom_name = fields["atom_name"]
             res_name = fields["res_name"]
+            chain_id = fields.get("chain_id", "")
             res_seq = fields["res_seq"]
+            alt_loc = fields.get("alt_loc", "")
+            i_code = fields.get("i_code", "")
 
             x, y, z, _, _ = self._extract_xyz_and_tail_floats(ln)
             if x is None or y is None or z is None:
@@ -984,37 +973,15 @@ class PDBQTSanitizer:
 
             charge, occupancy, temp_factor = self._extract_charge_occ_temp(ln)
 
-            if not rebuild:
-                # Kept only for optional light-touch mode.
-                # For old qvina, rebuild=True is preferred.
-                rebuilt = self._rebuild_atom_line(
-                    record=record,
-                    serial=serial,
-                    atom_name=atom_name,
-                    res_name=res_name,
-                    res_seq=res_seq,
-                    x=x,
-                    y=y,
-                    z=z,
-                    occupancy=occupancy,
-                    temp_factor=temp_factor,
-                    charge=charge,
-                    pdbqt_type=pdbqt_type,
-                )
-                out_lines.append(rebuilt)
-                if rebuilt.rstrip() != ln.rstrip():
-                    self.warnings.append(
-                        f"Line {i}: normalized ATOM/HETATM in fixed-width mode; "
-                        f"charge={charge:.3f} type='{pdbqt_type}' backend='{self.backend}'"
-                    )
-                continue
-
             rebuilt = self._rebuild_atom_line(
                 record=record,
                 serial=serial,
                 atom_name=atom_name,
                 res_name=res_name,
+                chain_id=chain_id,
                 res_seq=res_seq,
+                alt_loc=alt_loc,
+                i_code=i_code,
                 x=x,
                 y=y,
                 z=z,
@@ -1026,10 +993,16 @@ class PDBQTSanitizer:
             out_lines.append(rebuilt)
 
             if rebuilt.rstrip() != ln.rstrip():
-                self.warnings.append(
-                    f"Line {i}: rebuilt ATOM/HETATM; "
-                    f"charge={charge:.3f} type='{pdbqt_type}' backend='{self.backend}'"
-                )
+                if rebuild:
+                    self.warnings.append(
+                        f"Line {i}: rebuilt ATOM/HETATM; "
+                        f"charge={charge:.3f} type='{pdbqt_type}' backend='{self.backend}'"
+                    )
+                else:
+                    self.warnings.append(
+                        f"Line {i}: normalized ATOM/HETATM in fixed-width mode; "
+                        f"charge={charge:.3f} type='{pdbqt_type}' backend='{self.backend}'"
+                    )
 
         self.sanitized_lines = out_lines
         self._sanitized = True
@@ -1057,7 +1030,7 @@ class PDBQTSanitizer:
         :rtype: str
         """
         return (
-            "PDBQTSanitizer(path, backend='meeko'|'obabel')."
+            "PDBQTSanitizer(path, backend='meeko'|'obabel'). "
             "validate(strict=False) -> warnings; "
             "sanitize(rebuild=True) -> produce sanitized_lines; "
             "write(path) -> save file."
