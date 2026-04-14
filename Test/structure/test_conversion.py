@@ -1148,15 +1148,13 @@ class TestPublicConversionWrappersUnit(unittest.TestCase):
             pdbqt_to_sdf(inp, out, backend="meekox")  # type: ignore[arg-type]
 
         self.assertIn("backend must be one of", str(ctx.exception).lower())
-    
+
     @patch("prodock.structure.conversion._meeko_pdbqt_to_sdf")
     def test_pdbqt_to_sdf_meeko_route(self, mock_meeko) -> None:
         inp = self.tmpdir / "in.pdbqt"
         out = self.tmpdir / "out.sdf"
         inp.write_text(
-            "REMARK SMILES C\n"
-            "REMARK SMILES IDX 1 1\n"
-            "ATOM\n",
+            "REMARK SMILES C\n" "REMARK SMILES IDX 1 1\n" "ATOM\n",
             encoding="utf-8",
         )
         mock_meeko.return_value = out
