@@ -1,0 +1,13 @@
+{
+    "project_dir": "Testcase",
+    "config": {
+    "engines": ["smina", "vina", "qvina", "qvina-w"],
+    "extract_interaction": true,
+    "db_name": "testcase.db",
+    "cpu": 4,
+    "n_jobs": 4,
+    "exhaustiveness": 32,
+    "n_poses": 20,
+    "save_to_database": true
+    }
+}
