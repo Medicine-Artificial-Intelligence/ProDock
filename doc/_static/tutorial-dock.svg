@@ -3,106 +3,249 @@
 
 <defs>
   <linearGradient id="bggrad" x1="0" x2="1" y1="0" y2="1">
-    <stop offset="0%" stop-color="#fbfdff"/>
-    <stop offset="100%" stop-color="#f4f8fb"/>
+    <stop offset="0%" stop-color="#f0f5fa"/>
+    <stop offset="100%" stop-color="#e0eef8"/>
   </linearGradient>
-  <linearGradient id="bluegrad" x1="0" x2="1" y1="0" y2="1">
-    <stop offset="0%" stop-color="#9cc6df"/>
-    <stop offset="100%" stop-color="#4f87b0"/>
+
+  <linearGradient id="glassBox" x1="0%" y1="0%" x2="100%" y2="100%">
+    <stop offset="0%" stop-color="#ffffff" stop-opacity="0.95"/>
+    <stop offset="100%" stop-color="#eaf3f8" stop-opacity="0.85"/>
   </linearGradient>
-  <linearGradient id="navygrad" x1="0" x2="1" y1="0" y2="1">
-    <stop offset="0%" stop-color="#376789"/>
-    <stop offset="100%" stop-color="#1f425f"/>
+  <linearGradient id="glassBoxAccent" x1="0%" y1="0%" x2="100%" y2="100%">
+    <stop offset="0%" stop-color="#f2fcf6" stop-opacity="0.95"/>
+    <stop offset="100%" stop-color="#e0f5e8" stop-opacity="0.85"/>
   </linearGradient>
-  <linearGradient id="ambergrad" x1="0" x2="1" y1="0" y2="1">
-    <stop offset="0%" stop-color="#efcb84"/>
-    <stop offset="100%" stop-color="#bf8b35"/>
+  <linearGradient id="boxStroke" x1="0%" y1="0%" x2="100%" y2="100%">
+    <stop offset="0%" stop-color="#55c2ff" stop-opacity="0.8"/>
+    <stop offset="100%" stop-color="#2a75b3" stop-opacity="0.2"/>
   </linearGradient>
-  <linearGradient id="sagegrad" x1="0" x2="1" y1="0" y2="1">
-    <stop offset="0%" stop-color="#b7ccb2"/>
-    <stop offset="100%" stop-color="#6f8969"/>
+  <linearGradient id="boxStrokeGreen" x1="0%" y1="0%" x2="100%" y2="100%">
+    <stop offset="0%" stop-color="#38e68c" stop-opacity="0.8"/>
+    <stop offset="100%" stop-color="#198a51" stop-opacity="0.2"/>
   </linearGradient>
-  <linearGradient id="stonegrad" x1="0" x2="1" y1="0" y2="1">
-    <stop offset="0%" stop-color="#d7c7af"/>
-    <stop offset="100%" stop-color="#8f7758"/>
+
+  <linearGradient id="pillTop" x1="0%" y1="0%" x2="0%" y2="100%">
+    <stop offset="0%" stop-color="#ffffff"/>
+    <stop offset="100%" stop-color="#e2eef7"/>
   </linearGradient>
-  <linearGradient id="dbgrad" x1="0" x2="1" y1="0" y2="1">
-    <stop offset="0%" stop-color="#8fc3e2"/>
-    <stop offset="55%" stop-color="#3571a5"/>
-    <stop offset="100%" stop-color="#214f76"/>
+  <linearGradient id="pillSide" x1="0%" y1="0%" x2="0%" y2="100%">
+    <stop offset="0%" stop-color="#92bcdc"/>
+    <stop offset="100%" stop-color="#5a8bac"/>
   </linearGradient>
+
+  <pattern id="cyberGrid" width="40" height="40" patternUnits="userSpaceOnUse">
+    <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#cddce8" stroke-width="0.8" opacity="0.6"/>
+    <circle cx="0" cy="0" r="1.5" fill="#a9c2d6" opacity="0.5"/>
+  </pattern>
+
   <filter id="softshadow" x="-20%" y="-20%" width="140%" height="160%">
-    <feDropShadow dx="0" dy="8" stdDeviation="10" flood-color="#7c92a6" flood-opacity="0.12"/>
+    <feDropShadow dx="0" dy="10" stdDeviation="12" flood-color="#4d6f8f" flood-opacity="0.15"/>
   </filter>
   <filter id="innershadow" x="-20%" y="-20%" width="140%" height="140%">
     <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#afbfcc" flood-opacity="0.10"/>
   </filter>
-  
-  <marker id="arrow-blue" markerUnits="userSpaceOnUse" markerWidth="16" markerHeight="16" refX="14" refY="8" orient="auto">
-    <polygon points="0,0 16,8 0,16" fill="#3f76a3" opacity="0.95"/>
-  </marker>
-  <marker id="arrow-gold" markerUnits="userSpaceOnUse" markerWidth="16" markerHeight="16" refX="14" refY="8" orient="auto">
-    <polygon points="0,0 16,8 0,16" fill="#8a7658" opacity="0.92"/>
-  </marker>
-  
+  <filter id="glow">
+    <feGaussianBlur stdDeviation="2.5" result="coloredBlur"/>
+    <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
+  </filter>
+  <filter id="glowGreen">
+    <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+    <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
+  </filter>
+  <filter id="glowGold">
+    <feGaussianBlur stdDeviation="2.5" result="coloredBlur"/>
+    <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
+  </filter>
+
+  <filter id="blocky3D" x="-50%" y="-50%" width="200%" height="200%">
+    <feDropShadow dx="-2" dy="3" stdDeviation="0.5" flood-color="#1a364f" flood-opacity="0.3"/>
+    <feDropShadow dx="-0.5" dy="1.5" stdDeviation="1" flood-color="#000000" flood-opacity="0.15"/>
+  </filter>
+  <filter id="cardShadow" x="-30%" y="-30%" width="160%" height="160%">
+    <feDropShadow dx="0" dy="6" stdDeviation="6" flood-color="#3a566e" flood-opacity="0.18"/>
+  </filter>
+
   <style>
-    .title{font:700 32px 'Inter','Segoe UI',Arial,sans-serif; fill:#1f3f59; letter-spacing:-0.2px}
-    .subtitle{font:600 18px 'Inter','Segoe UI',Arial,sans-serif; fill:#4274a0}
-    .label{font:700 17px 'Inter','Segoe UI',Arial,sans-serif; fill:#23445f}
-    .body{font:400 14px 'Inter','Segoe UI',Arial,sans-serif; fill:#526b7d}
-    .small{font:600 13px 'Inter','Segoe UI',Arial,sans-serif; fill:#526b7d}
-    .tiny{font:600 11.5px 'Inter','Segoe UI',Arial,sans-serif; fill:#6a7e8c; letter-spacing:0.1px}
+    .title{font:700 32px 'Inter','Segoe UI',Arial,sans-serif; fill:#112a40; letter-spacing:-0.2px}
+    .label{font:800 17px 'Inter','Segoe UI',Arial,sans-serif; fill:#18364f}
+    .body{font:400 14px 'Inter','Segoe UI',Arial,sans-serif; fill:#47657d}
+    .small{font:600 13px 'Inter','Segoe UI',Arial,sans-serif; fill:#47657d}
+    .tiny{font:600 12px 'Inter','Segoe UI',Arial,sans-serif; fill:#6a7e8c; letter-spacing:0.1px}
+    .neon-text{fill:#0099ff}
+    .cyber-dot{fill:#00f0ff}
   </style>
 </defs>
 
 <rect x="0" y="0" width="1200" height="690" rx="28" fill="url(#bggrad)"/>
-<rect x="12" y="12" width="1176" height="666" rx="26" fill="#ffffff" stroke="#e3ebf1" stroke-width="1.5" filter="url(#softshadow)"/>
+<rect x="12" y="12" width="1176" height="666" rx="26" fill="#ffffff" filter="url(#softshadow)"/>
+<rect x="12" y="12" width="1176" height="666" rx="26" fill="url(#cyberGrid)"/>
+<rect x="12" y="12" width="1176" height="666" rx="26" fill="none" stroke="#e3ebf1" stroke-width="1.5" pointer-events="none"/>
 
 <text x="56" y="64" class="title">Dock with single, batch, or matrix workflows</text>
+<g transform="translate(1034, 35)">
+  <rect x="0" y="3" width="118" height="34" rx="17" fill="url(#pillSide)" filter="url(#innershadow)"/>
+  <rect x="0" y="0" width="118" height="34" rx="17" fill="url(#pillTop)"/>
+  <circle cx="18" cy="17" r="4.5" class="cyber-dot" filter="url(#glow)"/>
+  <text x="66" y="22" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="13" font-weight="700" fill="#315f86" text-anchor="middle">Execution</text>
+</g>
 <text x="56" y="96" class="body">ProDock builds tasks from receptors, ligands, and engines, then executes them through a registry-backed docking layer.</text>
 
-<rect x="35" y="180" width="210" height="110" rx="22" fill="#f1f7f0" stroke="#d6e0e8" stroke-width="2" filter="url(#softshadow)"/>
-<text x="57" y="215" class="label">Receptors</text>
-<text x="57" y="242" class="body">prepared receptor set</text>
 
-<rect x="35" y="330" width="210" height="110" rx="22" fill="#edf5fa" stroke="#d6e0e8" stroke-width="2" filter="url(#softshadow)"/>
-<text x="57" y="365" class="label">Ligands</text>
-<text x="57" y="392" class="body">prepared ligand set</text>
+<g fill="none" stroke-linejoin="round" stroke-linecap="round">
+  <path d="M 270 215 C 330 215, 300 365, 370 365" stroke="#00f0ff" stroke-width="3" filter="url(#glow)"/>
+  <path d="M 270 365 L 370 365 L 370 370" stroke="#38e68c" stroke-width="3" filter="url(#glowGreen)"/>
+  <path d="M 270 515 C 330 515, 300 365, 370 365" stroke="#f4b93b" stroke-width="3" filter="url(#glowGold)"/>
 
-<rect x="35" y="480" width="210" height="110" rx="22" fill="#f8f4ec" stroke="#d6e0e8" stroke-width="2" filter="url(#softshadow)"/>
-<text x="57" y="515" class="label">Engines</text>
-<text x="57" y="542" class="body">vina · smina · gnina · qvina</text>
+  <path d="M 630 365 C 680 365, 660 215, 710 215" stroke="#38e68c" stroke-width="3" filter="url(#glowGreen)"/>
+  <path d="M 630 365 L 710 365" stroke="#38e68c" stroke-width="3" filter="url(#glowGreen)"/>
+  <path d="M 630 365 C 680 365, 660 515, 710 515" stroke="#38e68c" stroke-width="3" filter="url(#glowGreen)"/>
 
-<rect x="290" y="285" width="320" height="170" rx="22" fill="#ffffff" stroke="#d6e0e8" stroke-width="2" filter="url(#softshadow)"/>
-<text x="312" y="320" class="label">BatchDock / MatrixDock</text>
-<text x="312" y="347" class="body">task expansion · parallel execution · progress</text>
+  <path d="M 930 215 C 980 215, 960 365, 1010 365" stroke="#00f0ff" stroke-width="3" filter="url(#glow)"/>
+  <path d="M 930 365 L 1010 365 L 1010 370" stroke="#00f0ff" stroke-width="3" filter="url(#glow)"/>
+  <path d="M 930 515 C 980 515, 960 365, 1010 365" stroke="#00f0ff" stroke-width="3" filter="url(#glow)"/>
+</g>
 
-<rect x="715" y="180" width="190" height="110" rx="22" fill="#ffffff" stroke="#d6e0e8" stroke-width="2" filter="url(#softshadow)"/>
-<text x="737" y="215" class="label">SingleDock</text>
-<text x="737" y="242" class="body">one task</text>
+<!-- <g stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none">
+  <g transform="translate(325, 295)" stroke="#00f0ff"><path d="M 0 0 L 8 10 L 0 20" filter="url(#glow)"/></g>
+  <g transform="translate(325, 355)" stroke="#38e68c"><path d="M 0 0 L 8 10 L 0 20" filter="url(#glowGreen)"/></g>
+  <g transform="translate(325, 415)" stroke="#f4b93b"><path d="M 0 0 L 8 10 L 0 20" filter="url(#glowGold)"/></g>
+  
+  <g transform="translate(660, 295)" stroke="#38e68c"><path d="M 0 0 L 8 10 L 0 20" filter="url(#glowGreen)"/></g>
+  <g transform="translate(660, 355)" stroke="#38e68c"><path d="M 0 0 L 8 10 L 0 20" filter="url(#glowGreen)"/></g>
+  <g transform="translate(660, 415)" stroke="#38e68c"><path d="M 0 0 L 8 10 L 0 20" filter="url(#glowGreen)"/></g>
 
-<rect x="715" y="330" width="190" height="110" rx="22" fill="#ffffff" stroke="#d6e0e8" stroke-width="2" filter="url(#softshadow)"/>
-<text x="737" y="365" class="label">Registry</text>
-<text x="737" y="392" class="body">engine factory</text>
+  <g transform="translate(965, 295)" stroke="#00f0ff"><path d="M 0 0 L 8 10 L 0 20" filter="url(#glow)"/></g>
+  <g transform="translate(965, 355)" stroke="#00f0ff"><path d="M 0 0 L 8 10 L 0 20" filter="url(#glow)"/></g>
+  <g transform="translate(965, 415)" stroke="#00f0ff"><path d="M 0 0 L 8 10 L 0 20" filter="url(#glow)"/></g>
+</g> -->
+<g transform="translate(50, 160)">
+  <rect x="0" y="6" width="220" height="110" rx="20" fill="#a4c2d6" filter="url(#softshadow)"/>
+  <rect x="0" y="0" width="220" height="110" rx="20" fill="url(#glassBox)" stroke="url(#boxStroke)" stroke-width="1.5"/>
+  <rect x="15" y="15" width="4" height="25" rx="2" fill="#00f0ff" filter="url(#glow)"/>
+  <text x="32" y="33" class="label">Receptors</text>
+  <circle cx="32" cy="65" r="4" fill="#0099ff"/>
+  <text x="45" y="70" class="body">prepared receptor set</text>
+</g>
 
-<rect x="715" y="480" width="190" height="110" rx="22" fill="#ffffff" stroke="#d6e0e8" stroke-width="2" filter="url(#softshadow)"/>
-<text x="737" y="515" class="label">Campaign</text>
-<text x="737" y="542" class="body">json / config driven</text>
+<g transform="translate(50, 310)">
+  <rect x="0" y="6" width="220" height="110" rx="20" fill="#a4c2d6" filter="url(#softshadow)"/>
+  <rect x="0" y="0" width="220" height="110" rx="20" fill="url(#glassBox)" stroke="url(#boxStroke)" stroke-width="1.5"/>
+  <rect x="15" y="15" width="4" height="25" rx="2" fill="#38e68c" filter="url(#glowGreen)"/>
+  <text x="32" y="33" class="label">Ligands</text>
+  <circle cx="32" cy="65" r="4" fill="#10b968"/>
+  <text x="45" y="70" class="body">prepared ligand set</text>
+</g>
 
-<rect x="950" y="285" width="210" height="170" rx="22" fill="#f1f7f0" stroke="#d6e0e8" stroke-width="2" filter="url(#softshadow)"/>
-<text x="972" y="320" class="label">Outputs</text>
-<text x="972" y="347" class="body">pose files · logs · scores</text>
+<g transform="translate(50, 460)">
+  <rect x="0" y="6" width="220" height="110" rx="20" fill="#a4c2d6" filter="url(#softshadow)"/>
+  <rect x="0" y="0" width="220" height="110" rx="20" fill="url(#glassBox)" stroke="url(#boxStroke)" stroke-width="1.5"/>
+  <rect x="15" y="15" width="4" height="25" rx="2" fill="#f4b93b" filter="url(#glowGold)"/>
+  <text x="32" y="33" class="label">Engines</text>
+  <circle cx="32" cy="65" r="4" fill="#d49e28"/>
+  <text x="45" y="70" class="body">vina · smina</text>
+  <circle cx="32" cy="85" r="4" fill="#d49e28"/>
+  <text x="45" y="90" class="body">gnina · qvina</text>
+</g>
 
-<line x1="245" y1="265" x2="285" y2="320" stroke="#3f76a3" stroke-width="6" opacity="0.95" marker-end="url(#arrow-blue)"/>
-<line x1="245" y1="370" x2="285" y2="370" stroke="#3f76a3" stroke-width="6" opacity="0.95" marker-end="url(#arrow-blue)"/>
-<line x1="250" y1="510" x2="285" y2="420" stroke="#3f76a3" stroke-width="6" opacity="0.95" marker-end="url(#arrow-blue)"/>
 
-<line x1="610" y1="320" x2="710" y2="265" stroke="#8a7658" stroke-width="6" opacity="0.92" marker-end="url(#arrow-gold)"/>
-<line x1="610" y1="370" x2="710" y2="370" stroke="#8a7658" stroke-width="6" opacity="0.92" marker-end="url(#arrow-gold)"/>
-<line x1="610" y1="420" x2="710" y2="505" stroke="#8a7658" stroke-width="6" opacity="0.92" marker-end="url(#arrow-gold)"/>
+<g transform="translate(370, 270)">
+  <rect x="0" y="8" width="260" height="190" rx="24" fill="#8cbfa2" filter="url(#softshadow)"/>
+  <rect x="0" y="0" width="260" height="190" rx="24" fill="url(#glassBoxAccent)" stroke="url(#boxStrokeGreen)" stroke-width="2"/>
+  <rect x="20" y="20" width="30" height="5" rx="2.5" fill="#38e68c" filter="url(#glowGreen)"/>
+  <text x="20" y="55" class="label">BatchDock / MatrixDock</text>
+  <text x="20" y="85" class="body">task expansion · progress</text>
+  <text x="20" y="105" class="body">parallel execution</text>
 
-<line x1="905" y1="265" x2="945" y2="320" stroke="#3f76a3" stroke-width="6" opacity="0.95" marker-end="url(#arrow-blue)"/>
-<line x1="905" y1="370" x2="945" y2="370" stroke="#3f76a3" stroke-width="6" opacity="0.95" marker-end="url(#arrow-blue)"/>
-<line x1="910" y1="510" x2="945" y2="420" stroke="#3f76a3" stroke-width="6" opacity="0.95" marker-end="url(#arrow-blue)"/>
+  <g transform="translate(130, 120) scale(1.1)" filter="url(#blocky3D)">
+    <line x1="0" y1="0" x2="80" y2="0" stroke="#a8d6be" stroke-width="1.5"/>
+    <line x1="0" y1="25" x2="80" y2="25" stroke="#a8d6be" stroke-width="1.5"/>
+    <line x1="0" y1="50" x2="80" y2="50" stroke="#a8d6be" stroke-width="1.5"/>
+    
+    <line x1="0" y1="0" x2="0" y2="50" stroke="#a8d6be" stroke-width="1.5"/>
+    <line x1="40" y1="0" x2="40" y2="50" stroke="#a8d6be" stroke-width="1.5"/>
+    <line x1="80" y1="0" x2="80" y2="50" stroke="#a8d6be" stroke-width="1.5"/>
+
+    <rect x="-4" y="-4" width="8" height="8" rx="2" fill="#10b968"/>
+    <rect x="36" y="-4" width="8" height="8" rx="2" fill="#eaf3f8"/>
+    <rect x="76" y="-4" width="8" height="8" rx="2" fill="#eaf3f8"/>
+
+    <rect x="-4" y="21" width="8" height="8" rx="2" fill="#eaf3f8"/>
+    <rect x="36" y="21" width="8" height="8" rx="2" fill="#38e68c" filter="url(#glowGreen)"/>
+    <rect x="76" y="21" width="8" height="8" rx="2" fill="#eaf3f8"/>
+
+    <rect x="-4" y="46" width="8" height="8" rx="2" fill="#eaf3f8"/>
+    <rect x="36" y="46" width="8" height="8" rx="2" fill="#eaf3f8"/>
+    <rect x="76" y="46" width="8" height="8" rx="2" fill="#10b968"/>
+  </g>
+</g>
+
+
+<g transform="translate(710, 160)">
+  <rect x="0" y="6" width="220" height="110" rx="20" fill="#a4c2d6" filter="url(#softshadow)"/>
+  <rect x="0" y="0" width="220" height="110" rx="20" fill="url(#glassBox)" stroke="url(#boxStroke)" stroke-width="1.5"/>
+  <rect x="15" y="15" width="20" height="4" rx="2" fill="#00f0ff" filter="url(#glow)"/>
+  <text x="45" y="21" class="label">SingleDock</text>
+  <g transform="translate(20, 50)">
+    <rect x="0" y="0" width="30" height="30" rx="6" fill="none" stroke="#0099ff" stroke-width="2"/>
+    <circle cx="15" cy="15" r="5" fill="#00f0ff" filter="url(#glow)"/>
+  </g>
+  <text x="65" y="70" class="body">one mapped task</text>
+</g>
+
+<g transform="translate(710, 310)">
+  <rect x="0" y="6" width="220" height="110" rx="20" fill="#a4c2d6" filter="url(#softshadow)"/>
+  <rect x="0" y="0" width="220" height="110" rx="20" fill="url(#glassBox)" stroke="url(#boxStroke)" stroke-width="1.5"/>
+  <rect x="15" y="15" width="20" height="4" rx="2" fill="#00f0ff" filter="url(#glow)"/>
+  <text x="45" y="21" class="label">Registry</text>
+  <g transform="translate(20, 50)">
+    <path d="M 0 10 L 10 0 L 30 0 L 30 30 L 0 30 Z" fill="none" stroke="#0099ff" stroke-width="2"/>
+    <line x1="10" y1="15" x2="20" y2="15" stroke="#00f0ff" stroke-width="2" filter="url(#glow)"/>
+    <line x1="10" y1="22" x2="20" y2="22" stroke="#0099ff" stroke-width="2"/>
+  </g>
+  <text x="65" y="70" class="body">engine factory</text>
+</g>
+
+<g transform="translate(710, 460)">
+  <rect x="0" y="6" width="220" height="110" rx="20" fill="#a4c2d6" filter="url(#softshadow)"/>
+  <rect x="0" y="0" width="220" height="110" rx="20" fill="url(#glassBox)" stroke="url(#boxStroke)" stroke-width="1.5"/>
+  <rect x="15" y="15" width="20" height="4" rx="2" fill="#00f0ff" filter="url(#glow)"/>
+  <text x="45" y="21" class="label">Campaign</text>
+  <g transform="translate(20, 50)">
+    <rect x="0" y="0" width="30" height="30" rx="4" fill="none" stroke="#0099ff" stroke-width="2"/>
+    <text x="15" y="20" font-family="monospace" font-size="16" font-weight="bold" fill="#00f0ff" text-anchor="middle" filter="url(#glow)">{}</text>
+  </g>
+  <text x="65" y="62" class="body">json / config driven</text>
+  <text x="65" y="82" class="body">experiment tracking</text>
+</g>
+
+
+<g transform="translate(1010, 270)">
+  <rect x="0" y="8" width="150" height="190" rx="20" fill="#8ba7ba" filter="url(#softshadow)"/>
+  <rect x="0" y="0" width="150" height="190" rx="20" fill="#ffffff" stroke="#c5d8e6" stroke-width="2"/>
+  
+  <text x="70" y="35" class="label" text-anchor="middle">Outputs</text>
+  
+  <g transform="translate(27, 55)">
+    <g filter="url(#cardShadow)">
+      <rect x="10" y="40" width="90" height="40" rx="6" fill="#e3edf4" stroke="#c9dceb" stroke-width="1.2"/>
+      <circle cx="25" cy="60" r="4" fill="#0099ff"/>
+      <line x1="35" y1="60" x2="85" y2="60" stroke="#a0bed6" stroke-width="4" stroke-linecap="round"/>
+    </g>
+    <g filter="url(#cardShadow)">
+      <rect x="5" y="20" width="90" height="40" rx="6" fill="#f0f6fa" stroke="#c9dceb" stroke-width="1.2"/>
+      <circle cx="20" cy="40" r="4" fill="#10b968"/>
+      <line x1="30" y1="36" x2="80" y2="36" stroke="#7a9db8" stroke-width="4" stroke-linecap="round"/>
+      <line x1="30" y1="44" x2="60" y2="44" stroke="#7a9db8" stroke-width="4" stroke-linecap="round"/>
+    </g>
+    <g filter="url(#cardShadow)">
+      <rect x="0" y="0" width="90" height="40" rx="6" fill="#ffffff" stroke="#b1cbe0" stroke-width="1.2"/>
+      <circle cx="15" cy="20" r="4" fill="#00f0ff" filter="url(#glow)"/>
+      <line x1="25" y1="20" x2="75" y2="20" stroke="#3f76a3" stroke-width="4" stroke-linecap="round"/>
+    </g>
+  </g>
+  
+  <text x="75" y="160" class="tiny" text-anchor="middle">pose files · logs · scores</text>
+  <!-- <text x="70" y="175" class="tiny" text-anchor="middle">scores</text> -->
+</g>
 
 </svg>
