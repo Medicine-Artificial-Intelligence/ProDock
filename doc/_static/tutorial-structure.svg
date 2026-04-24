@@ -3,117 +3,338 @@
 
 <defs>
   <linearGradient id="bggrad" x1="0" x2="1" y1="0" y2="1">
-    <stop offset="0%" stop-color="#fbfdff"/>
-    <stop offset="100%" stop-color="#f4f8fb"/>
+    <stop offset="0%" stop-color="#f0f5fa"/>
+    <stop offset="100%" stop-color="#e0eef8"/>
+  </linearGradient>
+
+  <linearGradient id="navygrad" x1="0" x2="1" y1="0" y2="1">
+    <stop offset="0%" stop-color="#376789"/>
+    <stop offset="100%" stop-color="#1f425f"/>
   </linearGradient>
   <linearGradient id="bluegrad" x1="0" x2="1" y1="0" y2="1">
     <stop offset="0%" stop-color="#9cc6df"/>
     <stop offset="100%" stop-color="#4f87b0"/>
   </linearGradient>
-  <linearGradient id="navygrad" x1="0" x2="1" y1="0" y2="1">
-    <stop offset="0%" stop-color="#376789"/>
-    <stop offset="100%" stop-color="#1f425f"/>
+
+  <linearGradient id="glassBox" x1="0%" y1="0%" x2="100%" y2="100%">
+    <stop offset="0%" stop-color="#ffffff" stop-opacity="0.95"/>
+    <stop offset="100%" stop-color="#eaf3f8" stop-opacity="0.85"/>
   </linearGradient>
-  <linearGradient id="ambergrad" x1="0" x2="1" y1="0" y2="1">
-    <stop offset="0%" stop-color="#efcb84"/>
-    <stop offset="100%" stop-color="#bf8b35"/>
+  <linearGradient id="glassBoxAccent" x1="0%" y1="0%" x2="100%" y2="100%">
+    <stop offset="0%" stop-color="#f2fcf6" stop-opacity="0.95"/>
+    <stop offset="100%" stop-color="#e0f5e8" stop-opacity="0.85"/>
   </linearGradient>
-  <linearGradient id="sagegrad" x1="0" x2="1" y1="0" y2="1">
-    <stop offset="0%" stop-color="#b7ccb2"/>
-    <stop offset="100%" stop-color="#6f8969"/>
+  <linearGradient id="glassBoxBlue" x1="0%" y1="0%" x2="100%" y2="100%">
+    <stop offset="0%" stop-color="#f0f6fa" stop-opacity="0.95"/>
+    <stop offset="100%" stop-color="#dcecf5" stop-opacity="0.85"/>
   </linearGradient>
-  <linearGradient id="stonegrad" x1="0" x2="1" y1="0" y2="1">
-    <stop offset="0%" stop-color="#d7c7af"/>
-    <stop offset="100%" stop-color="#8f7758"/>
+  
+  <linearGradient id="boxStroke" x1="0%" y1="0%" x2="100%" y2="100%">
+    <stop offset="0%" stop-color="#55c2ff" stop-opacity="0.8"/>
+    <stop offset="100%" stop-color="#2a75b3" stop-opacity="0.2"/>
   </linearGradient>
-  <linearGradient id="dbgrad" x1="0" x2="1" y1="0" y2="1">
-    <stop offset="0%" stop-color="#8fc3e2"/>
-    <stop offset="55%" stop-color="#3571a5"/>
-    <stop offset="100%" stop-color="#214f76"/>
+  <linearGradient id="boxStrokeGreen" x1="0%" y1="0%" x2="100%" y2="100%">
+    <stop offset="0%" stop-color="#38e68c" stop-opacity="0.8"/>
+    <stop offset="100%" stop-color="#198a51" stop-opacity="0.2"/>
   </linearGradient>
+
+  <linearGradient id="pillTop" x1="0%" y1="0%" x2="0%" y2="100%">
+    <stop offset="0%" stop-color="#ffffff"/>
+    <stop offset="100%" stop-color="#e2eef7"/>
+  </linearGradient>
+  <linearGradient id="pillSide" x1="0%" y1="0%" x2="0%" y2="100%">
+    <stop offset="0%" stop-color="#92bcdc"/>
+    <stop offset="100%" stop-color="#5a8bac"/>
+  </linearGradient>
+
+  <radialGradient id="sphereYellow" cx="35%" cy="30%" r="60%">
+    <stop offset="0%" stop-color="#ffebb3"/>
+    <stop offset="40%" stop-color="#f4b93b"/>
+    <stop offset="85%" stop-color="#c98d06"/>
+    <stop offset="100%" stop-color="#8a5f00"/>
+  </radialGradient>
+  <radialGradient id="sphereRed" cx="35%" cy="30%" r="60%">
+    <stop offset="0%" stop-color="#ffc2b3"/>
+    <stop offset="40%" stop-color="#f24d3d"/>
+    <stop offset="85%" stop-color="#bd2111"/>
+    <stop offset="100%" stop-color="#7a1005"/>
+  </radialGradient>
+  <radialGradient id="sphereBlue" cx="35%" cy="30%" r="60%">
+    <stop offset="0%" stop-color="#d4f1fa"/>
+    <stop offset="40%" stop-color="#57b8d9"/>
+    <stop offset="85%" stop-color="#2a86a6"/>
+    <stop offset="100%" stop-color="#14546b"/>
+  </radialGradient>
+  <radialGradient id="sphereOrange" cx="35%" cy="30%" r="60%">
+    <stop offset="0%" stop-color="#ffd1c2"/>
+    <stop offset="40%" stop-color="#ef6a48"/>
+    <stop offset="85%" stop-color="#b83614"/>
+    <stop offset="100%" stop-color="#751e08"/>
+  </radialGradient>
+
+  <pattern id="cyberGrid" width="40" height="40" patternUnits="userSpaceOnUse">
+    <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#cddce8" stroke-width="0.8" opacity="0.6"/>
+    <circle cx="0" cy="0" r="1.5" fill="#a9c2d6" opacity="0.5"/>
+  </pattern>
+
   <filter id="softshadow" x="-20%" y="-20%" width="140%" height="160%">
-    <feDropShadow dx="0" dy="8" stdDeviation="10" flood-color="#7c92a6" flood-opacity="0.12"/>
+    <feDropShadow dx="0" dy="10" stdDeviation="12" flood-color="#4d6f8f" flood-opacity="0.15"/>
   </filter>
   <filter id="innershadow" x="-20%" y="-20%" width="140%" height="140%">
     <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#afbfcc" flood-opacity="0.10"/>
   </filter>
+  <filter id="glow">
+    <feGaussianBlur stdDeviation="2.5" result="coloredBlur"/>
+    <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
+  </filter>
+  <filter id="glowGreen">
+    <feGaussianBlur stdDeviation="2.5" result="coloredBlur"/>
+    <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
+  </filter>
+  <filter id="glowRed">
+    <feGaussianBlur stdDeviation="2.5" result="coloredBlur"/>
+    <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
+  </filter>
+  <filter id="cardShadow" x="-30%" y="-30%" width="160%" height="160%">
+    <feDropShadow dx="0" dy="6" stdDeviation="6" flood-color="#3a566e" flood-opacity="0.18"/>
+  </filter>
+  <filter id="atomShadow" x="-30%" y="-30%" width="160%" height="160%">
+    <feDropShadow dx="1.5" dy="4" stdDeviation="2.5" flood-color="#051421" flood-opacity="0.5"/>
+  </filter>
+
   <style>
-    .title{font:700 32px 'Inter','Segoe UI',Arial,sans-serif; fill:#1f3f59; letter-spacing:-0.2px}
-    .subtitle{font:600 18px 'Inter','Segoe UI',Arial,sans-serif; fill:#4274a0}
-    .label{font:700 17px 'Inter','Segoe UI',Arial,sans-serif; fill:#23445f}
-    .body{font:400 14px 'Inter','Segoe UI',Arial,sans-serif; fill:#526b7d}
-    .small{font:600 13px 'Inter','Segoe UI',Arial,sans-serif; fill:#526b7d}
+    .title{font:700 32px 'Inter','Segoe UI',Arial,sans-serif; fill:#112a40; letter-spacing:-0.2px}
+    .label{font:800 17px 'Inter','Segoe UI',Arial,sans-serif; fill:#18364f}
+    .body{font:400 14px 'Inter','Segoe UI',Arial,sans-serif; fill:#47657d}
+    .small{font:600 13px 'Inter','Segoe UI',Arial,sans-serif; fill:#47657d}
     .tiny{font:600 11.5px 'Inter','Segoe UI',Arial,sans-serif; fill:#6a7e8c; letter-spacing:0.1px}
+    .cyber-dot{fill:#ffc000}
   </style>
 </defs>
 
 <rect x="0" y="0" width="1200" height="660" rx="28" fill="url(#bggrad)"/>
-<rect x="12" y="12" width="1176" height="636" rx="26" fill="#ffffff" stroke="#e3ebf1" stroke-width="1.5" filter="url(#softshadow)"/>
+<rect x="12" y="12" width="1176" height="636" rx="26" fill="#ffffff" filter="url(#softshadow)"/>
+<rect x="12" y="12" width="1176" height="636" rx="26" fill="url(#cyberGrid)"/>
+<rect x="12" y="12" width="1176" height="636" rx="26" fill="none" stroke="#e3ebf1" stroke-width="1.5" pointer-events="none"/>
 
-<text x="56" y="64" class="title">Structure acquisition and cleanup</text>
-<text x="56" y="96" class="body">Query a PDB entry, keep the right chains, extract the bound ligand, and save a clean protein.</text>
+<text x="60" y="72" class="title">Structure acquisition and cleanup</text>
+<g transform="translate(1010, 40)">
+  <rect x="0" y="3" width="140" height="34" rx="17" fill="url(#pillSide)" filter="url(#innershadow)"/>
+  <rect x="0" y="0" width="140" height="34" rx="17" fill="url(#pillTop)"/>
+  <circle cx="16" cy="17" r="4.5" class="cyber-dot" filter="url(#glow)"/>
+  <text x="75" y="22" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="13" font-weight="700" fill="#315f86" text-anchor="middle">Data Acquisition</text>
+</g>
+<text x="60" y="104" class="body">Query a PDB entry, keep the right chains, extract the bound ligand, and save a clean protein.</text>
 
-<rect x="40" y="160" width="175" height="110" rx="22" fill="#ffffff" stroke="#d6e0e8" stroke-width="2"  filter="url(#softshadow)"/>
-<text x="62" y="195" class="label">PDB ID</text>
-<text x="62" y="222" class="body">query metadata / files</text>
-
-<rect x="255" y="160" width="210" height="110" rx="22" fill="#ffffff" stroke="#d6e0e8" stroke-width="2"  filter="url(#softshadow)"/>
-<text x="277" y="195" class="label">Fetch complex</text>
-<text x="277" y="222" class="body">download or load structure</text>
-
-<rect x="505" y="160" width="210" height="110" rx="22" fill="#f1f7f0" stroke="#d6e0e8" stroke-width="2"  filter="url(#softshadow)"/>
-<text x="527" y="195" class="label">Filter chains</text>
-<text x="527" y="222" class="body">retain selected protein chains</text>
-
-<rect x="755" y="160" width="190" height="110" rx="22" fill="#edf5fa" stroke="#d6e0e8" stroke-width="2"  filter="url(#softshadow)"/>
-<text x="777" y="195" class="label">Extract ligand</text>
-<text x="777" y="222" class="body">bound ligand + cocrystal</text>
-
-<rect x="990" y="160" width="160" height="110" rx="22" fill="#f8f4ec" stroke="#d6e0e8" stroke-width="2"  filter="url(#softshadow)"/>
-<text x="1012" y="195" class="label">Clean</text>
-<text x="1012" y="222" class="body">remove solvents</text>
-
-<polygon points="215.0,219.0 235.0,219.0 235.0,224.6 253.0,215.0 235.0,205.4 235.0,211.0 215.0,211.0" fill="#567d9c" opacity="0.92"/>
-<polygon points="465.0,219.0 485.0,219.0 485.0,224.6 503.0,215.0 485.0,205.4 485.0,211.0 465.0,211.0" fill="#567d9c" opacity="0.92"/>
-<polygon points="715.0,219.0 735.0,219.0 735.0,224.6 753.0,215.0 735.0,205.4 735.0,211.0 715.0,211.0" fill="#567d9c" opacity="0.92"/>
-<polygon points="945.0,219.0 965.0,219.0 965.0,224.6 988.0,215.0 965.0,205.4 965.0,211.0 945.0,211.0" fill="#567d9c" opacity="0.92"/>
-
-<g transform="translate(65, -135) scale(1.2)">
-  <path d="M 80,480 C 70,530 100,560 150,560 C 200,560 230,530 220,480 C 215,445 190,440 175,465 C 165,480 135,480 125,465 C 110,440 85,445 80,480 Z" fill="url(#bluegrad)" opacity="0.95" filter="url(#softshadow)"/>
-  <path d="M 95,485 C 95,520 120,540 150,540 C 180,540 205,520 205,485 C 190,465 175,485 150,485 C 125,485 110,465 95,485 Z" fill="url(#navygrad)" opacity="0.9"/>
-  <line x1="130" y1="495" x2="105" y2="475" stroke="#f0d05a" stroke-width="2.5" stroke-dasharray="4,3" stroke-linecap="round"/>
-  <line x1="170" y1="495" x2="195" y2="475" stroke="#f0d05a" stroke-width="2.5" stroke-dasharray="4,3" stroke-linecap="round"/>
-  <line x1="150" y1="530" x2="150" y2="550" stroke="#f0d05a" stroke-width="2.5" stroke-dasharray="4,3" stroke-linecap="round"/>
-  <polyline points="130,495 150,510 170,495" fill="none" stroke="#ffffff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
-  <line x1="150" y1="510" x2="150" y2="530" stroke="#ffffff" stroke-width="5" stroke-linecap="round"/>
-  <circle cx="150" cy="510" r="7.5" fill="#f4b93b" stroke="#ffffff" stroke-width="1.5"/>
-  <circle cx="130" cy="495" r="7.5" fill="#f24d3d" stroke="#ffffff" stroke-width="1.5"/>
-  <circle cx="170" cy="495" r="7.5" fill="#57b8d9" stroke="#ffffff" stroke-width="1.5"/>
-  <circle cx="150" cy="530" r="7.5" fill="#ef6a48" stroke="#ffffff" stroke-width="1.5"/>
-  <text x="150.0" y="585" class="small" text-anchor="middle">filtered protein + reference ligand</text>
+<g stroke="#00f0ff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none" filter="url(#glow)">
+  <!-- <path d="M 250 200 L 275 200" /> -->
+  <path d="M 265 194 L 275 200 L 265 206" />
+  <!-- <path d="M 475 200 L 500 200" /> -->
+  <path d="M 490 194 L 500 200 L 490 206" />
+  <!-- <path d="M 700 200 L 725 200" /> -->
+  <path d="M 715 194 L 725 200 L 715 206" />
+  <!-- <path d="M 925 200 L 950 200" /> -->
+  <path d="M 940 194 L 950 200 L 940 206" />
 </g>
 
-<rect x="520" y="405" width="180" height="120" rx="16" fill="#ffffff" stroke="#d6e0e8" stroke-width="2"  filter="url(#softshadow)"/>
-<line x1="536" y1="443" x2="684" y2="443" stroke="#dce7ef" stroke-width="1.8"/>
-<line x1="536" y1="463" x2="684" y2="463" stroke="#dce7ef" stroke-width="1.8"/>
-<line x1="536" y1="483" x2="684" y2="483" stroke="#dce7ef" stroke-width="1.8"/>
-<line x1="582" y1="423" x2="582" y2="507" stroke="#dce7ef" stroke-width="1.8"/>
-<line x1="628" y1="423" x2="628" y2="507" stroke="#dce7ef" stroke-width="1.8"/>
-<rect x="536" y="423" width="148" height="20" rx="8" fill="#edf5fa"/>
-<text x="610.0" y="547" class="tiny" text-anchor="middle">metadata / paths</text>
+<g transform="translate(60, 140)">
+  <rect x="0" y="6" width="190" height="120" rx="22" fill="#a4c2d6" filter="url(#softshadow)"/>
+  <rect x="0" y="0" width="190" height="120" rx="22" fill="url(#glassBox)" stroke="url(#boxStroke)" stroke-width="1.5"/>
+  <text x="25" y="35" class="label">PDB ID</text>
+  <text x="25" y="65" class="body">query metadata / files</text>
+  <rect x="15" y="15" width="4" height="25" rx="2" fill="#00f0ff" filter="url(#glow)"/>
+  <!-- <g transform="translate(110, 20) scale(0.5)">
+    <path d="M -20,0 C -20,-10 20,-10 20,0 L 20,30 C 20,40 -20,40 -20,30 Z" fill="#eaf3f8" stroke="#a0bed6" stroke-width="2"/>
+    <path d="M -20,0 C -20,10 20,10 20,0" fill="none" stroke="#a0bed6" stroke-width="2"/>
+    <path d="M -20,15 C -20,25 20,25 20,15" fill="none" stroke="#a0bed6" stroke-width="2"/>
+    <circle cx="15" cy="25" r="12" fill="#ffffff" stroke="#0099ff" stroke-width="2.5" filter="url(#glow)"/>
+    <line x1="24" y1="34" x2="35" y2="45" stroke="#0099ff" stroke-width="3" stroke-linecap="round"/>
+  </g> -->
+</g>
 
-<rect x="755" y="392" width="260" height="120" rx="22" fill="#ffffff" stroke="#d6e0e8" stroke-width="2"  filter="url(#softshadow)"/>
-<text x="777" y="427" class="label">Key objects</text>
-<text x="777" y="454" class="body">PDBQuery · PDBEngine</text>
-<text x="777" y="474" class="body">· PDBQTSanitizer</text>
+<g transform="translate(285, 140)">
+  <rect x="0" y="6" width="190" height="120" rx="22" fill="#a4c2d6" filter="url(#softshadow)"/>
+  <rect x="0" y="0" width="190" height="120" rx="22" fill="url(#glassBoxBlue)" stroke="url(#boxStroke)" stroke-width="1.5"/>
+  <text x="25" y="35" class="label">Fetch complex</text>
+  <text x="25" y="65" class="body">download or load</text>
+  <text x="25" y="85" class="body">structure</text>
+  <rect x="15" y="15" width="4" height="25" rx="2" fill="#00f0ff" filter="url(#glow)"/>
+  <g transform="translate(165, 55) scale(0.65)">
+    <path d="M -15,10 C -25,10 -25,-5 -10,-5 C -5,-15 10,-15 15,-5 C 25,-5 25,10 15,10 Z" fill="#ffffff" stroke="#a0bed6" stroke-width="2"/>
+    <line x1="0" y1="5" x2="0" y2="30" stroke="#0099ff" stroke-width="3" stroke-linecap="round" filter="url(#glow)"/>
+    <polyline points="-7,23 0,30 7,23" fill="none" stroke="#0099ff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" filter="url(#glow)"/>
+    <rect x="-18" y="35" width="36" height="8" rx="4" fill="#a0bed6"/>
+  </g>
+</g>
 
-<rect x="40" y="305" width="110" height="28" rx="14.0" fill="#edf5fa"/>
-<text x="95.0" y="324.0" font-family="Arial,sans-serif" font-size="13" font-weight="700" fill="#23445f" text-anchor="middle">chains</text>
+<g transform="translate(510, 140)">
+  <rect x="0" y="6" width="190" height="120" rx="22" fill="#8cbfa2" filter="url(#softshadow)"/>
+  <rect x="0" y="0" width="190" height="120" rx="22" fill="url(#glassBoxAccent)" stroke="url(#boxStrokeGreen)" stroke-width="1.5"/>
+  <text x="25" y="35" class="label">Filter chains</text>
+  <text x="25" y="65" class="body">retain selected</text>
+  <text x="25" y="85" class="body">protein chains</text>
+  <rect x="15" y="15" width="4" height="25" rx="2" fill="#38e68c" filter="url(#glowGreen)"/>
+  <g transform="translate(150, 55) scale(0.8)">
+    <path d="M -20,-5 C -10,0 10,-10 20,-5" fill="none" stroke="#a0bed6" stroke-width="3" stroke-linecap="round" stroke-dasharray="2 2"/>
+    <path d="M -20,25 C -10,20 10,30 20,25" fill="none" stroke="#a0bed6" stroke-width="3" stroke-linecap="round" stroke-dasharray="2 2"/>
+    <path d="M -25,10 C -10,15 10,5 25,10" fill="none" stroke="#38e68c" stroke-width="4" stroke-linecap="round" filter="url(#glowGreen)"/>
+    <circle cx="0" cy="10" r="3" fill="#ffffff"/>
+  </g>
+  <line x1="95" y1="120" x2="95" y2="145" stroke="#a0bed6" stroke-width="2" stroke-dasharray="3,3"/>
+</g>
 
-<rect x="160" y="305" width="110" height="28" rx="14.0" fill="#f1f7f0"/>
-<text x="215.0" y="324.0" font-family="Arial,sans-serif" font-size="13" font-weight="700" fill="#23445f" text-anchor="middle">ligand code</text>
+<g transform="translate(735, 140)">
+  <rect x="0" y="6" width="190" height="120" rx="22" fill="#a4c2d6" filter="url(#softshadow)"/>
+  <rect x="0" y="0" width="190" height="120" rx="22" fill="url(#glassBox)" stroke="url(#boxStroke)" stroke-width="1.5"/>
+  <text x="25" y="35" class="label">Extract ligand</text>
+  <text x="25" y="65" class="body">bound ligand +</text>
+  <text x="25" y="85" class="body">cocrystal</text>
+  <rect x="15" y="15" width="4" height="25" rx="2" fill="#00f0ff" filter="url(#glow)"/>
+  <g transform="translate(145, 55) scale(0.85)">
+    <path d="M -15,-15 C 5,-25 25,-10 20,10 C 15,30 -10,25 -20,10 C -30,-5 -25,-10 -15,-15 Z" fill="#eaf3f8" stroke="#cbd6e0" stroke-width="2"/>
+    <circle cx="0" cy="0" r="16" fill="none" stroke="#0099ff" stroke-width="2" stroke-dasharray="4 2"/>
+    <line x1="-22" y1="0" x2="-16" y2="0" stroke="#0099ff" stroke-width="2" filter="url(#glow)"/>
+    <line x1="16" y1="0" x2="22" y2="0" stroke="#0099ff" stroke-width="2" filter="url(#glow)"/>
+    <line x1="0" y1="-22" x2="0" y2="-16" stroke="#0099ff" stroke-width="2" filter="url(#glow)"/>
+    <line x1="0" y1="16" x2="0" y2="22" stroke="#0099ff" stroke-width="2" filter="url(#glow)"/>
+    <circle cx="-3" cy="0" r="3" fill="#ef6a48" filter="url(#glow)"/>
+    <circle cx="4" cy="-4" r="3" fill="#f4b93b"/>
+    <circle cx="3" cy="5" r="3" fill="#0099ff"/>
+    <line x1="-3" y1="0" x2="4" y2="-4" stroke="#3f76a3" stroke-width="1.5"/>
+    <line x1="-3" y1="0" x2="3" y2="5" stroke="#3f76a3" stroke-width="1.5"/>
+  </g>
+  <line x1="60" y1="120" x2="60" y2="145" stroke="#a0bed6" stroke-width="2" stroke-dasharray="3,3"/>
+  <line x1="130" y1="120" x2="130" y2="145" stroke="#a0bed6" stroke-width="2" stroke-dasharray="3,3"/>
+</g>
 
-<rect x="280" y="305" width="100" height="28" rx="14.0" fill="#f8f4ec"/>
-<text x="330.0" y="324.0" font-family="Arial,sans-serif" font-size="13" font-weight="700" fill="#23445f" text-anchor="middle">cofactors</text>
+<g transform="translate(960, 140)">
+  <rect x="0" y="6" width="190" height="120" rx="22" fill="#a4c2d6" filter="url(#softshadow)"/>
+  <rect x="0" y="0" width="190" height="120" rx="22" fill="url(#glassBox)" stroke="url(#boxStroke)" stroke-width="1.5"/>
+  <text x="25" y="35" class="label">Clean</text>
+  <text x="25" y="65" class="body">remove solvents</text>
+  <rect x="15" y="15" width="4" height="25" rx="2" fill="#00f0ff" filter="url(#glow)"/>
+  <!-- <g transform="translate(100, 30) scale(0.9)">
+    <path d="M -20,20 C -10,0 0,30 20,5" fill="none" stroke="#a0bed6" stroke-width="4" stroke-linecap="round"/>
+    <path d="M 0,20 L 2,15 L 7,17 L 4,22 Z" fill="#ffffff" filter="url(#glow)"/>
+    <path d="M 10,-5 L 11,-8 L 14,-7 L 12,-4 Z" fill="#ffffff" filter="url(#glow)"/>
+    <path d="M -15,-10 C -20,-5 -20,5 -15,10 C -10,15 0,15 0,5 C 0,-5 -15,-10 -15,-10 Z" fill="#d6e7f1" opacity="0.6"/>
+    <line x1="-20" y1="-5" x2="5" y2="10" stroke="#f24d3d" stroke-width="2.5" stroke-linecap="round"/>
+  </g> -->
+</g>
+
+<g transform="translate(560, 285)" filter="url(#cardShadow)">
+  <rect x="0" y="0" width="90" height="26" rx="13" fill="#ffffff" stroke="#c9dceb" stroke-width="1.2"/>
+  <circle cx="15" cy="13" r="4" fill="#38e68c" filter="url(#glowGreen)"/>
+  <text x="50" y="18" class="small" text-anchor="middle">chains</text>
+</g>
+
+<g transform="translate(745, 285)" filter="url(#cardShadow)">
+  <rect x="0" y="0" width="100" height="26" rx="13" fill="#ffffff" stroke="#c9dceb" stroke-width="1.2"/>
+  <circle cx="15" cy="13" r="4" fill="#0099ff" filter="url(#glow)"/>
+  <text x="55" y="18" class="small" text-anchor="middle">ligand code</text>
+</g>
+
+<g transform="translate(855, 285)" filter="url(#cardShadow)">
+  <rect x="0" y="0" width="90" height="26" rx="13" fill="#ffffff" stroke="#c9dceb" stroke-width="1.2"/>
+  <circle cx="15" cy="13" r="4" fill="#0099ff" filter="url(#glow)"/>
+  <text x="50" y="18" class="small" text-anchor="middle">cofactors</text>
+</g>
+
+<g transform="translate(60, 390)">
+  <rect x="0" y="8" width="310" height="180" rx="22" fill="#a4c2d6" filter="url(#softshadow)"/>
+  <rect x="0" y="0" width="310" height="180" rx="22" fill="url(#glassBox)" stroke="url(#boxStroke)" stroke-width="1.5"/>
+  
+  <!-- <g transform="translate(0, -155) scale(1)">
+    <path d="M 80,210 C 70,260 100,290 150,290 C 200,290 230,260 220,210 C 215,175 190,170 175,195 C 165,210 135,210 125,195 C 110,170 85,175 80,210 Z" fill="url(#bluegrad)" opacity="0.95" filter="url(#softshadow)"/>
+    <path d="M 95,215 C 95,250 120,270 150,270 C 180,270 205,250 205,215 C 190,195 175,215 150,215 C 125,215 110,195 95,215 Z" fill="url(#navygrad)" opacity="0.9"/>
+    
+    <line x1="130" y1="225" x2="105" y2="205" stroke="#f0d05a" stroke-width="2.5" stroke-dasharray="4,3" stroke-linecap="round"/>
+    <line x1="170" y1="225" x2="195" y2="205" stroke="#f0d05a" stroke-width="2.5" stroke-dasharray="4,3" stroke-linecap="round"/>
+    <line x1="150" y1="260" x2="150" y2="280" stroke="#f0d05a" stroke-width="2.5" stroke-dasharray="4,3" stroke-linecap="round"/>
+    
+    <polyline points="130,225 150,240 170,225" fill="none" stroke="#ffffff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+    <line x1="150" y1="240" x2="150" y2="260" stroke="#ffffff" stroke-width="5" stroke-linecap="round"/>
+    
+    <circle cx="150" cy="240" r="7.5" fill="#f4b93b" stroke="#ffffff" stroke-width="1.5"/>
+    <circle cx="130" cy="225" r="7.5" fill="#f24d3d" stroke="#ffffff" stroke-width="1.5"/>
+    <circle cx="170" cy="225" r="7.5" fill="#57b8d9" stroke="#ffffff" stroke-width="1.5"/>
+    <circle cx="150" cy="260" r="7.5" fill="#ef6a48" stroke="#ffffff" stroke-width="1.5"/>
+  </g> -->
+
+    <g transform="translate(-25,-525) scale(1.2)">
+    <path d="M 80,480 C 70,530 100,560 150,560 C 200,560 230,530 220,480 C 215,445 190,440 175,465 C 165,480 135,480 125,465 C 110,440 85,445 80,480 Z" fill="url(#bluegrad)" opacity="0.95" filter="url(#softshadow)"/>
+    <path d="M 88,483 C 80,525 108,550 150,550 C 192,550 220,525 212,483 C 205,450 185,448 170,470 C 160,485 140,485 130,470 C 115,448 95,450 88,483 Z" fill="#4a7c9f" opacity="0.8"/>
+    <path d="M 95,485 C 95,520 120,540 150,540 C 180,540 205,520 205,485 C 190,465 175,485 150,485 C 125,485 110,465 95,485 Z" fill="url(#navygrad)" opacity="1"/>
+    <line x1="130" y1="495" x2="105" y2="475" stroke="#00f0ff" stroke-width="2.5" stroke-dasharray="4,3" stroke-linecap="round" filter="url(#glow)"/>
+    <line x1="170" y1="495" x2="195" y2="475" stroke="#00f0ff" stroke-width="2.5" stroke-dasharray="4,3" stroke-linecap="round" filter="url(#glow)"/>
+    <line x1="150" y1="530" x2="150" y2="550" stroke="#00f0ff" stroke-width="2.5" stroke-dasharray="4,3" stroke-linecap="round" filter="url(#glow)"/>
+    <line x1="150" y1="510" x2="130" y2="495" stroke="#5a6b7a" stroke-width="7" stroke-linecap="round"/>
+    <line x1="150" y1="510" x2="130" y2="495" stroke="#cbd6e0" stroke-width="3.5" stroke-linecap="round"/>
+    <line x1="150" y1="510" x2="170" y2="495" stroke="#5a6b7a" stroke-width="7" stroke-linecap="round"/>
+    <line x1="150" y1="510" x2="170" y2="495" stroke="#cbd6e0" stroke-width="3.5" stroke-linecap="round"/>
+    <line x1="150" y1="510" x2="150" y2="530" stroke="#5a6b7a" stroke-width="7" stroke-linecap="round"/>
+    <line x1="150" y1="510" x2="150" y2="530" stroke="#cbd6e0" stroke-width="3.5" stroke-linecap="round"/>
+    <circle cx="130" cy="495" r="9.5" fill="url(#sphereRed)" filter="url(#atomShadow)"/>
+    <circle cx="170" cy="495" r="9.5" fill="url(#sphereBlue)" filter="url(#atomShadow)"/>
+    <circle cx="150" cy="530" r="9.5" fill="url(#sphereOrange)" filter="url(#atomShadow)"/>
+    <circle cx="150" cy="510" r="11" fill="url(#sphereYellow)" filter="url(#atomShadow)"/>
+  </g>
+
+  
+  <text x="155" y="165" class="small" text-anchor="middle">filtered protein + reference ligand</text>
+</g>
+
+<g transform="translate(410, 390)">
+  <rect x="0" y="8" width="340" height="180" rx="22" fill="#a4c2d6" filter="url(#softshadow)"/>
+  <rect x="0" y="0" width="340" height="180" rx="22" fill="url(#glassBoxBlue)" stroke="url(#boxStroke)" stroke-width="1.5"/>
+  <text x="25" y="35" class="label">Metadata / paths</text>
+  
+  <g transform="translate(25, 60)">
+    <line x1="0" y1="0" x2="290" y2="0" stroke="#a0bed6" stroke-width="2"/>
+    <rect x="0" y="15" width="120" height="20" rx="6" fill="#ffffff" filter="url(#cardShadow)"/>
+    <circle cx="10" cy="25" r="4" fill="#38e68c"/>
+    <line x1="20" y1="25" x2="110" y2="25" stroke="#dce7ef" stroke-width="3" stroke-linecap="round"/>
+    <line x1="130" y1="25" x2="290" y2="25" stroke="#dce7ef" stroke-width="2" stroke-linecap="round"/>
+    <rect x="0" y="45" width="160" height="20" rx="6" fill="#ffffff" filter="url(#cardShadow)"/>
+    <circle cx="10" cy="55" r="4" fill="#0099ff"/>
+    <line x1="20" y1="55" x2="150" y2="55" stroke="#dce7ef" stroke-width="3" stroke-linecap="round"/>
+    <line x1="170" y1="55" x2="290" y2="55" stroke="#dce7ef" stroke-width="2" stroke-linecap="round"/>
+    <rect x="0" y="75" width="100" height="20" rx="6" fill="#ffffff" filter="url(#cardShadow)"/>
+    <circle cx="10" cy="85" r="4" fill="#0099ff"/>
+    <line x1="20" y1="85" x2="90" y2="85" stroke="#dce7ef" stroke-width="3" stroke-linecap="round"/>
+    <line x1="110" y1="85" x2="290" y2="85" stroke="#dce7ef" stroke-width="2" stroke-linecap="round"/>
+  </g>
+</g>
+
+<g transform="translate(790, 390)">
+  <rect x="0" y="8" width="360" height="180" rx="22" fill="#a4c2d6" filter="url(#softshadow)"/>
+  <rect x="0" y="0" width="360" height="180" rx="22" fill="url(#glassBox)" stroke="url(#boxStroke)" stroke-width="1.5"/>
+  
+  <g transform="translate(25, 25)">
+    <circle cx="0" cy="0" r="5" fill="#f24d3d"/>
+    <circle cx="15" cy="0" r="5" fill="#f4b93b"/>
+    <circle cx="30" cy="0" r="5" fill="#38e68c"/>
+    <text x="50" y="5" class="label">Key objects</text>
+    
+    <g transform="translate(0, 40)">
+      <path d="M 0,0 L 5,5 L 0,10" fill="none" stroke="#0099ff" stroke-width="2" stroke-linecap="round"/>
+      <text x="15" y="6" class="body" fill="#18364f" font-weight="600">PDBQuery</text>
+      <rect x="15" y="12" width="200" height="4" rx="2" fill="#dce7ef"/>
+    </g>
+    <g transform="translate(0, 75)">
+      <path d="M 0,0 L 5,5 L 0,10" fill="none" stroke="#0099ff" stroke-width="2" stroke-linecap="round"/>
+      <text x="15" y="6" class="body" fill="#18364f" font-weight="600">PDBEngine</text>
+      <rect x="15" y="12" width="230" height="4" rx="2" fill="#dce7ef"/>
+    </g>
+    <g transform="translate(0, 110)">
+      <path d="M 0,0 L 5,5 L 0,10" fill="none" stroke="#0099ff" stroke-width="2" stroke-linecap="round"/>
+      <text x="15" y="6" class="body" fill="#18364f" font-weight="600">PDBQTSanitizer</text>
+      <rect x="15" y="12" width="180" height="4" rx="2" fill="#dce7ef"/>
+      <!-- <rect x="135" y="-3" width="6" height="10" fill="#0099ff" filter="url(#glow)"> -->
+        <!-- <animate attributeName="opacity" values="1;0;1" dur="1s" repeatCount="indefinite"/> -->
+      <!-- </rect> -->
+    </g>
+  </g>
+</g>
 
 </svg>

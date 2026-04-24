@@ -3,90 +3,328 @@
 
 <defs>
   <linearGradient id="bggrad" x1="0" x2="1" y1="0" y2="1">
-    <stop offset="0%" stop-color="#fbfdff"/>
-    <stop offset="100%" stop-color="#f4f8fb"/>
+    <stop offset="0%" stop-color="#f0f5fa"/>
+    <stop offset="100%" stop-color="#e0eef8"/>
+  </linearGradient>
+
+  <linearGradient id="navygrad" x1="0" x2="1" y1="0" y2="1">
+    <stop offset="0%" stop-color="#376789"/>
+    <stop offset="100%" stop-color="#1f425f"/>
   </linearGradient>
   <linearGradient id="bluegrad" x1="0" x2="1" y1="0" y2="1">
     <stop offset="0%" stop-color="#9cc6df"/>
     <stop offset="100%" stop-color="#4f87b0"/>
   </linearGradient>
-  <linearGradient id="navygrad" x1="0" x2="1" y1="0" y2="1">
-    <stop offset="0%" stop-color="#376789"/>
-    <stop offset="100%" stop-color="#1f425f"/>
+
+  <linearGradient id="glassBox" x1="0%" y1="0%" x2="100%" y2="100%">
+    <stop offset="0%" stop-color="#ffffff" stop-opacity="0.95"/>
+    <stop offset="100%" stop-color="#eaf3f8" stop-opacity="0.85"/>
   </linearGradient>
-  <linearGradient id="ambergrad" x1="0" x2="1" y1="0" y2="1">
-    <stop offset="0%" stop-color="#efcb84"/>
-    <stop offset="100%" stop-color="#bf8b35"/>
+  <linearGradient id="glassBoxAccent" x1="0%" y1="0%" x2="100%" y2="100%">
+    <stop offset="0%" stop-color="#f2fcf6" stop-opacity="0.95"/>
+    <stop offset="100%" stop-color="#e0f5e8" stop-opacity="0.85"/>
   </linearGradient>
-  <linearGradient id="sagegrad" x1="0" x2="1" y1="0" y2="1">
-    <stop offset="0%" stop-color="#b7ccb2"/>
-    <stop offset="100%" stop-color="#6f8969"/>
+  <linearGradient id="glassBoxBlue" x1="0%" y1="0%" x2="100%" y2="100%">
+    <stop offset="0%" stop-color="#f0f6fa" stop-opacity="0.95"/>
+    <stop offset="100%" stop-color="#dcecf5" stop-opacity="0.85"/>
   </linearGradient>
-  <linearGradient id="stonegrad" x1="0" x2="1" y1="0" y2="1">
-    <stop offset="0%" stop-color="#d7c7af"/>
-    <stop offset="100%" stop-color="#8f7758"/>
+  
+  <linearGradient id="boxStroke" x1="0%" y1="0%" x2="100%" y2="100%">
+    <stop offset="0%" stop-color="#55c2ff" stop-opacity="0.8"/>
+    <stop offset="100%" stop-color="#2a75b3" stop-opacity="0.2"/>
   </linearGradient>
-  <linearGradient id="dbgrad" x1="0" x2="1" y1="0" y2="1">
-    <stop offset="0%" stop-color="#8fc3e2"/>
-    <stop offset="55%" stop-color="#3571a5"/>
-    <stop offset="100%" stop-color="#214f76"/>
+  <linearGradient id="boxStrokeGreen" x1="0%" y1="0%" x2="100%" y2="100%">
+    <stop offset="0%" stop-color="#38e68c" stop-opacity="0.8"/>
+    <stop offset="100%" stop-color="#198a51" stop-opacity="0.2"/>
   </linearGradient>
+
+  <linearGradient id="pillTop" x1="0%" y1="0%" x2="0%" y2="100%">
+    <stop offset="0%" stop-color="#ffffff"/>
+    <stop offset="100%" stop-color="#e2eef7"/>
+  </linearGradient>
+  <linearGradient id="pillSide" x1="0%" y1="0%" x2="0%" y2="100%">
+    <stop offset="0%" stop-color="#92bcdc"/>
+    <stop offset="100%" stop-color="#5a8bac"/>
+  </linearGradient>
+
+  <radialGradient id="sphereYellow" cx="35%" cy="30%" r="60%">
+    <stop offset="0%" stop-color="#ffebb3"/>
+    <stop offset="40%" stop-color="#f4b93b"/>
+    <stop offset="85%" stop-color="#c98d06"/>
+    <stop offset="100%" stop-color="#8a5f00"/>
+  </radialGradient>
+  <radialGradient id="sphereRed" cx="35%" cy="30%" r="60%">
+    <stop offset="0%" stop-color="#ffc2b3"/>
+    <stop offset="40%" stop-color="#f24d3d"/>
+    <stop offset="85%" stop-color="#bd2111"/>
+    <stop offset="100%" stop-color="#7a1005"/>
+  </radialGradient>
+  <radialGradient id="sphereBlue" cx="35%" cy="30%" r="60%">
+    <stop offset="0%" stop-color="#d4f1fa"/>
+    <stop offset="40%" stop-color="#57b8d9"/>
+    <stop offset="85%" stop-color="#2a86a6"/>
+    <stop offset="100%" stop-color="#14546b"/>
+  </radialGradient>
+  <radialGradient id="sphereOrange" cx="35%" cy="30%" r="60%">
+    <stop offset="0%" stop-color="#ffd1c2"/>
+    <stop offset="40%" stop-color="#ef6a48"/>
+    <stop offset="85%" stop-color="#b83614"/>
+    <stop offset="100%" stop-color="#751e08"/>
+  </radialGradient>
+
+  <pattern id="cyberGrid" width="40" height="40" patternUnits="userSpaceOnUse">
+    <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#cddce8" stroke-width="0.8" opacity="0.6"/>
+    <circle cx="0" cy="0" r="1.5" fill="#a9c2d6" opacity="0.5"/>
+  </pattern>
+
   <filter id="softshadow" x="-20%" y="-20%" width="140%" height="160%">
-    <feDropShadow dx="0" dy="8" stdDeviation="10" flood-color="#7c92a6" flood-opacity="0.12"/>
+    <feDropShadow dx="0" dy="10" stdDeviation="12" flood-color="#4d6f8f" flood-opacity="0.15"/>
   </filter>
   <filter id="innershadow" x="-20%" y="-20%" width="140%" height="140%">
     <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#afbfcc" flood-opacity="0.10"/>
   </filter>
+  <filter id="glow">
+    <feGaussianBlur stdDeviation="2.5" result="coloredBlur"/>
+    <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
+  </filter>
+  <filter id="glowGreen">
+    <feGaussianBlur stdDeviation="2.5" result="coloredBlur"/>
+    <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
+  </filter>
+  <filter id="cardShadow" x="-30%" y="-30%" width="160%" height="160%">
+    <feDropShadow dx="0" dy="6" stdDeviation="6" flood-color="#3a566e" flood-opacity="0.18"/>
+  </filter>
+  <filter id="atomShadow" x="-30%" y="-30%" width="160%" height="160%">
+    <feDropShadow dx="1.5" dy="4" stdDeviation="2.5" flood-color="#051421" flood-opacity="0.5"/>
+  </filter>
+
   <style>
-    .title{font:700 32px 'Inter','Segoe UI',Arial,sans-serif; fill:#1f3f59; letter-spacing:-0.2px}
-    .subtitle{font:600 18px 'Inter','Segoe UI',Arial,sans-serif; fill:#4274a0}
-    .label{font:700 17px 'Inter','Segoe UI',Arial,sans-serif; fill:#23445f}
-    .body{font:400 14px 'Inter','Segoe UI',Arial,sans-serif; fill:#526b7d}
-    .small{font:600 13px 'Inter','Segoe UI',Arial,sans-serif; fill:#526b7d}
+    .title{font:700 32px 'Inter','Segoe UI',Arial,sans-serif; fill:#112a40; letter-spacing:-0.2px}
+    .label{font:800 17px 'Inter','Segoe UI',Arial,sans-serif; fill:#18364f}
+    .body{font:400 14px 'Inter','Segoe UI',Arial,sans-serif; fill:#47657d}
+    .small{font:600 13px 'Inter','Segoe UI',Arial,sans-serif; fill:#47657d}
     .tiny{font:600 11.5px 'Inter','Segoe UI',Arial,sans-serif; fill:#6a7e8c; letter-spacing:0.1px}
+    .cyber-dot{fill:#ffc000}
   </style>
 </defs>
 
 <rect x="0" y="0" width="1220" height="680" rx="28" fill="url(#bggrad)"/>
-<rect x="12" y="12" width="1196" height="656" rx="26" fill="#ffffff" stroke="#e3ebf1" stroke-width="1.5" filter="url(#softshadow)"/>
+<rect x="12" y="12" width="1196" height="656" rx="26" fill="#ffffff" filter="url(#softshadow)"/>
+<rect x="12" y="12" width="1196" height="656" rx="26" fill="url(#cyberGrid)"/>
+<rect x="12" y="12" width="1196" height="656" rx="26" fill="none" stroke="#e3ebf1" stroke-width="1.5" pointer-events="none"/>
 
-<text x="56" y="64" class="title">Automation with ProDockPipeline</text>
-<text x="56" y="96" class="body">Supply receptor dictionaries and ligand dictionaries, then let the pipeline prepare inputs, build a campaign, and run batch docking.</text>
-<rect x="80" y="170" width="245" height="180" rx="22" fill="#f1f7f0" stroke="#d6e0e8" stroke-width="2"  filter="url(#softshadow)"/><text x="102" y="205" class="label">RECEPTORS</text>
-<text x="102" y="232" class="body">
-  <tspan x="102" dy="0"> pdb_id · receptor_name </tspan>
-  <tspan x="102" dy="20"> ligand_code · chains · cofactors </tspan>
-</text>
-<rect x="80" y="390" width="245" height="140" rx="22" fill="#edf5fa" stroke="#d6e0e8" stroke-width="2"  filter="url(#softshadow)"/><text x="102" y="425" class="label">LIGANDS</text><text x="102" y="452" class="body">id · smiles</text>
-<rect x="415" y="250" width="260" height="180" rx="22" fill="#ffffff" stroke="#d6e0e8" stroke-width="2"  filter="url(#softshadow)"/><text x="437" y="285" class="label">ProDockPipeline</text>
-<text x="437" y="312" class="body">
-  <tspan x="437" dy="0"> prepare_receptors · prepare_ligands </tspan>
-  <tspan x="437" dy="20"> build_campaign · run</tspan>
-</text>
-<rect x="770" y="170" width="170" height="110" rx="22" fill="#f8f4ec" stroke="#d6e0e8" stroke-width="2"  filter="url(#softshadow)"/><text x="792" y="205" class="label">campaign.json</text><text x="792" y="232" class="body">matrix tasks</text>
-<rect x="770" y="330" width="170" height="110" rx="22" fill="#ffffff" stroke="#d6e0e8" stroke-width="2"  filter="url(#softshadow)"/><text x="792" y="365" class="label">BatchDock</text><text x="792" y="392" class="body">parallel execution</text>
-<rect x="770" y="520" width="170" height="110" rx="22" fill="#f1f7f0" stroke="#d6e0e8" stroke-width="2"  filter="url(#softshadow)"/><text x="792" y="555" class="label">Results</text><text x="792" y="582" class="body">files + summaries</text>
-<polygon points="324.8,263.4 395.7,308.7 392.7,313.4 413.0,315.0 403.0,297.2 400.0,301.9 329.2,256.6" fill="#3f76a3" opacity="0.95"/>
-<polygon points="330.0,462.7 403.9,381.0 408.0,384.8 413.0,365.0 393.8,371.9 398.0,375.7 324.0,457.3" fill="#3f76a3" opacity="0.95"/>
-<polygon points="679.7,342.2 759.6,241.3 763.4,244.3 768.0,225.0 750.2,233.9 754.1,236.9 674.3,337.8" fill="#8a7658" opacity="0.92"/>
-<polygon points="675.4,343.1 750.3,380.2 748.1,384.6 768.0,385.0 755.6,369.5 753.4,373.9 678.6,336.9" fill="#3f76a3" opacity="0.95"/>
-<polygon points="673.8,341.4 757.5,530.0 753.0,532.0 768.0,545.0 768.4,525.1 763.9,527.1 680.2,338.6" fill="#567d9c" opacity="0.92"/>
-  
-<g transform="translate(920, -125)">
-  <path d="M 80,480 C 70,530 100,560 150,560 C 200,560 230,530 220,480 C 215,445 190,440 175,465 C 165,480 135,480 125,465 C 110,440 85,445 80,480 Z" fill="url(#bluegrad)" opacity="0.95" filter="url(#softshadow)"/>
-  <path d="M 95,485 C 95,520 120,540 150,540 C 180,540 205,520 205,485 C 190,465 175,485 150,485 C 125,485 110,465 95,485 Z" fill="url(#navygrad)" opacity="0.9"/>
-  <line x1="130" y1="495" x2="105" y2="475" stroke="#f0d05a" stroke-width="2.5" stroke-dasharray="4,3" stroke-linecap="round"/>
-  <line x1="170" y1="495" x2="195" y2="475" stroke="#f0d05a" stroke-width="2.5" stroke-dasharray="4,3" stroke-linecap="round"/>
-  <line x1="150" y1="530" x2="150" y2="550" stroke="#f0d05a" stroke-width="2.5" stroke-dasharray="4,3" stroke-linecap="round"/>
-  <polyline points="130,495 150,510 170,495" fill="none" stroke="#ffffff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
-  <line x1="150" y1="510" x2="150" y2="530" stroke="#ffffff" stroke-width="5" stroke-linecap="round"/>
-  <circle cx="150" cy="510" r="7.5" fill="#f4b93b" stroke="#ffffff" stroke-width="1.5"/> 
-  <circle cx="130" cy="495" r="7.5" fill="#f24d3d" stroke="#ffffff" stroke-width="1.5"/> 
-  <circle cx="170" cy="495" r="7.5" fill="#57b8d9" stroke="#ffffff" stroke-width="1.5"/> 
-  <circle cx="150" cy="530" r="7.5" fill="#ef6a48" stroke="#ffffff" stroke-width="1.5"/> 
-  <text x="150.0" y="603" class="small" text-anchor="middle">prepared receptor / ligand</text>
+<text x="60" y="72" class="title">Automation with ProDockPipeline</text>
+<g transform="translate(1040, 40)">
+  <rect x="0" y="3" width="128" height="34" rx="17" fill="url(#pillSide)" filter="url(#innershadow)"/>
+  <rect x="0" y="0" width="128" height="34" rx="17" fill="url(#pillTop)"/>
+  <circle cx="16" cy="17" r="4.5" class="cyber-dot" filter="url(#glow)"/>
+  <text x="70" y="22" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="13" font-weight="700" fill="#315f86" text-anchor="middle">Orchestration</text>
 </g>
+<text x="60" y="104" class="body">Supply receptor dictionaries and ligand dictionaries, then let the pipeline prepare inputs, build a campaign, and run batch docking.</text>
+
+<g stroke="#ff0f00" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none" filter="url(#glow)">
   
-<polygon points="945.0,388.0 980.0,388.0 980.0,393.0 1000.0,385.0 980.0,377.0 980.0,382.0 945.0,382.0" fill="#3f76a3" opacity="0.95"/>
+  <path d="M 310 230 C 345 230, 345 300, 380 300" stroke="#38e68c" filter="url(#glowGreen)"/>
+  <path d="M 370 294 L 380 300 L 370 306" stroke="#38e68c" filter="url(#glowGreen)"/>
+
+  <path d="M 310 450 C 345 450, 345 380, 380 380" stroke="#00f0ff" filter="url(#glow)" />
+  <path d="M 370 374 L 380 380 L 370 386" stroke="#00f0ff" filter="url(#glow)" />
+
+  <path d="M 660 300 C 700 300, 700 195, 735 195" />
+  <path d="M 730 189 L 735 195 L 730 201" />
+
+  <path d="M 660 340 L 735 340" />
+  <path d="M 730 334 L 735 340 L 730 346" />
+
+  <path d="M 660 380 C 700 380, 700 485, 735 485" />
+  <path d="M 730 479 L 735 485 L 730 491" />
+
+  <path d="M 940 340 L 980 340" stroke="#ffc000" filter="url(#glow)"/>
+  <path d="M 970 334 L 980 340 L 970 346" stroke="#ffc000" filter="url(#glow)"/>
+</g>
+
+
+<g transform="translate(60, 160)">
+  <rect x="0" y="6" width="250" height="140" rx="22" fill="#8cbfa2" filter="url(#softshadow)"/>
+  <rect x="0" y="0" width="250" height="140" rx="22" fill="url(#glassBoxAccent)" stroke="url(#boxStrokeGreen)" stroke-width="1.5"/>
+  <text x="25" y="35" class="label">RECEPTORS</text>
+  <rect x="15" y="15" width="4" height="25" rx="2" fill="#38e68c" filter="url(#glowGreen)"/>
+  
+  <!-- <g transform="translate(160, 45) scale(0.75)">
+    <path d="M -20,0 C -20,-10 20,-10 20,0 L 20,30 C 20,40 -20,40 -20,30 Z" fill="#eaf3f8" stroke="#198a51" stroke-width="2"/>
+    <path d="M -20,0 C -20,10 20,10 20,0" fill="none" stroke="#198a51" stroke-width="2"/>
+    <path d="M -20,15 C -20,25 20,25 20,15" fill="none" stroke="#198a51" stroke-width="2"/>
+    <path d="M 20,15 C 35,10 45,40 60,25 C 70,15 80,-5 90,0" fill="none" stroke="#38e68c" stroke-width="4" stroke-linecap="round" filter="url(#glowGreen)"/>
+  </g> -->
+
+  <g transform="translate(15, 60)" filter="url(#cardShadow)">
+    <rect x="0" y="0" width="130" height="24" rx="12" fill="#ffffff" stroke="#c9dceb" stroke-width="1.2"/>
+    <text x="65" y="16" class="small" text-anchor="middle">pdb_id · name</text>
+  </g>
+  <g transform="translate(15, 95)" filter="url(#cardShadow)">
+    <rect x="0" y="0" width="200" height="24" rx="12" fill="#ffffff" stroke="#c9dceb" stroke-width="1.2"/>
+    <text x="100" y="16" class="small" text-anchor="middle">ligand_code · chains · cofactors</text>
+  </g>
+</g>
+
+<g transform="translate(60, 380)">
+  <rect x="0" y="6" width="250" height="140" rx="22" fill="#a4c2d6" filter="url(#softshadow)"/>
+  <rect x="0" y="0" width="250" height="140" rx="22" fill="url(#glassBoxBlue)" stroke="url(#boxStroke)" stroke-width="1.5"/>
+  <text x="25" y="35" class="label">LIGANDS</text>
+  <rect x="15" y="15" width="4" height="25" rx="2" fill="#00f0ff" filter="url(#glow)"/>
+  
+  <!-- <g transform="translate(180, 50) scale(0.9)">
+    <polygon points="0,15 10,0 25,0 35,15 25,30 10,30" fill="none" stroke="#3f76a3" stroke-width="2.5"/>
+    <line x1="35" y1="15" x2="50" y2="10" stroke="#3f76a3" stroke-width="2.5"/>
+    <circle cx="50" cy="10" r="4" fill="#0099ff" filter="url(#glow)"/>
+  </g> -->
+
+  <g transform="translate(15, 60)" filter="url(#cardShadow)">
+    <rect x="0" y="0" width="100" height="24" rx="12" fill="#ffffff" stroke="#c9dceb" stroke-width="1.2"/>
+    <text x="50" y="16" class="small" text-anchor="middle">id · smiles</text>
+  </g>
+  <g transform="translate(15, 95)" filter="url(#cardShadow)">
+    <rect x="0" y="0" width="140" height="24" rx="12" fill="#ffffff" stroke="#c9dceb" stroke-width="1.2"/>
+    <text x="70" y="16" class="small" text-anchor="middle">conformer states</text>
+  </g>
+</g>
+
+<g transform="translate(380, 240)">
+  <rect x="0" y="6" width="280" height="200" rx="22" fill="#a4c2d6" filter="url(#softshadow)"/>
+  <rect x="0" y="0" width="280" height="200" rx="22" fill="url(#glassBox)" stroke="url(#boxStroke)" stroke-width="1.5"/>
+  <text x="25" y="35" class="label">ProDockPipeline</text>
+  <text x="25" y="60" class="tiny">Automated orchestration</text>
+  <rect x="15" y="15" width="4" height="25" rx="2" fill="#00f0ff" filter="url(#glow)"/>
+  
+  <g transform="translate(210, 45) scale(0.8)">
+    <circle cx="0" cy="0" r="8" fill="#eaf3f8" stroke="#0099ff" stroke-width="2"/>
+    <circle cx="20" cy="25" r="8" fill="#eaf3f8" stroke="#f4b93b" stroke-width="2"/>
+    <circle cx="40" cy="0" r="8" fill="#eaf3f8" stroke="#38e68c" stroke-width="2" filter="url(#glowGreen)"/>
+    <line x1="6" y1="6" x2="14" y2="19" stroke="#0099ff" stroke-width="2"/>
+    <line x1="26" y1="19" x2="34" y2="6" stroke="#0099ff" stroke-width="2"/>
+    <circle cx="0" cy="0" r="3" fill="#0099ff" filter="url(#glow)"/>
+    <circle cx="20" cy="25" r="3" fill="#f4b93b" filter="url(#glow)"/>
+    <circle cx="40" cy="0" r="3" fill="#38e68c"/>
+  </g>
+
+  <g transform="translate(20, 85)" filter="url(#cardShadow)">
+    <rect x="0" y="0" width="140" height="26" rx="13" fill="#ffffff" stroke="#c9dceb" stroke-width="1.2"/>
+    <circle cx="15" cy="13" r="4" fill="#38e68c" filter="url(#glowGreen)"/>
+    <text x="75" y="18" class="small" text-anchor="middle">prepare_receptors</text>
+  </g>
+  <g transform="translate(20, 120)" filter="url(#cardShadow)">
+    <rect x="0" y="0" width="130" height="26" rx="13" fill="#ffffff" stroke="#c9dceb" stroke-width="1.2"/>
+    <circle cx="15" cy="13" r="4" fill="#0099ff" filter="url(#glow)"/>
+    <text x="70" y="18" class="small" text-anchor="middle">prepare_ligands</text>
+  </g>
+  <g transform="translate(20, 155)" filter="url(#cardShadow)">
+    <rect x="0" y="0" width="120" height="26" rx="13" fill="#ffffff" stroke="#c9dceb" stroke-width="1.2"/>
+    <circle cx="15" cy="13" r="4" fill="#f4b93b" filter="url(#glow)"/>
+    <text x="67" y="18" class="small" text-anchor="middle">build_campaign</text>
+  </g>
+  <g transform="translate(155, 155)" filter="url(#cardShadow)">
+    <rect x="0" y="0" width="60" height="26" rx="13" fill="#1f425f" stroke="#1f425f" stroke-width="1.2"/>
+    <polygon points="18,10 24,13 18,16" fill="#38e68c" filter="url(#glowGreen)"/>
+    <text x="38" y="18" class="small" fill="#ffffff" text-anchor="middle">run</text>
+  </g>
+</g>
+
+<g transform="translate(740, 140)">
+  <rect x="0" y="6" width="200" height="110" rx="22" fill="#a4c2d6" filter="url(#softshadow)"/>
+  <rect x="0" y="0" width="200" height="110" rx="22" fill="url(#glassBox)" stroke="url(#boxStroke)" stroke-width="1.5"/>
+  <text x="25" y="35" class="label">campaign.json</text>
+  <text x="25" y="65" class="body">matrix tasks</text>
+  <rect x="15" y="15" width="4" height="25" rx="2" fill="#00f0ff" filter="url(#glow)"/>
+  
+  <g transform="translate(130, 45) scale(0.8)">
+    <rect x="0" y="0" width="12" height="12" rx="2" fill="#b5d2e5"/>
+    <rect x="16" y="0" width="12" height="12" rx="2" fill="#3f76a3"/>
+    <rect x="32" y="0" width="12" height="12" rx="2" fill="#d6e7f1"/>
+    
+    <rect x="0" y="16" width="12" height="12" rx="2" fill="#d6e7f1"/>
+    <rect x="16" y="16" width="12" height="12" rx="2" fill="#b5d2e5"/>
+    <rect x="32" y="16" width="12" height="12" rx="2" fill="#3f76a3"/>
+    
+    <rect x="0" y="32" width="12" height="12" rx="2" fill="#3f76a3"/>
+    <rect x="16" y="32" width="12" height="12" rx="2" fill="#d6e7f1"/>
+    <rect x="32" y="32" width="12" height="12" rx="2" fill="#b5d2e5"/>
+  </g>
+</g>
+
+<g transform="translate(740, 285)">
+  <rect x="0" y="6" width="200" height="110" rx="22" fill="#a4c2d6" filter="url(#softshadow)"/>
+  <rect x="0" y="0" width="200" height="110" rx="22" fill="url(#glassBoxBlue)" stroke="url(#boxStroke)" stroke-width="1.5"/>
+  <text x="25" y="35" class="label">BatchDock</text>
+  <text x="25" y="65" class="body">parallel execution</text>
+  <rect x="15" y="15" width="4" height="25" rx="2" fill="#00f0ff" filter="url(#glow)"/>
+  
+  <g transform="translate(140, 40) scale(0.85)">
+    <rect x="0" y="0" width="45" height="12" rx="3" fill="#ffffff" stroke="#a0bed6" stroke-width="1.5"/>
+    <circle cx="8" cy="6" r="2.5" fill="#38e68c" filter="url(#glowGreen)"/>
+    <line x1="15" y1="6" x2="35" y2="6" stroke="#dce7ef" stroke-width="2" stroke-linecap="round"/>
+    
+    <rect x="0" y="16" width="45" height="12" rx="3" fill="#ffffff" stroke="#a0bed6" stroke-width="1.5"/>
+    <circle cx="8" cy="22" r="2.5" fill="#38e68c" filter="url(#glowGreen)"/>
+    <line x1="15" y1="22" x2="35" y2="22" stroke="#dce7ef" stroke-width="2" stroke-linecap="round"/>
+    
+    <rect x="0" y="32" width="45" height="12" rx="3" fill="#ffffff" stroke="#a0bed6" stroke-width="1.5"/>
+    <circle cx="8" cy="38" r="2.5" fill="#38e68c" filter="url(#glowGreen)"/>
+    <line x1="15" y1="38" x2="35" y2="38" stroke="#dce7ef" stroke-width="2" stroke-linecap="round"/>
+  </g>
+</g>
+
+<g transform="translate(740, 430)">
+  <rect x="0" y="6" width="200" height="110" rx="22" fill="#8cbfa2" filter="url(#softshadow)"/>
+  <rect x="0" y="0" width="200" height="110" rx="22" fill="url(#glassBoxAccent)" stroke="url(#boxStrokeGreen)" stroke-width="1.5"/>
+  <text x="25" y="35" class="label">Results</text>
+  <text x="25" y="65" class="body">files + summaries</text>
+  <rect x="15" y="15" width="4" height="25" rx="2" fill="#38e68c" filter="url(#glowGreen)"/>
+  
+  <g transform="translate(140, 40) scale(0.85)">
+    <path d="M 0,10 L 15,10 L 20,15 L 45,15 L 45,40 L 0,40 Z" fill="#eaf3f8" stroke="#198a51" stroke-width="2" stroke-linejoin="round"/>
+    <path d="M 5,20 L 40,20 L 45,40 L 0,40 Z" fill="#ffffff" stroke="#198a51" stroke-width="2" stroke-linejoin="round"/>
+    <polyline points="15,30 22,35 32,22" fill="none" stroke="#38e68c" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" filter="url(#glowGreen)"/>
+  </g>
+</g>
+
+<!-- <g transform="translate(920, 200) scale(1.1)"> -->
+  <!-- <path d="M 80,110 C 70,160 100,190 150,190 C 200,190 230,160 220,110 C 215,75 190,70 175,95 C 165,110 135,110 125,95 C 110,70 85,75 80,110 Z" fill="url(#bluegrad)" opacity="0.95" filter="url(#softshadow)"/>
+  <path d="M 95,115 C 95,150 120,170 150,170 C 180,170 205,150 205,115 C 190,95 175,115 150,115 C 125,115 110,95 95,115 Z" fill="url(#navygrad)" opacity="0.9"/>
+  
+  <line x1="130" y1="125" x2="105" y2="105" stroke="#f0d05a" stroke-width="2.5" stroke-dasharray="4,3" stroke-linecap="round"/>
+  <line x1="170" y1="125" x2="195" y2="105" stroke="#f0d05a" stroke-width="2.5" stroke-dasharray="4,3" stroke-linecap="round"/>
+  <line x1="150" y1="160" x2="150" y2="180" stroke="#f0d05a" stroke-width="2.5" stroke-dasharray="4,3" stroke-linecap="round"/>
+  
+  <polyline points="130,125 150,140 170,125" fill="none" stroke="#ffffff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+  <line x1="150" y1="140" x2="150" y2="160" stroke="#ffffff" stroke-width="5" stroke-linecap="round"/>
+  
+  <circle cx="150" cy="140" r="7.5" fill="#f4b93b" stroke="#ffffff" stroke-width="1.5"/>
+  <circle cx="130" cy="125" r="7.5" fill="#f24d3d" stroke="#ffffff" stroke-width="1.5"/>
+  <circle cx="170" cy="125" r="7.5" fill="#57b8d9" stroke="#ffffff" stroke-width="1.5"/>
+  <circle cx="150" cy="160" r="7.5" fill="#ef6a48" stroke="#ffffff" stroke-width="1.5"/> -->
+
+<g transform="translate(900,-250) scale(1.2)">
+  <path d="M 80,480 C 70,530 100,560 150,560 C 200,560 230,530 220,480 C 215,445 190,440 175,465 C 165,480 135,480 125,465 C 110,440 85,445 80,480 Z" fill="url(#bluegrad)" opacity="0.95" filter="url(#softshadow)"/>
+  <path d="M 88,483 C 80,525 108,550 150,550 C 192,550 220,525 212,483 C 205,450 185,448 170,470 C 160,485 140,485 130,470 C 115,448 95,450 88,483 Z" fill="#4a7c9f" opacity="0.8"/>
+  <path d="M 95,485 C 95,520 120,540 150,540 C 180,540 205,520 205,485 C 190,465 175,485 150,485 C 125,485 110,465 95,485 Z" fill="url(#navygrad)" opacity="1"/>
+  <line x1="130" y1="495" x2="105" y2="475" stroke="#00f0ff" stroke-width="2.5" stroke-dasharray="4,3" stroke-linecap="round" filter="url(#glow)"/>
+  <line x1="170" y1="495" x2="195" y2="475" stroke="#00f0ff" stroke-width="2.5" stroke-dasharray="4,3" stroke-linecap="round" filter="url(#glow)"/>
+  <line x1="150" y1="530" x2="150" y2="550" stroke="#00f0ff" stroke-width="2.5" stroke-dasharray="4,3" stroke-linecap="round" filter="url(#glow)"/>
+  <line x1="150" y1="510" x2="130" y2="495" stroke="#5a6b7a" stroke-width="7" stroke-linecap="round"/>
+  <line x1="150" y1="510" x2="130" y2="495" stroke="#cbd6e0" stroke-width="3.5" stroke-linecap="round"/>
+  <line x1="150" y1="510" x2="170" y2="495" stroke="#5a6b7a" stroke-width="7" stroke-linecap="round"/>
+  <line x1="150" y1="510" x2="170" y2="495" stroke="#cbd6e0" stroke-width="3.5" stroke-linecap="round"/>
+  <line x1="150" y1="510" x2="150" y2="530" stroke="#5a6b7a" stroke-width="7" stroke-linecap="round"/>
+  <line x1="150" y1="510" x2="150" y2="530" stroke="#cbd6e0" stroke-width="3.5" stroke-linecap="round"/>
+  <circle cx="130" cy="495" r="9.5" fill="url(#sphereRed)" filter="url(#atomShadow)"/>
+  <circle cx="170" cy="495" r="9.5" fill="url(#sphereBlue)" filter="url(#atomShadow)"/>
+  <circle cx="150" cy="530" r="9.5" fill="url(#sphereOrange)" filter="url(#atomShadow)"/>
+  <circle cx="150" cy="510" r="11" fill="url(#sphereYellow)" filter="url(#atomShadow)"/>
+
+  <g transform="translate(50, 590)" filter="url(#cardShadow)">
+    <rect x="0" y="0" width="200" height="26" rx="13" fill="#ffffff" stroke="#c9dceb" stroke-width="1.2"/>
+    <text x="100" y="18" class="small" text-anchor="middle">prepared receptor / ligand</text>
+  </g>
+</g>
 
 </svg>
