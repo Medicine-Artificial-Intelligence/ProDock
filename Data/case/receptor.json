@@ -1,0 +1,11 @@
+{
+    "receptors": [
+    {
+        "pdb_id": "4ZAU",
+        "receptor_name": "EGFR_4ZAU",
+        "ligand_code": "YY3",
+        "chains": ["A"],
+        "cofactors": []
+    }
+    ]
+}

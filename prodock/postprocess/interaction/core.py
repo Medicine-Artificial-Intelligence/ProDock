@@ -79,6 +79,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, Iterable, Iterator, List, Mapping, Optional, Sequence
 import gc
+import logging
+import traceback
 
 import pandas as pd
 
@@ -88,6 +90,9 @@ from .io import _import_prolif, load_receptor_molecule, prepare_ligands
 from .models import InteractionRunResult, PoseInteractionTableResult
 
 PathLike = str | Path
+
+logger = logging.getLogger(__name__)
+logger.addHandler(logging.NullHandler())
 
 
 @dataclass
@@ -252,13 +257,6 @@ class InteractionProfiler:
         :returns:
             Configured ProLIF fingerprint object.
         :rtype: Any
-
-        Example
-        -------
-        .. code-block:: python
-
-            profiler = InteractionProfiler(count=True)
-            fingerprint = profiler._build_fingerprint()
         """
         plf = _import_prolif()
         kwargs: Dict[str, Any] = {
@@ -289,13 +287,6 @@ class InteractionProfiler:
         :returns:
             List of interaction names supported by the installed ProLIF version.
         :rtype: list[str]
-
-        Example
-        -------
-        .. code-block:: python
-
-            profiler = InteractionProfiler()
-            print(profiler.available_interactions())
         """
         plf = _import_prolif()
         return list(
@@ -308,19 +299,9 @@ class InteractionProfiler:
         """
         Return a serializable snapshot of the current profiler settings.
 
-        This is useful for provenance tracking, result objects, logging, and
-        reproducibility.
-
         :returns:
             Serializable dictionary of profiler settings.
         :rtype: Dict[str, Any]
-
-        Example
-        -------
-        .. code-block:: python
-
-            profiler = InteractionProfiler(progress=False, n_jobs=1)
-            settings = profiler.settings_snapshot()
         """
         return {
             "interactions": (
@@ -360,18 +341,6 @@ class InteractionProfiler:
         """
         Extract protein-ligand interactions for one receptor and one ligand input source.
 
-        This method is the main single-run entry point. It loads the receptor,
-        prepares ligand molecules, executes the ProLIF fingerprint, and returns
-        a structured :class:`InteractionRunResult`.
-
-        Supported ligand inputs include:
-
-        - path to an ``.sdf`` file,
-        - one RDKit molecule,
-        - a mapping of ``name -> mol``,
-        - an iterable of RDKit molecules,
-        - an iterable of ``(name, mol)`` tuples.
-
         :param receptor_pdb:
             Path to the receptor PDB file.
         :type receptor_pdb: str | pathlib.Path
@@ -380,112 +349,134 @@ class InteractionProfiler:
         :type ligands: str | pathlib.Path | Any | Sequence[Any] | Iterable[Any] | Mapping[str, Any]
         :param residues:
             Optional residue subset passed to ``Fingerprint.run_from_iterable``.
-            This can be useful when restricting the analysis to selected receptor
-            residues.
         :type residues: Optional[Sequence[str] | str]
 
         :returns:
-            Structured interaction extraction result containing the receptor
-            path, molecule names, prepared molecules, fingerprint dataframe,
-            interaction-event dataframe, and optional vectors.
+            Structured interaction extraction result.
         :rtype: InteractionRunResult
-
-        Example
-        -------
-        Simple case using an SDF file of docked poses:
-
-        .. code-block:: python
-
-            profiler = InteractionProfiler(progress=False, n_jobs=1)
-
-            result = profiler.run(
-                receptor_pdb="Data/testcase/Multi/1M17/filtered_protein/1M17.pdb",
-                ligands="Data/testcase/post/1M17/erlotinib.sdf",
-            )
-
-            fingerprint_df = result.fingerprint_df
-            interaction_df = result.interaction_df
-
-        Example
-        -------
-        Using multiple in-memory RDKit molecules:
-
-        .. code-block:: python
-
-            profiler = InteractionProfiler(progress=False, n_jobs=1)
-
-            result = profiler.run(
-                receptor_pdb="Data/testcase/Multi/1M17/filtered_protein/1M17.pdb",
-                ligands={
-                    "pose_1": mol1,
-                    "pose_2": mol2,
-                    "pose_3": mol3,
-                },
-            )
-
-            print(result.molecule_names)
-            print(result.interaction_df.head())
         """
         receptor_path = Path(receptor_pdb)
-        protein_molecule = load_receptor_molecule(
+
+        logger.info(
+            "Starting interaction run: receptor=%s ligand_input_type=%s residues=%s "
+            "progress=%s n_jobs=%s count=%s",
             receptor_path,
-            selection=self.receptor_selection,
-            use_segid=self.receptor_use_segid,
-            guess_bonds=self.receptor_guess_bonds,
-            vdwradii=self.receptor_vdwradii,
-            suppress_mdanalysis_warnings=self.suppress_mdanalysis_warnings,
-            suppress_mdanalysis_info_logs=self.suppress_mdanalysis_info_logs,
-        )
-        molecule_names, molecules, prolif_molecules = prepare_ligands(
-            ligands,
-            resname=self.ligand_resname,
-            resnumber=self.ligand_resnumber,
-            chain=self.ligand_chain,
-            use_segid=self.ligand_use_segid,
-            sdf_sanitize=self.sdf_sanitize,
+            type(ligands).__name__,
+            residues,
+            self.progress,
+            self.n_jobs,
+            self.count,
         )
 
-        fingerprint = self._build_fingerprint()
-        fingerprint.run_from_iterable(
-            prolif_molecules,
-            protein_molecule,
-            residues=residues,
-            progress=self.progress,
-            n_jobs=self.n_jobs,
-        )
+        try:
+            protein_molecule = load_receptor_molecule(
+                receptor_path,
+                selection=self.receptor_selection,
+                use_segid=self.receptor_use_segid,
+                guess_bonds=self.receptor_guess_bonds,
+                vdwradii=self.receptor_vdwradii,
+                suppress_mdanalysis_warnings=self.suppress_mdanalysis_warnings,
+                suppress_mdanalysis_info_logs=self.suppress_mdanalysis_info_logs,
+            )
+            logger.debug("Receptor loaded successfully: %s", receptor_path)
 
-        fingerprint_df = fingerprint.to_dataframe(drop_empty=self.drop_empty)
-        fingerprint_df = self._rename_fingerprint_index(fingerprint_df, molecule_names)
-        interaction_df = flatten_ifp(
-            fingerprint.ifp, mol_names=molecule_names, mols=molecules
-        )
+            molecule_names, molecules, prolif_molecules = prepare_ligands(
+                ligands,
+                resname=self.ligand_resname,
+                resnumber=self.ligand_resnumber,
+                chain=self.ligand_chain,
+                use_segid=self.ligand_use_segid,
+                sdf_sanitize=self.sdf_sanitize,
+            )
+            logger.info(
+                "Prepared ligands successfully: n_molecules=%d names=%s",
+                len(molecule_names),
+                molecule_names[:5],
+            )
 
-        bitvectors = None
-        countvectors = None
-        if hasattr(fingerprint, "to_bitvectors"):
-            try:
-                bitvectors = list(fingerprint.to_bitvectors())
-            except Exception:
-                bitvectors = None
-        if hasattr(fingerprint, "to_countvectors"):
-            try:
-                countvectors = list(fingerprint.to_countvectors())
-            except Exception:
-                countvectors = None
+            fingerprint = self._build_fingerprint()
+            logger.debug(
+                "Fingerprint object created: interactions=%s parameters=%s vicinity_cutoff=%s",
+                self.interactions,
+                self.parameters,
+                self.vicinity_cutoff,
+            )
 
-        return InteractionRunResult(
-            receptor_path=receptor_path,
-            molecule_names=molecule_names,
-            molecules=molecules,
-            prolif_molecules=prolif_molecules,
-            fingerprint=fingerprint,
-            fingerprint_df=fingerprint_df,
-            interaction_df=interaction_df,
-            bitvectors=bitvectors,
-            countvectors=countvectors,
-            protein_molecule=protein_molecule,
-            settings=self.settings_snapshot(),
-        )
+            fingerprint.run_from_iterable(
+                prolif_molecules,
+                protein_molecule,
+                residues=residues,
+                progress=self.progress,
+                n_jobs=self.n_jobs,
+            )
+            logger.info(
+                "Fingerprint run completed: receptor=%s n_ligands=%d",
+                receptor_path,
+                len(prolif_molecules),
+            )
+
+            fingerprint_df = fingerprint.to_dataframe(drop_empty=self.drop_empty)
+            fingerprint_df = self._rename_fingerprint_index(
+                fingerprint_df, molecule_names
+            )
+
+            interaction_df = flatten_ifp(
+                fingerprint.ifp, mol_names=molecule_names, mols=molecules
+            )
+
+            logger.info(
+                "Interaction tables built: fingerprint_shape=%s interaction_shape=%s",
+                getattr(fingerprint_df, "shape", None),
+                getattr(interaction_df, "shape", None),
+            )
+
+            bitvectors = None
+            countvectors = None
+            if hasattr(fingerprint, "to_bitvectors"):
+                try:
+                    bitvectors = list(fingerprint.to_bitvectors())
+                    logger.debug("Collected bitvectors: n=%d", len(bitvectors))
+                except Exception:
+                    logger.exception("Failed to collect bitvectors.")
+
+            if hasattr(fingerprint, "to_countvectors"):
+                try:
+                    countvectors = list(fingerprint.to_countvectors())
+                    logger.debug("Collected countvectors: n=%d", len(countvectors))
+                except Exception:
+                    logger.exception("Failed to collect countvectors.")
+
+            result = InteractionRunResult(
+                receptor_path=receptor_path,
+                molecule_names=molecule_names,
+                molecules=molecules,
+                prolif_molecules=prolif_molecules,
+                fingerprint=fingerprint,
+                fingerprint_df=fingerprint_df,
+                interaction_df=interaction_df,
+                bitvectors=bitvectors,
+                countvectors=countvectors,
+                protein_molecule=protein_molecule,
+                settings=self.settings_snapshot(),
+            )
+
+            logger.info(
+                "Interaction run finished successfully: receptor=%s n_molecules=%d",
+                receptor_path,
+                len(molecule_names),
+            )
+            return result
+
+        except Exception as exc:
+            logger.exception(
+                "Interaction run failed: receptor=%s ligand_input_type=%s residues=%s",
+                receptor_path,
+                type(ligands).__name__,
+                residues,
+            )
+            raise InteractionProcessingError(
+                f"Single-run interaction processing failed for receptor {receptor_path!s}"
+            ) from exc
 
     def run_pose_table(
         self,
@@ -513,18 +504,6 @@ class InteractionProfiler:
         """
         Compute pose-centric interactions for a pose table.
 
-        This method is the main automation entry point for ProDock pose tables.
-        It processes a pose dataframe grouped by receptor, runs ProLIF
-        interaction extraction, and returns pose-aligned merged, event, and
-        summary tables.
-
-        The input pose table must contain at least the receptor id, ligand id,
-        engine, pose rank, affinity, and molecule columns.
-
-        In ``ultra_safe`` mode, each pose is processed individually even if a
-        larger ``batch_size`` is requested. This is slower but more stable for
-        notebooks, difficult structures, and heterogeneous datasets.
-
         :param poses:
             Input pose table with at least receptor, ligand, engine, rank,
             affinity, and molecule columns.
@@ -551,8 +530,7 @@ class InteractionProfiler:
             Column containing RDKit molecules.
         :type mol_col: str
         :param pose_id_col:
-            Optional pre-existing pose id column. If not provided, a stable pose
-            id is generated automatically.
+            Optional pre-existing pose id column.
         :type pose_id_col: Optional[str]
         :param residues:
             Optional ProLIF residue subset.
@@ -561,8 +539,7 @@ class InteractionProfiler:
             Number of poses to process together when ``ultra_safe`` is ``False``.
         :type batch_size: int
         :param include_fingerprint_columns:
-            Retained for API compatibility. Pose-level merged output does not
-            store fingerprint columns in this design.
+            Retained for API compatibility.
         :type include_fingerprint_columns: bool
         :param include_interaction_events:
             Whether to compute and store raw event payloads.
@@ -587,61 +564,8 @@ class InteractionProfiler:
         :type ultra_safe: bool
 
         :returns:
-            Pose-centric interaction result containing:
-            ``merged_df``, ``interaction_df``, ``summary_df``, optional vectors,
-            error records, and settings metadata.
+            Pose-centric interaction result.
         :rtype: PoseInteractionTableResult
-
-        Example
-        -------
-        ProDock automation using a pose table from :class:`PoseCrawler`:
-
-        .. code-block:: python
-
-            from prodock.postprocess.pose.core import PoseCrawler
-            from prodock.postprocess.interaction import extract_pose_table_interactions
-
-            crawler = PoseCrawler(["./Data/testcase/post"])
-            df = crawler.crawl_mols(backend="obabel")
-
-            result = extract_pose_table_interactions(
-                poses=df,
-                receptor_pdb_by_id={
-                    "1M17": "Data/testcase/Multi/1M17/filtered_protein/1M17.pdb",
-                    "4WKQ": "Data/testcase/Multi/4WKQ/filtered_protein/4WKQ.pdb",
-                },
-                batch_size=10,
-                progress=False,
-                n_jobs=1,
-                include_fingerprint_columns=True,
-                include_interaction_events=True,
-                include_bitvectors=False,
-                include_countvectors=False,
-                fail_fast=True,
-            )
-
-            merged_df = result.merged_df
-            interaction_df = result.interaction_df
-            summary_df = result.summary_df
-
-        Example
-        -------
-        Safer notebook mode for a small set of poses:
-
-        .. code-block:: python
-
-            profiler = InteractionProfiler(progress=False, n_jobs=1)
-
-            result = profiler.run_pose_table(
-                poses=poses_df,
-                receptor_pdb_by_id={
-                    "1M17": "Data/testcase/Multi/1M17/filtered_protein/1M17.pdb",
-                },
-                batch_size=1,
-                ultra_safe=True,
-                include_interaction_events=True,
-                fail_fast=True,
-            )
         """
         del (
             include_fingerprint_columns,
@@ -666,6 +590,17 @@ class InteractionProfiler:
 
         effective_batch_size = 1 if ultra_safe else batch_size
         effective_n_jobs = 1 if ultra_safe else self.n_jobs
+
+        logger.info(
+            "Starting pose-table interaction run: n_poses=%d n_receptors=%d "
+            "effective_batch_size=%d effective_n_jobs=%s ultra_safe=%s fail_fast=%s",
+            len(poses),
+            poses[receptor_col].nunique() if receptor_col in poses.columns else -1,
+            effective_batch_size,
+            effective_n_jobs,
+            ultra_safe,
+            fail_fast,
+        )
 
         working = poses.copy().reset_index(drop=False)
         original_index_name = working.columns[0]
@@ -706,6 +641,13 @@ class InteractionProfiler:
                     f"No receptor PDB path provided for {receptor_col}={receptor_value!r}."
                 )
 
+            logger.info(
+                "Processing receptor group: receptor=%r n_poses=%d receptor_pdb=%s",
+                receptor_value,
+                len(receptor_df),
+                receptor_paths[receptor_key],
+            )
+
             protein_molecule = load_receptor_molecule(
                 receptor_paths[receptor_key],
                 selection=self.receptor_selection,
@@ -741,6 +683,12 @@ class InteractionProfiler:
                             )
                         named_ligands.append((pose_id, mol))
 
+                    logger.debug(
+                        "Preparing ligand chunk: receptor=%r pose_ids=%s",
+                        receptor_value,
+                        pose_ids,
+                    )
+
                     names, _, prolif_molecules = prepare_ligands(
                         named_ligands,
                         resname=self.ligand_resname,
@@ -751,8 +699,23 @@ class InteractionProfiler:
                     )
                     molecule_names.extend(names)
 
+                    logger.debug(
+                        "Prepared ligand chunk successfully: receptor=%r names=%s",
+                        receptor_value,
+                        names,
+                    )
+
                     if include_interaction_events:
                         fingerprint = self._build_fingerprint()
+
+                        logger.debug(
+                            "Running ProLIF fingerprint: receptor=%r pose_ids=%s residues=%s n_jobs=%s",
+                            receptor_value,
+                            pose_ids,
+                            residues,
+                            effective_n_jobs,
+                        )
+
                         fingerprint.run_from_iterable(
                             prolif_molecules,
                             protein_molecule,
@@ -766,6 +729,13 @@ class InteractionProfiler:
                         if not events_df.empty:
                             events_df = events_df.copy()
                             events_df["pose_id"] = events_df["mol_name"].astype(str)
+
+                        logger.debug(
+                            "Flattened interaction events: receptor=%r pose_ids=%s shape=%s",
+                            receptor_value,
+                            pose_ids,
+                            getattr(events_df, "shape", None),
+                        )
 
                     event_rows = build_pose_interaction_table(events_df, pose_ids)
                     summary_rows = build_pose_summary_table(events_df, pose_ids)
@@ -793,7 +763,11 @@ class InteractionProfiler:
                         try:
                             bitvectors.extend(list(fingerprint.to_bitvectors()))
                         except Exception:
-                            pass
+                            logger.exception(
+                                "Failed collecting bitvectors for receptor=%r pose_ids=%s",
+                                receptor_value,
+                                pose_ids,
+                            )
                     if (
                         include_interaction_events
                         and include_countvectors
@@ -803,18 +777,72 @@ class InteractionProfiler:
                         try:
                             countvectors.extend(list(fingerprint.to_countvectors()))
                         except Exception:
-                            pass
+                            logger.exception(
+                                "Failed collecting countvectors for receptor=%r pose_ids=%s",
+                                receptor_value,
+                                pose_ids,
+                            )
                 except Exception as exc:
+                    chunk_debug_rows = []
+                    for pose_id, mol in zip(pose_ids, chunk_df[mol_col].tolist()):
+                        mol_debug = {
+                            "pose_id": pose_id,
+                            "mol_is_none": mol is None,
+                            "mol_type": type(mol).__name__ if mol is not None else None,
+                        }
+                        try:
+                            mol_debug["has_conformers"] = (
+                                mol.GetNumConformers()
+                                if mol is not None and hasattr(mol, "GetNumConformers")
+                                else None
+                            )
+                        except Exception:
+                            mol_debug["has_conformers"] = "error"
+                        try:
+                            mol_debug["num_atoms"] = (
+                                mol.GetNumAtoms()
+                                if mol is not None and hasattr(mol, "GetNumAtoms")
+                                else None
+                            )
+                        except Exception:
+                            mol_debug["num_atoms"] = "error"
+                        try:
+                            mol_debug["mol_name"] = (
+                                mol.GetProp("_Name")
+                                if mol is not None
+                                and hasattr(mol, "HasProp")
+                                and mol.HasProp("_Name")
+                                else None
+                            )
+                        except Exception:
+                            mol_debug["mol_name"] = "error"
+                        chunk_debug_rows.append(mol_debug)
+
                     error_record = {
                         receptor_col: receptor_value,
                         "batch_pose_ids": pose_ids,
                         "message": str(exc),
                         "error_type": type(exc).__name__,
+                        "traceback": traceback.format_exc(),
+                        "chunk_debug": chunk_debug_rows,
                     }
                     errors.append(error_record)
+
+                    logger.exception(
+                        "Interaction processing failed for receptor=%r poses=%s "
+                        "chunk_size=%d effective_n_jobs=%s ultra_safe=%s",
+                        receptor_value,
+                        pose_ids,
+                        len(pose_ids),
+                        effective_n_jobs,
+                        ultra_safe,
+                    )
+                    logger.error("Chunk debug info: %s", chunk_debug_rows)
+
                     if fail_fast:
                         raise InteractionProcessingError(
-                            f"Interaction processing failed for receptor {receptor_value!r} and poses {pose_ids[:3]}"
+                            f"Interaction processing failed for receptor {receptor_value!r} "
+                            f"and poses {pose_ids}"
                         ) from exc
 
                     fallback_events = pd.DataFrame(
@@ -893,6 +921,15 @@ class InteractionProfiler:
             summary_df = summary_df.sort_values("_pose_order").reset_index(drop=True)
             summary_df = summary_df.drop(columns=["_pose_order"], errors="ignore")
 
+        logger.info(
+            "Pose-table interaction run finished: merged_shape=%s interaction_shape=%s "
+            "summary_shape=%s n_errors=%d",
+            getattr(merged_df, "shape", None),
+            getattr(interaction_df, "shape", None),
+            getattr(summary_df, "shape", None),
+            len(errors),
+        )
+
         return PoseInteractionTableResult(
             merged_df=merged_df,
             interaction_df=interaction_df,
@@ -929,10 +966,6 @@ class InteractionProfiler:
         """
         Replace the fingerprint dataframe index with molecule names when lengths match.
 
-        This is mainly useful for single-run workflows where the ProLIF
-        fingerprint dataframe is indexed by frame number and a more informative
-        molecule-name index is preferred.
-
         :param fingerprint_df:
             Fingerprint dataframe returned by ProLIF.
         :type fingerprint_df: pandas.DataFrame
@@ -941,18 +974,8 @@ class InteractionProfiler:
         :type molecule_names: Sequence[str]
 
         :returns:
-            Copy of the fingerprint dataframe, with index replaced by molecule
-            names when the row count matches.
+            Copy of the fingerprint dataframe with renamed index when possible.
         :rtype: pandas.DataFrame
-
-        Example
-        -------
-        .. code-block:: python
-
-            renamed = InteractionProfiler._rename_fingerprint_index(
-                fingerprint_df,
-                molecule_names=["pose_1", "pose_2"],
-            )
         """
         renamed = fingerprint_df.copy()
         if len(renamed.index) == len(molecule_names):
@@ -971,20 +994,12 @@ def _iter_dataframe_chunks(
         Input dataframe to split.
     :type frame: pandas.DataFrame
     :param batch_size:
-        Maximum number of rows per yielded chunk. If ``batch_size <= 0``, the
-        whole dataframe is yielded once.
+        Maximum number of rows per yielded chunk.
     :type batch_size: int
 
     :returns:
         Iterator of dataframe chunks.
     :rtype: Iterator[pandas.DataFrame]
-
-    Example
-    -------
-    .. code-block:: python
-
-        for chunk in _iter_dataframe_chunks(df, batch_size=10):
-            print(len(chunk))
     """
     if batch_size <= 0:
         yield frame
@@ -1020,92 +1035,9 @@ def extract_interactions(
     """
     Convenience wrapper around :class:`InteractionProfiler` for single-run extraction.
 
-    This function creates an :class:`InteractionProfiler` from the provided
-    options and immediately executes :meth:`InteractionProfiler.run`.
-
-    :param receptor_pdb:
-        Path to the receptor PDB file.
-    :type receptor_pdb: str | pathlib.Path
-    :param ligands:
-        Ligand input source.
-    :type ligands: str | pathlib.Path | Any | Sequence[Any] | Iterable[Any] | Mapping[str, Any]
-    :param interactions:
-        Optional subset of ProLIF interaction names.
-    :type interactions: Optional[Sequence[str]]
-    :param parameters:
-        Optional parameter overrides passed directly to ProLIF.
-    :type parameters: Optional[Dict[str, Dict[str, Any]]]
-    :param count:
-        Whether to generate count fingerprints instead of boolean fingerprints.
-    :type count: bool
-    :param vicinity_cutoff:
-        Distance cutoff used by ProLIF for nearby receptor residue selection.
-    :type vicinity_cutoff: float
-    :param receptor_selection:
-        Optional MDAnalysis receptor selection string.
-    :type receptor_selection: Optional[str]
-    :param receptor_use_segid:
-        Whether ProLIF should use segment id for receptor residue identifiers.
-    :type receptor_use_segid: Optional[bool]
-    :param ligand_resname:
-        Default ligand residue name.
-    :type ligand_resname: str
-    :param ligand_resnumber:
-        Default ligand residue number.
-    :type ligand_resnumber: int
-    :param ligand_chain:
-        Default ligand chain id.
-    :type ligand_chain: str
-    :param ligand_use_segid:
-        Whether ProLIF should use segment id for ligand identifiers.
-    :type ligand_use_segid: bool
-    :param sdf_sanitize:
-        Whether RDKit should sanitize molecules when reading SDF input.
-    :type sdf_sanitize: bool
-    :param receptor_guess_bonds:
-        Whether to guess receptor bonds before ProLIF conversion.
-    :type receptor_guess_bonds: bool
-    :param receptor_vdwradii:
-        Optional VdW radii mapping for receptor bond guessing.
-    :type receptor_vdwradii: Optional[Mapping[str, float]]
-    :param suppress_mdanalysis_warnings:
-        Whether to suppress selected MDAnalysis warnings.
-    :type suppress_mdanalysis_warnings: bool
-    :param suppress_mdanalysis_info_logs:
-        Whether to suppress MDAnalysis info logs.
-    :type suppress_mdanalysis_info_logs: bool
-    :param progress:
-        Whether ProLIF should show a progress bar.
-    :type progress: bool
-    :param n_jobs:
-        Number of ProLIF parallel jobs.
-    :type n_jobs: Optional[int]
-    :param residues:
-        Optional residue subset for ProLIF.
-    :type residues: Optional[Sequence[str] | str]
-    :param drop_empty:
-        Whether to drop empty fingerprint columns.
-    :type drop_empty: bool
-
     :returns:
         Structured single-run interaction result.
     :rtype: InteractionRunResult
-
-    Example
-    -------
-    .. code-block:: python
-
-        from prodock.postprocess.interaction import extract_interactions
-
-        result = extract_interactions(
-            receptor_pdb="Data/testcase/Multi/1M17/filtered_protein/1M17.pdb",
-            ligands="Data/testcase/post/1M17/erlotinib.sdf",
-            progress=False,
-            n_jobs=1,
-        )
-
-        print(result.fingerprint_df.head())
-        print(result.interaction_df.head())
     """
     profiler = InteractionProfiler(
         interactions=interactions,
@@ -1173,158 +1105,10 @@ def extract_pose_table_interactions(
     """
     Convenience wrapper for automated pose-table interaction extraction.
 
-    This function creates an :class:`InteractionProfiler` from the provided
-    options and immediately executes :meth:`InteractionProfiler.run_pose_table`.
-
-    It is the recommended public API for ProDock automation where the input is
-    already a pose table containing RDKit molecules.
-
-    :param poses:
-        Input pose table.
-    :type poses: pandas.DataFrame
-    :param receptor_pdb_by_id:
-        Mapping from receptor id to receptor PDB path.
-    :type receptor_pdb_by_id: Mapping[str, str | pathlib.Path]
-    :param interactions:
-        Optional subset of ProLIF interaction names.
-    :type interactions: Optional[Sequence[str]]
-    :param parameters:
-        Optional parameter overrides passed directly to ProLIF.
-    :type parameters: Optional[Dict[str, Dict[str, Any]]]
-    :param count:
-        Whether to generate count fingerprints.
-    :type count: bool
-    :param vicinity_cutoff:
-        Distance cutoff used by ProLIF.
-    :type vicinity_cutoff: float
-    :param receptor_selection:
-        Optional MDAnalysis receptor selection string.
-    :type receptor_selection: Optional[str]
-    :param receptor_use_segid:
-        Whether ProLIF should use segment id for receptor residue identifiers.
-    :type receptor_use_segid: Optional[bool]
-    :param ligand_resname:
-        Default ligand residue name.
-    :type ligand_resname: str
-    :param ligand_resnumber:
-        Default ligand residue number.
-    :type ligand_resnumber: int
-    :param ligand_chain:
-        Default ligand chain id.
-    :type ligand_chain: str
-    :param ligand_use_segid:
-        Whether ProLIF should use segment id for ligands.
-    :type ligand_use_segid: bool
-    :param sdf_sanitize:
-        Whether RDKit should sanitize SDF input.
-    :type sdf_sanitize: bool
-    :param receptor_guess_bonds:
-        Whether to guess receptor bonds before ProLIF conversion.
-    :type receptor_guess_bonds: bool
-    :param receptor_vdwradii:
-        Optional VdW radii mapping for receptor bond guessing.
-    :type receptor_vdwradii: Optional[Mapping[str, float]]
-    :param suppress_mdanalysis_warnings:
-        Whether to suppress selected MDAnalysis warnings.
-    :type suppress_mdanalysis_warnings: bool
-    :param suppress_mdanalysis_info_logs:
-        Whether to suppress MDAnalysis info logs.
-    :type suppress_mdanalysis_info_logs: bool
-    :param progress:
-        Whether ProLIF should show a progress bar.
-    :type progress: bool
-    :param n_jobs:
-        Number of ProLIF parallel jobs.
-    :type n_jobs: Optional[int]
-    :param receptor_col:
-        Column containing receptor ids.
-    :type receptor_col: str
-    :param ligand_col:
-        Column containing ligand ids.
-    :type ligand_col: str
-    :param engine_col:
-        Column containing engine ids.
-    :type engine_col: str
-    :param pose_rank_col:
-        Column containing pose ranks.
-    :type pose_rank_col: str
-    :param affinity_col:
-        Column containing affinity scores.
-    :type affinity_col: str
-    :param mol_col:
-        Column containing RDKit molecules.
-    :type mol_col: str
-    :param pose_id_col:
-        Optional pre-existing pose-id column.
-    :type pose_id_col: Optional[str]
-    :param residues:
-        Optional ProLIF residue subset.
-    :type residues: Optional[Sequence[str] | str]
-    :param batch_size:
-        Batch size used when ``ultra_safe`` is ``False``.
-    :type batch_size: int
-    :param include_fingerprint_columns:
-        Retained for API compatibility.
-    :type include_fingerprint_columns: bool
-    :param include_interaction_events:
-        Whether to compute and store raw interaction-event payloads.
-    :type include_interaction_events: bool
-    :param include_bitvectors:
-        Whether to collect bitvectors aligned to pose order.
-    :type include_bitvectors: bool
-    :param include_countvectors:
-        Whether to collect countvectors aligned to pose order.
-    :type include_countvectors: bool
-    :param fingerprint_prefix:
-        Retained for API compatibility.
-    :type fingerprint_prefix: str
-    :param gc_collect:
-        Whether to run garbage collection between batches.
-    :type gc_collect: bool
-    :param fail_fast:
-        Whether to stop on the first failing batch.
-    :type fail_fast: bool
-    :param ultra_safe:
-        Whether to force one-pose-at-a-time processing.
-    :type ultra_safe: bool
-    :param drop_empty:
-        Whether to drop empty fingerprint columns.
-    :type drop_empty: bool
-
     :returns:
         Pose-centric interaction result containing ``merged_df``,
         ``interaction_df``, and ``summary_df``.
     :rtype: PoseInteractionTableResult
-
-    Example
-    -------
-    .. code-block:: python
-
-        from prodock.postprocess.pose.core import PoseCrawler
-        from prodock.postprocess.interaction import extract_pose_table_interactions
-
-        crawler = PoseCrawler(["./Data/testcase/post"])
-        df = crawler.crawl_mols(backend="obabel")
-
-        result = extract_pose_table_interactions(
-            poses=df,
-            receptor_pdb_by_id={
-                "1M17": "Data/testcase/Multi/1M17/filtered_protein/1M17.pdb",
-                "4WKQ": "Data/testcase/Multi/4WKQ/filtered_protein/4WKQ.pdb",
-            },
-            batch_size=10,
-            progress=False,
-            n_jobs=1,
-            include_fingerprint_columns=True,
-            include_interaction_events=True,
-            include_bitvectors=False,
-            include_countvectors=False,
-            fail_fast=True,
-        )
-
-        merged_df = result.merged_df
-        interaction_df = result.interaction_df
-        summary_df = result.summary_df
     """
     profiler = InteractionProfiler(
         interactions=interactions,

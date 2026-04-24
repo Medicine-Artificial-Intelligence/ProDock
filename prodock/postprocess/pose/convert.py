@@ -171,7 +171,7 @@ def save_pose_sdf(
 def pdbqt_to_rdkit_mols(
     pdbqt_file: PathLike,
     *,
-    backend: str = "obabel",
+    backend: str = "auto",
     sanitize: bool = True,
     remove_hs: bool = False,
 ) -> List[Chem.Mol]:
@@ -223,7 +223,7 @@ def pdbqt_to_rdkit_mols(
             sanitize=sanitize,
             removeHs=remove_hs,
         )
-        return [mol for mol in supplier if mol is not None]
+        return list(supplier)
 
 
 def convert_pose_tree(

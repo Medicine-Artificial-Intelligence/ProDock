@@ -1,3 +1,6 @@
+# prodock/structure/conversion.py
+from __future__ import annotations
+
 """
 Conversion helpers for Meeko, Open Babel, RDKit, and MGLTools.
 
@@ -16,6 +19,7 @@ This module provides two API layers:
    - :func:`ensure_pdbqt`
    - :func:`pdb_to_sdf`
    - :func:`pdbqt_to_sdf`
+   - :func:`load_sdf_for_interactions`
 
 Design notes
 ------------
@@ -23,13 +27,15 @@ Design notes
 - Receptor validation is available for Open Babel PDBQT receptor generation.
 - MGLTools output is supported, but not sanitized here because the sanitizer is
   backend-aware for ``"meeko"`` and ``"obabel"`` only.
+- Docked ligand PDBQT files that contain Meeko REMARK metadata can be converted
+  to SDF with topology preserved through the Meeko Python API instead of
+  Open Babel bond guessing.
 - The public name :func:`convert_with_mekoo` is preserved for backward
   compatibility. :func:`convert_with_meeko` is provided as an alias.
 """
 
-from __future__ import annotations
-
 import logging
+import re
 import shutil
 import subprocess
 from pathlib import Path
@@ -43,15 +49,29 @@ except Exception:
     Chem = None  # type: ignore
     _RDKIT_AVAILABLE = False
 
+try:
+    from meeko import PDBQTMolecule, RDKitMolCreate  # type: ignore
+
+    _MEEKO_LIB_AVAILABLE = True
+except Exception:
+    PDBQTMolecule = None  # type: ignore
+    RDKitMolCreate = None  # type: ignore
+    _MEEKO_LIB_AVAILABLE = False
+
 from prodock.structure.pdbqt_sanitizer import PDBQTSanitizer
 
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
 
 Backend = Literal["meeko", "obabel", "mgltools"]
+PDBQTToSDFBackend = Literal["auto", "meeko", "obabel"]
 SanitizeBackend = Literal["meeko", "obabel"]
 Mode = Literal["receptor", "ligand"]
 TmpConv = Literal["rdkit", "obabel"]
+
+_VINA_RESULT_RE = re.compile(
+    r"VINA RESULT:\s*([-+]?\d*\.?\d+)\s+([-+]?\d*\.?\d+)\s+([-+]?\d*\.?\d+)"
+)
 
 
 # ---------------------------------------------------------------------------
@@ -169,6 +189,23 @@ def _rdkit_require() -> None:
         raise RuntimeError("RDKit is required for this operation but is not available.")
 
 
+def _meeko_lib_require() -> None:
+    """
+    Require the Meeko Python library.
+
+    :returns:
+        This function returns nothing.
+    :rtype: None
+
+    :raises RuntimeError:
+        If the Meeko Python package is unavailable.
+    """
+    if not _MEEKO_LIB_AVAILABLE:
+        raise RuntimeError(
+            "The Meeko Python package is required for this operation but is not available."
+        )
+
+
 def _default_obabel_pdbqt_args(
     extra_args: Optional[Sequence[str]] = None,
 ) -> List[str]:
@@ -190,6 +227,103 @@ def _default_obabel_pdbqt_args(
     if "--partialcharge" not in args:
         args = ["--partialcharge", "gasteiger"] + args
     return args
+
+
+def _read_text(path: Union[str, Path]) -> str:
+    """
+    Read a text file with UTF-8 fallback handling.
+
+    :param path:
+        File path to read.
+    :type path: Union[str, Path]
+
+    :returns:
+        Decoded text content.
+    :rtype: str
+    """
+    return Path(path).read_text(encoding="utf-8", errors="replace")
+
+
+def _has_meeko_metadata(text: str) -> bool:
+    """
+    Check whether a PDBQT text block contains Meeko topology metadata.
+
+    :param text:
+        File contents to inspect.
+    :type text: str
+
+    :returns:
+        ``True`` if Meeko REMARK SMILES metadata is present.
+    :rtype: bool
+    """
+    return "REMARK SMILES " in text and "REMARK SMILES IDX " in text
+
+
+def _parse_vina_pose_records(text: str) -> List[Dict[str, Any]]:
+    """
+    Parse pose-level Vina metadata from a docked PDBQT text block.
+
+    :param text:
+        File contents to inspect.
+    :type text: str
+
+    :returns:
+        List of pose records containing ``model``, ``affinity``, ``rmsd_lb``,
+        and ``rmsd_ub`` when available.
+    :rtype: List[Dict[str, Any]]
+    """
+    records: List[Dict[str, Any]] = []
+    current_model: Optional[int] = None
+
+    for raw_line in text.splitlines():
+        line = raw_line.strip()
+
+        if line.startswith("MODEL"):
+            parts = line.split()
+            if len(parts) >= 2:
+                try:
+                    current_model = int(parts[1])
+                except ValueError:
+                    current_model = None
+            continue
+
+        match = _VINA_RESULT_RE.search(line)
+        if match:
+            records.append(
+                {
+                    "model": (
+                        current_model if current_model is not None else len(records) + 1
+                    ),
+                    "affinity": float(match.group(1)),
+                    "rmsd_lb": float(match.group(2)),
+                    "rmsd_ub": float(match.group(3)),
+                }
+            )
+
+    return records
+
+
+def _copy_single_conformer(mol: "Chem.Mol", conf_id: int) -> "Chem.Mol":
+    """
+    Copy an RDKit molecule while keeping only one conformer.
+
+    :param mol:
+        Source molecule.
+    :type mol: Chem.Mol
+
+    :param conf_id:
+        Conformer index to keep.
+    :type conf_id: int
+
+    :returns:
+        Copied molecule with a single conformer.
+    :rtype: Chem.Mol
+    """
+    pose_mol = Chem.Mol(mol)  # type: ignore[arg-type]
+    conf = Chem.Conformer(mol.GetConformer(conf_id))  # type: ignore[union-attr]
+    pose_mol.RemoveAllConformers()  # type: ignore[union-attr]
+    pose_mol.AddConformer(conf, assignId=True)  # type: ignore[union-attr]
+    return pose_mol
 
 
 # ---------------------------------------------------------------------------
@@ -494,7 +628,6 @@ def convert_with_meeko(
     return info
 
 
-# Preferred spelling alias.
 convert_with_mekoo = convert_with_meeko
 
 
@@ -654,42 +787,6 @@ def _meeko_pdb_to_pdbqt(
 ) -> Path:
     """
     Convert PDB to PDBQT using Meeko.
-
-    :param input_pdb:
-        Input PDB path.
-    :type input_pdb: Path
-
-    :param output_pdbqt:
-        Output PDBQT path.
-    :type output_pdbqt: Path
-
-    :param mode:
-        Conversion mode.
-    :type mode: Literal["receptor", "ligand"]
-
-    :param extra_args:
-        Optional extra CLI arguments.
-    :type extra_args: Optional[Sequence[str]]
-
-    :param meeko_cmd:
-        Optional executable override.
-    :type meeko_cmd: Optional[str]
-
-    :param sanitize_rebuild:
-        Whether sanitization should rebuild fixed-width ATOM/HETATM records.
-    :type sanitize_rebuild: Optional[bool]
-
-    :param sanitize_aggressive:
-        Whether sanitization should use aggressive cleanup heuristics.
-    :type sanitize_aggressive: bool
-
-    :param sanitize_backup:
-        Whether a backup should be created before in-place sanitization.
-    :type sanitize_backup: bool
-
-    :returns:
-        Produced PDBQT path.
-    :rtype: Path
     """
     input_pdb = _ensure_exists(input_pdb, "Input PDB")
     output_pdbqt = Path(output_pdbqt).resolve()
@@ -736,38 +833,6 @@ def _meeko_sdf_to_pdbqt(
 ) -> Path:
     """
     Convert SDF to PDBQT using Meeko ligand preparation.
-
-    :param input_sdf:
-        Input SDF path.
-    :type input_sdf: Path
-
-    :param output_pdbqt:
-        Output PDBQT path.
-    :type output_pdbqt: Path
-
-    :param extra_args:
-        Optional extra CLI arguments.
-    :type extra_args: Optional[Sequence[str]]
-
-    :param meeko_cmd:
-        Optional Meeko ligand executable override.
-    :type meeko_cmd: Optional[str]
-
-    :param sanitize_rebuild:
-        Whether sanitization should rebuild fixed-width ATOM/HETATM records.
-    :type sanitize_rebuild: Optional[bool]
-
-    :param sanitize_aggressive:
-        Whether sanitization should use aggressive cleanup heuristics.
-    :type sanitize_aggressive: bool
-
-    :param sanitize_backup:
-        Whether a backup should be created before in-place sanitization.
-    :type sanitize_backup: bool
-
-    :returns:
-        Produced PDBQT path.
-    :rtype: Path
     """
     input_sdf = _ensure_exists(input_sdf, "Input SDF")
     output_pdbqt = Path(output_pdbqt).resolve()
@@ -791,6 +856,89 @@ def _meeko_sdf_to_pdbqt(
     return output_pdbqt
 
 
+def _meeko_pdbqt_to_sdf(
+    input_pdbqt: Path,
+    output_sdf: Path,
+    *,
+    is_dlg: bool = False,
+    sanitize: bool = True,
+) -> Path:
+    """
+    Convert a docked ligand PDBQT to SDF using Meeko metadata reconstruction.
+    """
+    _rdkit_require()
+    _meeko_lib_require()
+
+    input_pdbqt = _ensure_exists(input_pdbqt, "Input PDBQT")
+    output_sdf = Path(output_sdf).resolve()
+    output_sdf.parent.mkdir(parents=True, exist_ok=True)
+
+    text = _read_text(input_pdbqt)
+    if not _has_meeko_metadata(text):
+        raise ValueError(
+            f"{input_pdbqt} does not contain REMARK SMILES / SMILES IDX metadata "
+            "required for Meeko-based topology-preserving conversion."
+        )
+
+    pdbqt_mol = PDBQTMolecule.from_file(
+        str(input_pdbqt),
+        is_dlg=is_dlg,
+        skip_typing=True,
+    )
+
+    rdkit_mols = [
+        mol for mol in RDKitMolCreate.from_pdbqt_mol(pdbqt_mol) if mol is not None
+    ]
+    if not rdkit_mols:
+        raise ValueError(
+            f"Meeko could not reconstruct any RDKit molecule from {input_pdbqt}"
+        )
+
+    pose_records = _parse_vina_pose_records(text)
+    writer = Chem.SDWriter(str(output_sdf))  # type: ignore[arg-type]
+    if writer is None:
+        raise ValueError(f"Could not open SDF writer for {output_sdf}")
+
+    try:
+        for part_index, mol in enumerate(rdkit_mols, start=1):
+            n_confs = mol.GetNumConformers()  # type: ignore[union-attr]
+            if n_confs == 0:
+                pose_mol = Chem.Mol(mol)  # type: ignore[arg-type]
+                if sanitize:
+                    Chem.SanitizeMol(pose_mol)  # type: ignore[arg-type]
+                writer.write(pose_mol)
+                continue
+
+            for conf_id in range(n_confs):
+                pose_mol = _copy_single_conformer(mol, conf_id)
+                record = pose_records[conf_id] if conf_id < len(pose_records) else {}
+                pose_rank = int(record.get("model", conf_id + 1))
+
+                name = input_pdbqt.stem
+                if len(rdkit_mols) > 1:
+                    name = f"{name}__part{part_index}"
+
+                pose_mol.SetProp("_Name", f"{name}__pose{pose_rank}")  # type: ignore[union-attr]
+                pose_mol.SetProp("source_file", str(input_pdbqt))  # type: ignore[union-attr]
+                pose_mol.SetIntProp("pose_rank", pose_rank)  # type: ignore[union-attr]
+
+                if "affinity" in record:
+                    pose_mol.SetDoubleProp("affinity", float(record["affinity"]))  # type: ignore[union-attr]
+                if "rmsd_lb" in record:
+                    pose_mol.SetDoubleProp("rmsd_lb", float(record["rmsd_lb"]))  # type: ignore[union-attr]
+                if "rmsd_ub" in record:
+                    pose_mol.SetDoubleProp("rmsd_ub", float(record["rmsd_ub"]))  # type: ignore[union-attr]
+
+                if sanitize:
+                    Chem.SanitizeMol(pose_mol)  # type: ignore[arg-type]
+
+                writer.write(pose_mol)
+    finally:
+        writer.close()
+
+    return output_sdf
+
+
 def _mgltools_pdb_to_pdbqt(
     input_pdb: Path,
     output_pdbqt: Path,
@@ -801,30 +949,6 @@ def _mgltools_pdb_to_pdbqt(
 ) -> Path:
     """
     Convert PDB to PDBQT using MGLTools.
-
-    :param input_pdb:
-        Input PDB path.
-    :type input_pdb: Path
-
-    :param output_pdbqt:
-        Output PDBQT path.
-    :type output_pdbqt: Path
-
-    :param mode:
-        Conversion mode.
-    :type mode: Literal["receptor", "ligand"]
-
-    :param extra_args:
-        Optional extra CLI arguments.
-    :type extra_args: Optional[Sequence[str]]
-
-    :param mgltools_cmd:
-        Optional executable override.
-    :type mgltools_cmd: Optional[str]
-
-    :returns:
-        Produced PDBQT path.
-    :rtype: Path
     """
     input_pdb = _ensure_exists(input_pdb, "Input PDB")
     output_pdbqt = Path(output_pdbqt).resolve()
@@ -859,26 +983,6 @@ def _mgltools_sdf_to_pdbqt(
 ) -> Path:
     """
     Convert SDF to PDBQT using MGLTools ligand preparation.
-
-    :param input_sdf:
-        Input SDF path.
-    :type input_sdf: Path
-
-    :param output_pdbqt:
-        Output PDBQT path.
-    :type output_pdbqt: Path
-
-    :param extra_args:
-        Optional extra CLI arguments.
-    :type extra_args: Optional[Sequence[str]]
-
-    :param mgltools_cmd:
-        Optional MGLTools ligand executable override.
-    :type mgltools_cmd: Optional[str]
-
-    :returns:
-        Produced PDBQT path.
-    :rtype: Path
     """
     input_sdf = _ensure_exists(input_sdf, "Input SDF")
     output_pdbqt = Path(output_pdbqt).resolve()
@@ -897,6 +1001,125 @@ def _mgltools_sdf_to_pdbqt(
         output_pdbqt,
     )
     return output_pdbqt
+
+
+# ---------------------------------------------------------------------------
+# Interaction-focused SDF loading
+# ---------------------------------------------------------------------------
+
+
+def load_sdf_for_interactions(
+    sdf_path: Union[str, Path],
+    *,
+    sanitize: bool = True,
+    remove_hs: bool = False,
+    strict_parsing: bool = False,
+    resname: str = "LIG",
+    resnumber: int = 1,
+    chain: str = "",
+) -> Any:
+    """
+    Load the first valid ligand molecule from an SDF for interaction analysis.
+
+    This helper is intended for the common ProDock interaction workflow where
+    a temporary SDF already corresponds to a single pose. It applies a relaxed
+    fallback strategy if strict RDKit sanitization fails and restores minimal
+    residue metadata required by downstream ProLIF conversion.
+
+    :param sdf_path:
+        Input SDF path.
+    :type sdf_path: Union[str, Path]
+
+    :param sanitize:
+        Whether to sanitize on the first RDKit load attempt.
+    :type sanitize: bool
+
+    :param remove_hs:
+        Whether RDKit should remove hydrogens during load.
+    :type remove_hs: bool
+
+    :param strict_parsing:
+        Whether RDKit strict parsing should be enabled.
+    :type strict_parsing: bool
+
+    :param resname:
+        Default residue name to attach if missing.
+    :type resname: str
+
+    :param resnumber:
+        Default residue number to attach if missing.
+    :type resnumber: int
+
+    :param chain:
+        Default chain identifier to attach if missing.
+    :type chain: str
+
+    :returns:
+        First valid RDKit molecule from the SDF.
+    :rtype: Any
+
+    :raises ValueError:
+        If no valid molecule can be loaded.
+    """
+    _rdkit_require()
+    sdf_path = _ensure_exists(sdf_path, "Input SDF")
+
+    attempts = [
+        {
+            "sanitize": sanitize,
+            "removeHs": remove_hs,
+            "strictParsing": strict_parsing,
+        }
+    ]
+
+    if sanitize:
+        attempts.append(
+            {
+                "sanitize": False,
+                "removeHs": remove_hs,
+                "strictParsing": strict_parsing,
+            }
+        )
+
+    last_error: Optional[Exception] = None
+
+    for kwargs in attempts:
+        try:
+            supplier = Chem.SDMolSupplier(str(sdf_path), **kwargs)  # type: ignore[arg-type]
+            mol = next((m for m in supplier if m is not None), None)
+            if mol is None:
+                continue
+
+            try:
+                if not mol.HasProp("_Name") or not str(mol.GetProp("_Name")).strip():
+                    mol.SetProp("_Name", Path(sdf_path).stem)
+            except Exception:
+                pass
+
+            try:
+                if not mol.HasProp("mol_name"):
+                    mol.SetProp("mol_name", mol.GetProp("_Name"))
+            except Exception:
+                pass
+
+            try:
+                if not mol.HasProp("resname"):
+                    mol.SetProp("resname", str(resname))
+                if not mol.HasProp("chain"):
+                    mol.SetProp("chain", str(chain))
+                if not mol.HasProp("resnumber"):
+                    mol.SetIntProp("resnumber", int(resnumber))
+            except Exception:
+                pass
+
+            return mol
+
+        except Exception as exc:
+            last_error = exc
+
+    if last_error is not None:
+        raise ValueError(f"No valid molecule found in SDF: {sdf_path}") from last_error
+    raise ValueError(f"No valid molecule found in SDF: {sdf_path}")
 
 
 # ---------------------------------------------------------------------------
@@ -921,68 +1144,6 @@ def pdb_to_pdbqt(
 ) -> Path:
     """
     Convert PDB to PDBQT using a single explicit backend.
-
-    Sanitization policy
-    -------------------
-    - ``backend="meeko"``: sanitize unconditionally
-    - ``backend="obabel"``: sanitize unconditionally
-    - ``backend="mgltools"``: no sanitizer pass is applied here
-
-    :param input_pdb:
-        Input PDB file path.
-    :type input_pdb: Union[str, Path]
-
-    :param output_pdbqt:
-        Output PDBQT path.
-    :type output_pdbqt: Union[str, Path]
-
-    :param mode:
-        Conversion mode, either ``"receptor"`` or ``"ligand"``.
-    :type mode: Literal["receptor", "ligand"]
-
-    :param backend:
-        Backend to use.
-    :type backend: Literal["meeko", "obabel", "mgltools"]
-
-    :param extra_args:
-        Optional extra backend-specific CLI arguments.
-    :type extra_args: Optional[Sequence[str]]
-
-    :param meeko_cmd:
-        Optional Meeko executable override.
-    :type meeko_cmd: Optional[str]
-
-    :param mgltools_cmd:
-        Optional MGLTools executable override.
-    :type mgltools_cmd: Optional[str]
-
-    :param sanitize_rebuild:
-        Whether to rebuild fixed-width ATOM/HETATM records during sanitization.
-        If ``None``, the backend-specific default is used.
-    :type sanitize_rebuild: Optional[bool]
-
-    :param sanitize_aggressive:
-        Whether sanitization should use aggressive cleanup heuristics.
-    :type sanitize_aggressive: bool
-
-    :param sanitize_backup:
-        Whether to create a backup before in-place sanitization.
-    :type sanitize_backup: bool
-
-    :param validate_receptor:
-        Whether receptor-mode Open Babel output should be validated. If
-        ``None``, this defaults to ``True`` for receptor mode and ``False`` for
-        ligand mode.
-    :type validate_receptor: Optional[bool]
-
-    :param flexibility:
-        Whether receptor PDBQT output should be treated as flexible during
-        Open Babel generation/validation.
-    :type flexibility: bool
-
-    :returns:
-        Produced PDBQT path.
-    :rtype: Path
     """
     input_pdb = _ensure_exists(input_pdb, "Input PDB")
     output_pdbqt = Path(output_pdbqt).resolve()
@@ -1037,26 +1198,6 @@ def pdbqt_to_pdb(
 ) -> Path:
     """
     Convert PDBQT to PDB using Open Babel.
-
-    :param input_pdbqt:
-        Input PDBQT file path.
-    :type input_pdbqt: Union[str, Path]
-
-    :param output_pdb:
-        Output PDB path.
-    :type output_pdb: Union[str, Path]
-
-    :param backend:
-        Conversion backend. Must be ``"obabel"``.
-    :type backend: Literal["obabel"]
-
-    :param extra_args:
-        Optional extra CLI arguments.
-    :type extra_args: Optional[Sequence[str]]
-
-    :returns:
-        Produced PDB path.
-    :rtype: Path
     """
     if backend != "obabel":
         raise NotImplementedError(
@@ -1089,26 +1230,6 @@ def sdf_to_pdb(
 ) -> Path:
     """
     Convert SDF to PDB using a single explicit backend.
-
-    :param input_sdf:
-        Input SDF path.
-    :type input_sdf: Union[str, Path]
-
-    :param output_pdb:
-        Output PDB path.
-    :type output_pdb: Union[str, Path]
-
-    :param backend:
-        Backend to use, either ``"rdkit"`` or ``"obabel"``.
-    :type backend: Literal["rdkit", "obabel"]
-
-    :param extra_args:
-        Optional extra CLI arguments for Open Babel.
-    :type extra_args: Optional[Sequence[str]]
-
-    :returns:
-        Produced PDB path.
-    :rtype: Path
     """
     input_sdf = _ensure_exists(input_sdf, "Input SDF")
     output_pdb = Path(output_pdb).resolve()
@@ -1116,11 +1237,11 @@ def sdf_to_pdb(
 
     if backend == "rdkit":
         _rdkit_require()
-        suppl = Chem.SDMolSupplier(str(input_sdf), removeHs=False, sanitize=True)  # type: ignore
+        suppl = Chem.SDMolSupplier(str(input_sdf), removeHs=False, sanitize=True)  # type: ignore[arg-type]
         mol = next((m for m in suppl if m is not None), None)
         if mol is None:
             raise ValueError(f"No valid molecule found in {input_sdf}")
-        Chem.MolToPDBFile(mol, str(output_pdb))  # type: ignore
+        Chem.MolToPDBFile(mol, str(output_pdb))  # type: ignore[arg-type]
 
     elif backend == "obabel":
         convert_with_obabel(
@@ -1154,64 +1275,8 @@ def sdf_to_pdbqt(
 ) -> Path:
     """
     Convert SDF to PDBQT using a single explicit backend.
-
-    Notes
-    -----
-    The argument ``tmp_from_sdf_backend`` is retained for API compatibility with
-    the older interface. For a true ``.sdf`` input, no temporary intermediate is
-    needed and the value is currently unused.
-
-    Sanitization policy
-    -------------------
-    - ``backend="meeko"``: sanitize unconditionally
-    - ``backend="obabel"``: sanitize unconditionally
-    - ``backend="mgltools"``: no sanitizer pass is applied here
-
-    :param input_sdf:
-        Input SDF file path.
-    :type input_sdf: Union[str, Path]
-
-    :param output_pdbqt:
-        Output PDBQT path.
-    :type output_pdbqt: Union[str, Path]
-
-    :param backend:
-        Backend to use.
-    :type backend: Literal["meeko", "obabel", "mgltools"]
-
-    :param tmp_from_sdf_backend:
-        Compatibility-only parameter retained from the older API.
-    :type tmp_from_sdf_backend: Literal["rdkit", "obabel"]
-
-    :param extra_args:
-        Optional extra backend-specific CLI arguments.
-    :type extra_args: Optional[Sequence[str]]
-
-    :param meeko_cmd:
-        Optional Meeko executable override.
-    :type meeko_cmd: Optional[str]
-
-    :param mgltools_cmd:
-        Optional MGLTools executable override.
-    :type mgltools_cmd: Optional[str]
-
-    :param sanitize_rebuild:
-        Whether to rebuild fixed-width ATOM/HETATM records during sanitization.
-    :type sanitize_rebuild: Optional[bool]
-
-    :param sanitize_aggressive:
-        Whether sanitization should use aggressive cleanup heuristics.
-    :type sanitize_aggressive: bool
-
-    :param sanitize_backup:
-        Whether to create a backup before in-place sanitization.
-    :type sanitize_backup: bool
-
-    :returns:
-        Produced PDBQT path.
-    :rtype: Path
     """
-    _ = tmp_from_sdf_backend  # kept for compatibility
+    _ = tmp_from_sdf_backend
     input_sdf = _ensure_exists(input_sdf, "Input SDF")
     output_pdbqt = Path(output_pdbqt).resolve()
     output_pdbqt.parent.mkdir(parents=True, exist_ok=True)
@@ -1268,71 +1333,8 @@ def ensure_pdbqt(
 ) -> Path:
     """
     Ensure that an input file is available as PDBQT using the chosen backend.
-
-    Routes
-    ------
-    - ``.pdbqt`` -> returned as-is
-    - ``.pdb``   -> :func:`pdb_to_pdbqt`
-    - ``.sdf``   -> :func:`sdf_to_pdbqt`
-    - ``.mol2`` / ``.smi`` -> direct Open Babel route only
-
-    :param input_path:
-        Input structure path.
-    :type input_path: Union[str, Path]
-
-    :param output_dir:
-        Directory where output PDBQT should be written if conversion is needed.
-    :type output_dir: Union[str, Path]
-
-    :param backend:
-        Backend to use.
-    :type backend: Literal["meeko", "obabel", "mgltools"]
-
-    :param mode:
-        Conversion mode for PDB input.
-    :type mode: Literal["receptor", "ligand"]
-
-    :param tmp_from_sdf_backend:
-        Compatibility-only parameter retained from the older API.
-    :type tmp_from_sdf_backend: Literal["rdkit", "obabel"]
-
-    :param extra_args:
-        Optional extra backend-specific CLI arguments.
-    :type extra_args: Optional[Sequence[str]]
-
-    :param meeko_cmd:
-        Optional Meeko executable override.
-    :type meeko_cmd: Optional[str]
-
-    :param mgltools_cmd:
-        Optional MGLTools executable override.
-    :type mgltools_cmd: Optional[str]
-
-    :param sanitize_rebuild:
-        Whether to rebuild fixed-width ATOM/HETATM records during sanitization.
-    :type sanitize_rebuild: Optional[bool]
-
-    :param sanitize_aggressive:
-        Whether sanitization should use aggressive cleanup heuristics.
-    :type sanitize_aggressive: bool
-
-    :param sanitize_backup:
-        Whether to create a backup before in-place sanitization.
-    :type sanitize_backup: bool
-
-    :param validate_receptor:
-        Whether receptor-mode Open Babel output should be validated.
-    :type validate_receptor: Optional[bool]
-
-    :param flexibility:
-        Whether receptor-mode Open Babel output should be flexible.
-    :type flexibility: bool
-
-    :returns:
-        Path to an existing or newly created PDBQT file.
-    :rtype: Path
     """
-    _ = tmp_from_sdf_backend  # kept for compatibility
+    _ = tmp_from_sdf_backend
     p = _ensure_exists(input_path, "Input")
     out_dir = Path(output_dir).resolve()
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -1410,26 +1412,6 @@ def pdb_to_sdf(
 ) -> Path:
     """
     Convert PDB to SDF using a single explicit backend.
-
-    :param input_pdb:
-        Input PDB path.
-    :type input_pdb: Union[str, Path]
-
-    :param output_sdf:
-        Output SDF path.
-    :type output_sdf: Union[str, Path]
-
-    :param backend:
-        Backend to use, either ``"rdkit"`` or ``"obabel"``.
-    :type backend: Literal["rdkit", "obabel"]
-
-    :param extra_args:
-        Optional extra CLI arguments for Open Babel.
-    :type extra_args: Optional[Sequence[str]]
-
-    :returns:
-        Produced SDF path.
-    :rtype: Path
     """
     input_pdb = _ensure_exists(input_pdb, "Input PDB")
     output_sdf = Path(output_sdf).resolve()
@@ -1437,12 +1419,12 @@ def pdb_to_sdf(
 
     if backend == "rdkit":
         _rdkit_require()
-        mol = Chem.MolFromPDBFile(str(input_pdb), removeHs=False)  # type: ignore
+        mol = Chem.MolFromPDBFile(str(input_pdb), removeHs=False)  # type: ignore[arg-type]
         if mol is None:
             raise ValueError(f"RDKit could not parse PDB: {input_pdb}")
-        writer = Chem.SDWriter(str(output_sdf))  # type: ignore
-        writer.write(mol)  # type: ignore
-        writer.close()  # type: ignore
+        writer = Chem.SDWriter(str(output_sdf))  # type: ignore[arg-type]
+        writer.write(mol)
+        writer.close()
 
     elif backend == "obabel":
         convert_with_obabel(
@@ -1465,47 +1447,54 @@ def pdbqt_to_sdf(
     input_pdbqt: Union[str, Path],
     output_sdf: Union[str, Path],
     *,
-    backend: Literal["obabel"],
+    backend: PDBQTToSDFBackend = "auto",
     extra_args: Optional[Sequence[str]] = None,
+    is_dlg: bool = False,
+    sanitize: bool = True,
 ) -> Path:
     """
-    Convert PDBQT to SDF using Open Babel.
-
-    :param input_pdbqt:
-        Input PDBQT path.
-    :type input_pdbqt: Union[str, Path]
-
-    :param output_sdf:
-        Output SDF path.
-    :type output_sdf: Union[str, Path]
-
-    :param backend:
-        Conversion backend. Must be ``"obabel"``.
-    :type backend: Literal["obabel"]
-
-    :param extra_args:
-        Optional extra CLI arguments.
-    :type extra_args: Optional[Sequence[str]]
-
-    :returns:
-        Produced SDF path.
-    :rtype: Path
+    Convert PDBQT to SDF.
     """
-    if backend != "obabel":
-        raise NotImplementedError(
-            "PDBQT -> SDF is only supported with backend='obabel'."
-        )
-
     input_pdbqt = _ensure_exists(input_pdbqt, "Input PDBQT")
     output_sdf = Path(output_sdf).resolve()
     output_sdf.parent.mkdir(parents=True, exist_ok=True)
 
-    convert_with_obabel(
-        input_pdbqt,
-        output_sdf,
-        extra_args=extra_args,
-        validate_receptor=False,
-    )
+    text = _read_text(input_pdbqt)
+    has_metadata = _has_meeko_metadata(text)
+
+    if backend == "auto":
+        if has_metadata:
+            return _meeko_pdbqt_to_sdf(
+                input_pdbqt,
+                output_sdf,
+                is_dlg=is_dlg,
+                sanitize=sanitize,
+            )
+        convert_with_obabel(
+            input_pdbqt,
+            output_sdf,
+            extra_args=extra_args,
+            validate_receptor=False,
+        )
+
+    elif backend == "meeko":
+        return _meeko_pdbqt_to_sdf(
+            input_pdbqt,
+            output_sdf,
+            is_dlg=is_dlg,
+            sanitize=sanitize,
+        )
+
+    elif backend == "obabel":
+        convert_with_obabel(
+            input_pdbqt,
+            output_sdf,
+            extra_args=extra_args,
+            validate_receptor=False,
+        )
+
+    else:
+        raise ValueError("backend must be one of: 'auto', 'meeko', 'obabel'.")
 
     if not output_sdf.exists():
         raise FileNotFoundError(f"SDF not produced: {output_sdf}")
@@ -1516,8 +1505,10 @@ def pdbqt_to_sdf(
 __all__ = [
     "Backend",
     "Mode",
+    "PDBQTToSDFBackend",
     "SanitizeBackend",
     "TmpConv",
+    "convert_with_mekoo",
     "convert_with_meeko",
     "convert_with_obabel",
     "pdb_to_pdbqt",
@@ -1527,4 +1518,5 @@ __all__ = [
     "ensure_pdbqt",
     "pdb_to_sdf",
     "pdbqt_to_sdf",
+    "load_sdf_for_interactions",
 ]

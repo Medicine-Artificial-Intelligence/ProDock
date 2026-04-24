@@ -86,23 +86,20 @@ def _write_sdf(mol: Chem.Mol, out_path: Union[str, Path]) -> Path:
     return out_path
 
 
-def _get_embed_params(embed_algorithm: Optional[str]):
-    """
-    Return an RDKit Embed parameters object for the named algorithm or None.
-
-    :param embed_algorithm: Name of an RDKit AllChem embed params factory, e.g. "ETKDGv3".
-                            If None or empty, None is returned to allow RDKit defaults.
-    :type embed_algorithm: Optional[str]
-    :returns: An RDKit embedding parameters object (if available) or None.
-    """
+def _get_embed_params(
+    embed_algorithm: Optional[str],
+    random_seed: Optional[int] = None,
+):
     if not embed_algorithm:
         return None
     factory = getattr(AllChem, embed_algorithm, None)
     if callable(factory):
         try:
-            return factory()
+            params = factory()
+            if random_seed is not None and hasattr(params, "randomSeed"):
+                params.randomSeed = int(random_seed)
+            return params
         except Exception:
-            # If instantiation fails, fall back to None (RDKit default)
             logger.debug(
                 "Failed to instantiate embed params '%s'",
                 embed_algorithm,
@@ -112,30 +109,60 @@ def _get_embed_params(embed_algorithm: Optional[str]):
     return None
 
 
-def _try_embed(working: Chem.Mol, params) -> bool:
-    """
-    Try to embed `working` with given params, with a simple fallback.
-
-    :param working: An RDKit Mol to embed (mutable).
-    :type working: rdkit.Chem.rdchem.Mol
-    :param params: Embedding parameters object returned by `_get_embed_params` or None.
-    :returns: True if embedding likely succeeded (no exception), False otherwise.
-    :rtype: bool
-    """
+def _try_embed(
+    working: Chem.Mol,
+    params,
+    random_seed: Optional[int] = None,
+) -> bool:
     try:
         if params is not None:
             AllChem.EmbedMolecule(working, params)
         else:
-            AllChem.EmbedMolecule(working)
+            if random_seed is not None:
+                AllChem.EmbedMolecule(working, randomSeed=int(random_seed))
+            else:
+                AllChem.EmbedMolecule(working)
         return True
     except Exception:
-        # One more simple fallback attempt without params
         try:
-            AllChem.EmbedMolecule(working)
+            if random_seed is not None:
+                AllChem.EmbedMolecule(working, randomSeed=int(random_seed))
+            else:
+                AllChem.EmbedMolecule(working)
             return True
         except Exception:
             logger.exception("RDKit EmbedMolecule failed")
             return False
+
+
+def _rdkit_embed_and_optimize(
+    mol: Chem.Mol,
+    add_hs: bool = True,
+    embed_algorithm: Optional[str] = None,
+    optimize: bool = True,
+    opt_method: Optional[str] = "MMFF94",
+    opt_max_iters: int = 200,
+    conformer_seed: Optional[int] = None,
+) -> Chem.Mol:
+    working = Chem.Mol(mol)
+    if add_hs:
+        working = Chem.AddHs(working)
+
+    params = _get_embed_params(embed_algorithm, random_seed=conformer_seed)
+    embedded_ok = _try_embed(working, params, random_seed=conformer_seed)
+
+    if not embedded_ok:
+        logger.warning("RDKit embedding did not succeed cleanly for mol; continuing")
+
+    if optimize:
+        opt_ok = _optimize_with_method(working, opt_method, opt_max_iters)
+        if not opt_ok:
+            logger.debug("RDKit optimization failed for all tried force fields")
+
+    if not add_hs:
+        working = Chem.RemoveHs(working)
+
+    return working
 
 
 def _optimize_with_method(
@@ -190,64 +217,6 @@ def _optimize_with_method(
 
     logger.debug("Optimizers %s all failed", tried)
     return False
-
-
-def _rdkit_embed_and_optimize(
-    mol: Chem.Mol,
-    add_hs: bool = True,
-    embed_algorithm: Optional[str] = None,
-    optimize: bool = True,
-    opt_method: Optional[str] = "MMFF94",
-    opt_max_iters: int = 200,
-) -> Chem.Mol:
-    """
-    Embed and optionally optimize `mol` using RDKit (best-effort helper).
-
-    Workflow:
-      1. Optionally add explicit hydrogens (recommended for optimization).
-      2. Attempt embedding using the provided `embed_algorithm` params (if any),
-         with a fallback to RDKit defaults.
-      3. Optionally run force-field optimization using MMFF/UFF fallbacks.
-      4. If add_hs was False, hydrogens are removed from the returned molecule.
-
-    :param mol: RDKit Mol object (may or may not have conformers).
-    :type mol: rdkit.Chem.rdchem.Mol
-    :param add_hs: Whether to add explicit hydrogens before embedding/optimization.
-    :type add_hs: bool
-    :param embed_algorithm: Name of embed params factory (e.g. "ETKDGv3") or None.
-    :type embed_algorithm: Optional[str]
-    :param optimize: Whether to attempt force-field optimization after embedding.
-    :type optimize: bool
-    :param opt_method: Preferred optimization method, e.g. "MMFF94" or "UFF".
-    :type opt_method: Optional[str]
-    :param opt_max_iters: Maximum iterations for the optimizer.
-    :type opt_max_iters: int
-    :returns: An RDKit Mol that (best-effort) has 3D coordinates.
-    :rtype: rdkit.Chem.rdchem.Mol
-    """
-    # create working copy and add Hs if requested
-    working = Chem.Mol(mol)
-    if add_hs:
-        working = Chem.AddHs(working)
-
-    params = _get_embed_params(embed_algorithm)
-
-    # embedding
-    embedded_ok = _try_embed(working, params)
-    if not embedded_ok:
-        # embedding failed but we return whatever RDKit produced (no exception)
-        logger.warning("RDKit embedding did not succeed cleanly for mol; continuing")
-
-    # optimization (best-effort)
-    if optimize:
-        opt_ok = _optimize_with_method(working, opt_method, opt_max_iters)
-        if not opt_ok:
-            logger.debug("RDKit optimization failed for all tried force fields")
-
-    if not add_hs:
-        working = Chem.RemoveHs(working)
-
-    return working
 
 
 def _use_conformer_for_smiles(

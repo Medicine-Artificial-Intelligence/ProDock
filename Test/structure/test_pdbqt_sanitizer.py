@@ -61,12 +61,12 @@ class TestPDBQTSanitizer(unittest.TestCase):
     ) -> str:
         """
         Build a minimally PDBQT-like ATOM line where:
-        - atom name is really in columns 13-16
-        - element is really in columns 77-78
+        - atom name is placed in columns 13-16
+        - optional element is placed in columns 77-78
         - optional trailing token remains visible to split()-based parsing
         """
         base = (
-            f"{'ATOM':<6}{serial:>5} {atom_name:^4} {'LIG':>3} "
+            f"{'ATOM':<6}{serial:>5} {atom_name:^4} {res_name:>3} "
             f"{res_seq:>4}   "
             f"{x:8.3f}{y:8.3f}{z:8.3f}{occ:6.2f}{temp:6.2f}"
         )
@@ -115,12 +115,6 @@ class TestPDBQTSanitizer(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             s.sanitize_inplace()
 
-    def test_set_backend_returns_self(self):
-        s = PDBQTSanitizer()
-        returned = s.set_backend("obabel")
-        self.assertIs(returned, s)
-        self.assertEqual(s.backend, "obabel")
-
     def test_repr_and_help(self):
         s = PDBQTSanitizer()
         rep = repr(s)
@@ -161,7 +155,7 @@ class TestPDBQTSanitizer(unittest.TestCase):
         warns = s.validate(strict=False)
         self.assertTrue(
             any(
-                "trailing token 'CG0' is non-canonical; suggested='C'" in w
+                "trailing PDBQT type 'CG0' is non-canonical; suggested='C'" in w
                 for w in warns
             )
         )
@@ -172,73 +166,66 @@ class TestPDBQTSanitizer(unittest.TestCase):
         s = PDBQTSanitizer(p)
         warns = s.validate(strict=False)
         self.assertTrue(
-            any("trailing token 'XXY' cannot be mapped" in w for w in warns)
+            any(
+                "trailing token 'XXY' is not a recognized PDBQT type" in w
+                for w in warns
+            )
         )
 
-    def test_fixed_column_invalid_element_warns_and_includes_suggestion(self):
-        base = "ATOM    10  C   LIG  1   1.00 2.00 3.00  1.00 20.00 CG0"
-        line = base.ljust(76) + "ZZ" + "\n"
-        p = self._write("fixed_invalid.pdbqt", line)
+    def test_missing_trailing_type_warns_in_strict_mode_when_guessable(self):
+        line = self._make_atom_line(
+            serial=3,
+            atom_name="CL1",
+            fixed_elem="Cl",
+            trailing="",
+        )
+        p = self._write("missing_trailing_guessable.pdbqt", line)
         s = PDBQTSanitizer(p)
 
-        warns = s.validate(strict=True)
+        # Force the validator down the "missing trailing type" path by mocking
+        # the split-based trailing-token extractor.
+        with patch.object(s, "_extract_trailing_type", return_value=""):
+            warns = s.validate(strict=True)
 
         self.assertTrue(
-            any("fixed-column element token 'ZZ' is invalid" in w for w in warns)
+            any("missing trailing PDBQT atom type; suggested='Cl'" in w for w in warns),
+            msg=f"Warnings were: {warns}",
         )
-        self.assertTrue(any("suggested='C'" in w for w in warns))
 
-    def test_fixed_column_valid_but_trailing_differs_warns_in_strict_mode(self):
-        line = self._make_atom_line(
-            serial=11,
-            atom_name="C",
-            fixed_elem="C",
-            trailing="OA",
-        )
-        p = self._write("strict_differs.pdbqt", line)
-        s = PDBQTSanitizer(p, backend="meeko")
+    def test_missing_trailing_type_warns_in_strict_mode_when_not_guessable(self):
+        line = "ATOM   3  XXY LIG 1  1.000  2.000  3.000\n"
+        p = self._write("missing_trailing_unguessable.pdbqt", line)
+        s = PDBQTSanitizer(p)
 
-        warns = s.validate(strict=True)
+        # Current parser would treat 'LIG' as trailing token on this short line,
+        # so mock the trailing-token extractor to exercise the intended branch.
+        with patch.object(s, "_extract_trailing_type", return_value=""):
+            warns = s.validate(strict=True)
 
         self.assertTrue(
             any(
-                "trailing token 'OA' differs from fixed element 'C'; mapped='O'" in w
+                "missing trailing PDBQT atom type and could not infer one" in w
                 for w in warns
             ),
             msg=f"Warnings were: {warns}",
         )
 
-    def test_suspicious_atom_name_warns(self):
-        line = self._make_atom_line(
-            serial=6,
-            atom_name="C@1",
-            trailing="X",
-        )
-        p = self._write("suspicious_atom_name.pdbqt", line)
+    def test_could_not_parse_xyz_warns(self):
+        line = "ATOM 1 CA LIG 1 X Y Z\n"
+        p = self._write("bad_xyz_validate.pdbqt", line)
         s = PDBQTSanitizer(p)
 
         warns = s.validate(strict=False)
 
         self.assertTrue(
-            any("suspicious atom name 'C@1'" in w for w in warns),
+            any("could not parse x/y/z coordinates" in w for w in warns),
             msg=f"Warnings were: {warns}",
         )
 
-    def test_no_element_detected_warns_only_in_strict_mode(self):
-        line = "ATOM   3  C1  LIG 1  1.000  2.000  3.000  1.00 10.00\n"
-        p = self._write("no_elem_strict.pdbqt", line)
-        s = PDBQTSanitizer(p)
-
-        warns_loose = s.validate(strict=False)
-        warns_strict = s.validate(strict=True)
-
-        self.assertFalse(any("no element detected" in w for w in warns_loose))
-        self.assertTrue(any("no element detected" in w for w in warns_strict))
-
     # ------------------------------------------------------------------
-    # Sanitize without rebuild
+    # Sanitize
     # ------------------------------------------------------------------
-    def test_sanitize_without_rebuild_meeko_replaces_trailing_alias(self):
+    def test_sanitize_rebuild_false_still_outputs_fixed_width_line(self):
         line = "ATOM   1  CG  LIG 1  12.345  13.456  14.567  1.00 20.00 CG0\n"
         p = self._write("sanitize_meeko_minimal.pdbqt", line)
         s = PDBQTSanitizer(p, backend="meeko")
@@ -247,10 +234,14 @@ class TestPDBQTSanitizer(unittest.TestCase):
 
         self.assertTrue(s._sanitized)
         self.assertEqual(len(s.sanitized_lines), 1)
-        self.assertTrue(s.sanitized_lines[0].endswith("C"))
-        self.assertTrue(any("replaced trailing 'CG0' -> 'C'" in w for w in s.warnings))
+        rebuilt = s.sanitized_lines[0]
+        self.assertGreaterEqual(len(rebuilt), 80)
+        self.assertEqual(rebuilt[78:80].strip(), "C")
+        self.assertTrue(
+            any("normalized ATOM/HETATM in fixed-width mode" in w for w in s.warnings)
+        )
 
-    def test_sanitize_without_rebuild_obabel_does_not_replace_trailing_alias(self):
+    def test_sanitize_rebuild_false_obabel_keeps_valid_type(self):
         line = "ATOM   1  CL  LIG 1  12.345  13.456  14.567  1.00 20.00 CL\n"
         p = self._write("sanitize_obabel_minimal.pdbqt", line)
         s = PDBQTSanitizer(p, backend="obabel")
@@ -258,8 +249,9 @@ class TestPDBQTSanitizer(unittest.TestCase):
         s.sanitize(rebuild=False, aggressive=False)
 
         self.assertTrue(s._sanitized)
-        self.assertEqual(s.sanitized_lines[0], line.rstrip("\n"))
-        self.assertFalse(any("replaced trailing" in w for w in s.warnings))
+        rebuilt = s.sanitized_lines[0]
+        self.assertGreaterEqual(len(rebuilt), 80)
+        self.assertEqual(rebuilt[78:80].strip(), "Cl")
 
     def test_short_atom_line_left_unchanged(self):
         line = "ATOM 1 C\n"
@@ -281,7 +273,9 @@ class TestPDBQTSanitizer(unittest.TestCase):
         s.sanitize(rebuild=True)
 
         self.assertEqual(s.sanitized_lines[0], "ATOM 1 CA LIG 1 X Y Z")
-        self.assertTrue(any("cannot parse coordinates" in w for w in s.warnings))
+        self.assertTrue(
+            any("could not parse coordinates, left unchanged" in w for w in s.warnings)
+        )
 
     def test_incomplete_coordinates_left_unchanged(self):
         line = "ATOM 1 CA LIG 1 1.0 2.0\n"
@@ -291,7 +285,9 @@ class TestPDBQTSanitizer(unittest.TestCase):
         s.sanitize(rebuild=True)
 
         self.assertEqual(s.sanitized_lines[0], "ATOM 1 CA LIG 1 1.0 2.0")
-        self.assertTrue(any("incomplete coordinates" in w for w in s.warnings))
+        self.assertTrue(
+            any("could not parse coordinates, left unchanged" in w for w in s.warnings)
+        )
 
     def test_blank_lines_preserved_in_sanitize(self):
         text = "\nATOM 1 C LIG 1 X Y Z\n\n"
@@ -303,10 +299,7 @@ class TestPDBQTSanitizer(unittest.TestCase):
         self.assertEqual(s.sanitized_lines[0], "")
         self.assertEqual(s.sanitized_lines[2], "")
 
-    # ------------------------------------------------------------------
-    # Sanitize with rebuild
-    # ------------------------------------------------------------------
-    def test_sanitize_rebuild_sets_fixed_element_and_warns_rebuilt(self):
+    def test_sanitize_rebuild_sets_pdbqt_type_and_warns_rebuilt(self):
         line = "ATOM   2  CG  LIG 1  1.000  2.000  3.000  1.00 10.00 CG0\n"
         p = self._write("rebuild_basic.pdbqt", line)
         s = PDBQTSanitizer(p)
@@ -315,8 +308,8 @@ class TestPDBQTSanitizer(unittest.TestCase):
 
         self.assertTrue(s._sanitized)
         rebuilt = s.sanitized_lines[0]
-        self.assertGreaterEqual(len(rebuilt), 78)
-        self.assertEqual(rebuilt[76:78].strip(), "C")
+        self.assertGreaterEqual(len(rebuilt), 80)
+        self.assertEqual(rebuilt[78:80].strip(), "C")
         self.assertTrue(any("rebuilt ATOM/HETATM" in w for w in s.warnings))
 
     def test_rebuild_uses_trailing_mapping_first_for_meeko(self):
@@ -327,17 +320,17 @@ class TestPDBQTSanitizer(unittest.TestCase):
         s.sanitize(rebuild=True, aggressive=False)
 
         rebuilt = s.sanitized_lines[0]
-        self.assertEqual(rebuilt[76:78].strip(), "O")
+        self.assertEqual(rebuilt[78:80].strip(), "OA")
 
-    def test_rebuild_prefers_atom_name_over_trailing_for_obabel(self):
+    def test_rebuild_obabel_also_prefers_valid_trailing_type(self):
         line = "ATOM   8  CL  LIG 1  1.000  2.000  3.000  1.00 10.00 OA\n"
-        p = self._write("obabel_prefers_atom_name.pdbqt", line)
+        p = self._write("obabel_prefers_trailing.pdbqt", line)
         s = PDBQTSanitizer(p, backend="obabel")
 
         s.sanitize(rebuild=True, aggressive=False)
 
         rebuilt = s.sanitized_lines[0]
-        self.assertEqual(rebuilt[76:78].strip(), "Cl")
+        self.assertEqual(rebuilt[78:80].strip(), "OA")
 
     def test_rebuild_aggressive_normalizes_multiletter_elements(self):
         line = "ATOM   9  CL1 LIG 1  1.000  2.000  3.000  1.00 10.00 CL1\n"
@@ -347,17 +340,32 @@ class TestPDBQTSanitizer(unittest.TestCase):
         s.sanitize(rebuild=True, aggressive=True)
 
         rebuilt = s.sanitized_lines[0]
-        self.assertEqual(rebuilt[76:78].strip(), "Cl")
+        self.assertEqual(rebuilt[78:80].strip(), "Cl")
 
-    def test_rebuild_falls_back_to_default_element_C(self):
+    def test_rebuild_without_aggressive_leaves_unknown_type_unchanged(self):
         line = "ATOM  10  XX  LIG 1  1.000  2.000  3.000  1.00 10.00 XXY\n"
-        p = self._write("fallback_default_C.pdbqt", line)
+        p = self._write("fallback_no_aggressive.pdbqt", line)
         s = PDBQTSanitizer(p)
 
         s.sanitize(rebuild=True, aggressive=False)
 
+        self.assertEqual(s.sanitized_lines[0], line.rstrip("\n"))
+        self.assertTrue(
+            any(
+                "could not infer PDBQT atom type, left unchanged" in w
+                for w in s.warnings
+            )
+        )
+
+    def test_rebuild_with_aggressive_falls_back_to_C(self):
+        line = "ATOM  10  XX  LIG 1  1.000  2.000  3.000  1.00 10.00 XXY\n"
+        p = self._write("fallback_aggressive_C.pdbqt", line)
+        s = PDBQTSanitizer(p)
+
+        s.sanitize(rebuild=True, aggressive=True)
+
         rebuilt = s.sanitized_lines[0]
-        self.assertEqual(rebuilt[76:78].strip(), "C")
+        self.assertEqual(rebuilt[78:80].strip(), "C")
 
     # ------------------------------------------------------------------
     # File helpers
@@ -460,28 +468,41 @@ class TestPDBQTSanitizer(unittest.TestCase):
         self.assertFalse(s._is_valid_element_token("ZZ"))
         self.assertFalse(s._is_valid_element_token(""))
 
-    def test_map_alias_edge_cases(self):
+    def test_is_valid_pdbqt_type(self):
         s = PDBQTSanitizer()
+        self.assertTrue(s._is_valid_pdbqt_type("C"))
+        self.assertTrue(s._is_valid_pdbqt_type("OA"))
+        self.assertFalse(s._is_valid_pdbqt_type("CG0"))
+        self.assertFalse(s._is_valid_pdbqt_type(""))
 
-        self.assertEqual(s._map_alias("CG0", atomname="CG"), "C")
-        self.assertEqual(s._map_alias("CL1", atomname="CL"), "Cl")
-        self.assertEqual(s._map_alias("1234"), "")
-        self.assertEqual(s._map_alias("", atomname=""), "")
+    def test_normalize_pdbqt_type(self):
+        s = PDBQTSanitizer(backend="meeko")
+        self.assertEqual(s._normalize_pdbqt_type("CG0"), "C")
+        self.assertEqual(s._normalize_pdbqt_type("CL1"), "Cl")
+        self.assertEqual(s._normalize_pdbqt_type("OA"), "OA")
+        self.assertEqual(s._normalize_pdbqt_type("???"), "")
 
-    def test_map_alias_uses_atom_name_fallback(self):
+    def test_default_type_from_element(self):
         s = PDBQTSanitizer()
-        self.assertEqual(s._map_alias("???", atomname="CL1"), "Cl")
-        self.assertEqual(s._map_alias("???", atomname="C1"), "C")
+        self.assertEqual(s._default_type_from_element("Cl"), "Cl")
+        self.assertEqual(s._default_type_from_element("C"), "C")
+        self.assertEqual(s._default_type_from_element("ZZ"), "")
 
-    def test_extract_trailing_token(self):
+    def test_infer_element_from_atom_name(self):
+        s = PDBQTSanitizer()
+        self.assertEqual(s._infer_element_from_atom_name("CL1"), "Cl")
+        self.assertEqual(s._infer_element_from_atom_name("C1"), "C")
+        self.assertEqual(s._infer_element_from_atom_name(""), "")
+
+    def test_extract_trailing_type(self):
         s = PDBQTSanitizer()
         line = "ATOM   1  CG  LIG 1  1.0 2.0 3.0 1.00 10.00 CG0"
-        self.assertEqual(s._extract_trailing_token(line), "CG0")
+        self.assertEqual(s._extract_trailing_type(line), "CG0")
 
-    def test_fixed_element_reads_columns_77_78(self):
+    def test_extract_fixed_element(self):
         s = PDBQTSanitizer()
         line = ("ATOM   1  C   LIG 1  1.0 2.0 3.0 1.00 10.00").ljust(76) + "Cl"
-        self.assertEqual(s._fixed_element(line), "Cl")
+        self.assertEqual(s._extract_fixed_element(line), "Cl")
 
     # ------------------------------------------------------------------
     # Integration with Open Babel-generated PDBQT
@@ -565,10 +586,6 @@ class TestPDBQTSanitizer(unittest.TestCase):
             _has_torsion_tokens(rigid_text),
             "Rigid receptor output must not contain torsion-tree markers",
         )
-
-        # Flexible mode is allowed to contain torsion-tree markers.
-        # Some Open Babel versions may still produce a rigid-like file for a given input,
-        # so this test checks the semantic difference without being overly brittle.
         self.assertIsInstance(_has_torsion_tokens(flex_text), bool)
 
     @unittest.skipUnless(
