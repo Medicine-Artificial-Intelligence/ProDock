@@ -7,6 +7,9 @@ from typing import Any, Dict, Optional, Union
 from .base import DockBackend, PathLike, RunArtifacts, Vec3
 from .config import SingleConfig
 from .registry import factory as get_factory
+from prodock.io.logging import get_logger
+
+logger = get_logger(__name__)
 
 
 @dataclass
@@ -62,9 +65,17 @@ class SingleDock:
         :type engine: str
         """
         self.engine = engine.lower()
+        logger.debug("Initializing SingleDock with engine=%s", self.engine)
+
         self._backend: DockBackend = get_factory(self.engine)()
         self._out: Optional[Path] = None
         self._log: Optional[Path] = None
+
+        logger.debug(
+            "Initialized SingleDock: engine=%s backend=%s",
+            self.engine,
+            type(self._backend).__name__,
+        )
 
     def set_receptor(self, path: PathLike, *, validate: bool = False) -> "SingleDock":
         """
@@ -88,6 +99,12 @@ class SingleDock:
 
             dock = SingleDock("qvina").set_receptor("protein.pdbqt", validate=True)
         """
+        logger.debug(
+            "Setting receptor for engine=%s: path=%s validate=%s",
+            self.engine,
+            path,
+            validate,
+        )
         self._backend.set_receptor(path, validate=validate)
         return self
 
@@ -109,6 +126,7 @@ class SingleDock:
 
             dock = SingleDock("qvina").set_ligand("ligand.pdbqt")
         """
+        logger.debug("Setting ligand for engine=%s: path=%s", self.engine, path)
         self._backend.set_ligand(path)
         return self
 
@@ -137,6 +155,12 @@ class SingleDock:
                 (20.0, 20.0, 20.0),
             )
         """
+        logger.debug(
+            "Setting docking box for engine=%s: center=%s size=%s",
+            self.engine,
+            center,
+            size,
+        )
         self._backend.set_box(center, size)
         return self
 
@@ -164,6 +188,12 @@ class SingleDock:
 
             dock = SingleDock("vina").enable_autobox("ref_ligand.pdbqt", padding=4.0)
         """
+        logger.debug(
+            "Enabling autobox for engine=%s: reference_file=%s padding=%s",
+            self.engine,
+            reference_file,
+            padding,
+        )
         self._backend.enable_autobox(reference_file, padding=padding)
         return self
 
@@ -179,6 +209,11 @@ class SingleDock:
             The current instance for fluent chaining.
         :rtype: SingleDock
         """
+        logger.debug(
+            "Setting exhaustiveness for engine=%s: value=%s",
+            self.engine,
+            value,
+        )
         self._backend.set_exhaustiveness(value)
         return self
 
@@ -194,6 +229,11 @@ class SingleDock:
             The current instance for fluent chaining.
         :rtype: SingleDock
         """
+        logger.debug(
+            "Setting num_modes for engine=%s: value=%s",
+            self.engine,
+            value,
+        )
         self._backend.set_num_modes(value)
         return self
 
@@ -209,6 +249,7 @@ class SingleDock:
             The current instance for fluent chaining.
         :rtype: SingleDock
         """
+        logger.debug("Setting cpu for engine=%s: value=%s", self.engine, value)
         self._backend.set_cpu(value)
         return self
 
@@ -224,6 +265,7 @@ class SingleDock:
             The current instance for fluent chaining.
         :rtype: SingleDock
         """
+        logger.debug("Setting seed for engine=%s: value=%s", self.engine, value)
         self._backend.set_seed(value)
         return self
 
@@ -240,6 +282,9 @@ class SingleDock:
         :rtype: SingleDock
         """
         self._out = Path(out_path)
+        logger.debug(
+            "Setting output path for engine=%s: out=%s", self.engine, self._out
+        )
         self._backend.set_out(self._out)
         return self
 
@@ -256,6 +301,7 @@ class SingleDock:
         :rtype: SingleDock
         """
         self._log = Path(log_path)
+        logger.debug("Setting log path for engine=%s: log=%s", self.engine, self._log)
         self._backend.set_log(self._log)
         return self
 
@@ -274,10 +320,20 @@ class SingleDock:
             The current instance for fluent chaining.
         :rtype: SingleDock
         """
+        logger.debug(
+            "Setting executable for engine=%s: exe_path=%s",
+            self.engine,
+            exe_path,
+        )
         if hasattr(self._backend, "set_executable"):
             self._backend.set_executable(exe_path)  # type: ignore[attr-defined]
         else:
             setattr(self._backend, "exe_name", str(exe_path))
+            logger.debug(
+                "Backend %s has no set_executable(); assigned exe_name=%s directly",
+                type(self._backend).__name__,
+                exe_path,
+            )
         return self
 
     def apply_engine_options(self, options: Dict[str, Any]) -> "SingleDock":
@@ -310,15 +366,40 @@ class SingleDock:
                 }
             )
         """
+        logger.debug(
+            "Applying engine options for engine=%s: keys=%s",
+            self.engine,
+            sorted(options.keys()),
+        )
         for key, value in options.items():
             setter = getattr(self, f"set_{key}", None)
             if callable(setter):
+                logger.debug(
+                    "Applying engine option via facade setter for engine=%s: %s=%r",
+                    self.engine,
+                    key,
+                    value,
+                )
                 setter(value)
                 continue
+
             backend_setter = getattr(self._backend, f"set_{key}", None)
             if callable(backend_setter):
+                logger.debug(
+                    "Applying engine option via backend setter for engine=%s: %s=%r",
+                    self.engine,
+                    key,
+                    value,
+                )
                 backend_setter(value)
                 continue
+
+            logger.debug(
+                "Applying engine option via backend attribute for engine=%s: %s=%r",
+                self.engine,
+                key,
+                value,
+            )
             setattr(self._backend, key, value)
         return self
 
@@ -337,7 +418,8 @@ class SingleDock:
             Parsed single docking configuration.
         :rtype: SingleConfig
         """
-        return (
+        logger.debug("Coercing config from type=%s", type(config).__name__)
+        cfg = (
             config
             if isinstance(config, SingleConfig)
             else (
@@ -346,6 +428,15 @@ class SingleDock:
                 else SingleConfig.from_file(config)
             )
         )
+        logger.debug(
+            "Coerced config successfully: engine=%s receptor=%s ligand=%s out=%s log=%s",
+            cfg.engine,
+            cfg.receptor,
+            cfg.ligand,
+            cfg.out,
+            cfg.log,
+        )
+        return cfg
 
     def apply_config(
         self,
@@ -372,6 +463,16 @@ class SingleDock:
         """
         cfg = self._coerce_config(config)
 
+        logger.info(
+            "Applying config to SingleDock: current_engine=%s config_engine=%s receptor=%s ligand=%s out=%s log=%s",
+            self.engine,
+            cfg.engine,
+            cfg.receptor,
+            cfg.ligand,
+            cfg.out,
+            cfg.log,
+        )
+
         if cfg.receptor:
             self.set_receptor(cfg.receptor, validate=cfg.validate_receptor)
         if cfg.ligand:
@@ -396,6 +497,8 @@ class SingleDock:
             self.set_executable(cfg.executable)
         if cfg.engine_options:
             self.apply_engine_options(cfg.engine_options)
+
+        logger.debug("Finished applying config to engine=%s", self.engine)
         return self
 
     def load_config(
@@ -419,6 +522,7 @@ class SingleDock:
 
             dock = SingleDock("qvina").load_config("config.json")
         """
+        logger.debug("Loading config into existing SingleDock: engine=%s", self.engine)
         return self.apply_config(config)
 
     def run(
@@ -445,7 +549,26 @@ class SingleDock:
 
             result = dock.run(exhaustiveness=8, n_poses=10)
         """
-        self._backend.run(exhaustiveness=exhaustiveness, n_poses=n_poses)
+        logger.info(
+            "Starting docking run: engine=%s out=%s log=%s exhaustiveness=%s n_poses=%s",
+            self.engine,
+            self._out,
+            self._log,
+            exhaustiveness,
+            n_poses,
+        )
+
+        try:
+            self._backend.run(exhaustiveness=exhaustiveness, n_poses=n_poses)
+        except Exception:
+            logger.exception(
+                "Docking run failed: engine=%s out=%s log=%s",
+                self.engine,
+                self._out,
+                self._log,
+            )
+            raise
+
         called = getattr(self._backend, "called", None)
         metadata = getattr(self._backend, "metadata", None)
         artifacts = RunArtifacts(
@@ -454,6 +577,18 @@ class SingleDock:
             called=called,
             metadata=dict(metadata or {}),
         )
+
+        logger.info(
+            "Completed docking run: engine=%s out=%s log=%s command=%s",
+            self.engine,
+            self._out,
+            self._log,
+            called,
+        )
+        logger.debug(
+            "Docking metadata for engine=%s: %r", self.engine, artifacts.metadata
+        )
+
         return SingleResult(artifacts=artifacts)
 
     @classmethod
@@ -480,7 +615,9 @@ class SingleDock:
 
             dock = SingleDock.from_config("config.json")
         """
+        logger.debug("Creating SingleDock from config")
         cfg = cls._coerce_config(config)
+        logger.info("Constructing SingleDock from config: engine=%s", cfg.engine)
         inst = cls(engine=cfg.engine)
         return inst.apply_config(cfg)
 
@@ -505,6 +642,7 @@ class SingleDock:
 
             result = SingleDock.run_from_config("config.json")
         """
+        logger.info("Running SingleDock directly from config")
         cfg = cls._coerce_config(config)
         return cls.from_config(cfg).run(
             exhaustiveness=cfg.exhaustiveness,
@@ -546,16 +684,35 @@ class SingleDock:
 
             result = dock.run_with_config("config.json", prefer="instance")
         """
+        logger.info(
+            "Running with config: current_engine=%s prefer=%s",
+            self.engine,
+            prefer,
+        )
         cfg = self._coerce_config(config)
 
         if prefer not in {"config", "instance"}:
+            logger.error(
+                "Invalid preference mode for run_with_config: prefer=%s", prefer
+            )
             raise ValueError("prefer must be 'config' or 'instance'")
+
         if prefer == "config":
+            logger.debug(
+                "Using config-preferred execution path: current_engine=%s config_engine=%s",
+                self.engine,
+                cfg.engine,
+            )
             return self.from_config(cfg).run(
                 exhaustiveness=cfg.exhaustiveness,
                 n_poses=cfg.n_poses,
             )
 
+        logger.debug(
+            "Using instance-preferred execution path: current_engine=%s config_engine=%s",
+            self.engine,
+            cfg.engine,
+        )
         self.apply_config(cfg)
         return self.run(exhaustiveness=cfg.exhaustiveness, n_poses=cfg.n_poses)
 

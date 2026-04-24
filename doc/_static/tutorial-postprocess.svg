@@ -3,132 +3,214 @@
 
 <defs>
   <linearGradient id="bggrad" x1="0" x2="1" y1="0" y2="1">
-    <stop offset="0%" stop-color="#fbfdff"/>
-    <stop offset="100%" stop-color="#f4f8fb"/>
+    <stop offset="0%" stop-color="#f0f5fa"/>
+    <stop offset="100%" stop-color="#e0eef8"/>
   </linearGradient>
-  <linearGradient id="bluegrad" x1="0" x2="1" y1="0" y2="1">
-    <stop offset="0%" stop-color="#9cc6df"/>
-    <stop offset="100%" stop-color="#4f87b0"/>
+
+  <linearGradient id="glassBox" x1="0%" y1="0%" x2="100%" y2="100%">
+    <stop offset="0%" stop-color="#ffffff" stop-opacity="0.95"/>
+    <stop offset="100%" stop-color="#eaf3f8" stop-opacity="0.85"/>
   </linearGradient>
-  <linearGradient id="navygrad" x1="0" x2="1" y1="0" y2="1">
-    <stop offset="0%" stop-color="#376789"/>
-    <stop offset="100%" stop-color="#1f425f"/>
+  <linearGradient id="glassBoxAccent" x1="0%" y1="0%" x2="100%" y2="100%">
+    <stop offset="0%" stop-color="#f2fcf6" stop-opacity="0.95"/>
+    <stop offset="100%" stop-color="#e0f5e8" stop-opacity="0.85"/>
   </linearGradient>
-  <linearGradient id="ambergrad" x1="0" x2="1" y1="0" y2="1">
-    <stop offset="0%" stop-color="#efcb84"/>
-    <stop offset="100%" stop-color="#bf8b35"/>
+  <linearGradient id="boxStroke" x1="0%" y1="0%" x2="100%" y2="100%">
+    <stop offset="0%" stop-color="#55c2ff" stop-opacity="0.8"/>
+    <stop offset="100%" stop-color="#2a75b3" stop-opacity="0.2"/>
   </linearGradient>
-  <linearGradient id="sagegrad" x1="0" x2="1" y1="0" y2="1">
-    <stop offset="0%" stop-color="#b7ccb2"/>
-    <stop offset="100%" stop-color="#6f8969"/>
+  <linearGradient id="boxStrokeGreen" x1="0%" y1="0%" x2="100%" y2="100%">
+    <stop offset="0%" stop-color="#38e68c" stop-opacity="0.8"/>
+    <stop offset="100%" stop-color="#198a51" stop-opacity="0.2"/>
   </linearGradient>
-  <linearGradient id="stonegrad" x1="0" x2="1" y1="0" y2="1">
-    <stop offset="0%" stop-color="#d7c7af"/>
-    <stop offset="100%" stop-color="#8f7758"/>
+
+  <linearGradient id="chartAreaBlue" x1="0" x2="0" y1="0" y2="1">
+    <stop offset="0%" stop-color="#00f0ff" stop-opacity="0.35"/>
+    <stop offset="100%" stop-color="#00f0ff" stop-opacity="0.0"/>
   </linearGradient>
-  <linearGradient id="dbgrad" x1="0" x2="1" y1="0" y2="1">
-    <stop offset="0%" stop-color="#8fc3e2"/>
-    <stop offset="55%" stop-color="#3571a5"/>
-    <stop offset="100%" stop-color="#214f76"/>
-  </linearGradient>
+
+  <pattern id="cyberGrid" width="40" height="40" patternUnits="userSpaceOnUse">
+    <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#cddce8" stroke-width="0.8" opacity="0.6"/>
+    <circle cx="0" cy="0" r="1.5" fill="#a9c2d6" opacity="0.5"/>
+  </pattern>
+
   <filter id="softshadow" x="-20%" y="-20%" width="140%" height="160%">
-    <feDropShadow dx="0" dy="8" stdDeviation="10" flood-color="#7c92a6" flood-opacity="0.12"/>
+    <feDropShadow dx="0" dy="10" stdDeviation="12" flood-color="#4d6f8f" flood-opacity="0.15"/>
   </filter>
   <filter id="innershadow" x="-20%" y="-20%" width="140%" height="140%">
     <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#afbfcc" flood-opacity="0.10"/>
   </filter>
+  <filter id="glow">
+    <feGaussianBlur stdDeviation="2.5" result="coloredBlur"/>
+    <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
+  </filter>
+
+  <filter id="blocky3D" x="-50%" y="-50%" width="200%" height="200%">
+    <feDropShadow dx="-2.5" dy="3.5" stdDeviation="0" flood-color="#1a364f" flood-opacity="0.4"/>
+    <feDropShadow dx="-1" dy="2" stdDeviation="1.5" flood-color="#000000" flood-opacity="0.2"/>
+  </filter>
+  <filter id="cardShadow" x="-30%" y="-30%" width="160%" height="160%">
+    <feDropShadow dx="0" dy="6" stdDeviation="6" flood-color="#3a566e" flood-opacity="0.18"/>
+  </filter>
+
   <style>
-    .title{font:700 32px 'Inter','Segoe UI',Arial,sans-serif; fill:#1f3f59; letter-spacing:-0.2px}
-    .subtitle{font:600 18px 'Inter','Segoe UI',Arial,sans-serif; fill:#4274a0}
-    .label{font:700 17px 'Inter','Segoe UI',Arial,sans-serif; fill:#23445f}
-    .body{font:400 14px 'Inter','Segoe UI',Arial,sans-serif; fill:#526b7d}
-    .small{font:600 13px 'Inter','Segoe UI',Arial,sans-serif; fill:#526b7d}
+    .title{font:700 32px 'Inter','Segoe UI',Arial,sans-serif; fill:#112a40; letter-spacing:-0.2px}
+    .label{font:800 17px 'Inter','Segoe UI',Arial,sans-serif; fill:#18364f}
+    .body{font:400 14px 'Inter','Segoe UI',Arial,sans-serif; fill:#47657d}
+    .small{font:600 13px 'Inter','Segoe UI',Arial,sans-serif; fill:#47657d}
     .tiny{font:600 11.5px 'Inter','Segoe UI',Arial,sans-serif; fill:#6a7e8c; letter-spacing:0.1px}
+    .neon-text{fill:#0099ff}
+    .neon-green{fill:#10b968}
   </style>
 </defs>
 
 <rect x="0" y="0" width="1220" height="660" rx="28" fill="url(#bggrad)"/>
-<rect x="12" y="12" width="1196" height="636" rx="26" fill="#ffffff" stroke="#e3ebf1" stroke-width="1.5" filter="url(#softshadow)"/>
+<rect x="12" y="12" width="1196" height="636" rx="26" fill="#ffffff" filter="url(#softshadow)"/>
+<rect x="12" y="12" width="1196" height="636" rx="26" fill="url(#cyberGrid)"/>
+<rect x="12" y="12" width="1196" height="636" rx="26" fill="none" stroke="#e3ebf1" stroke-width="1.5" pointer-events="none"/>
 
 <text x="56" y="64" class="title">Postprocess poses and docking logs</text>
 <text x="56" y="96" class="body">Parse logs, crawl pose trees, convert poses to molecules, compute interactions, and derive metrics.</text>
 
-<rect x="50" y="180" width="280" height="120" rx="22" fill="#ffffff" stroke="#d6e0e8" stroke-width="2"  filter="url(#softshadow)"/>
-<text x="72" y="215" class="label">Extractor</text>
-<text x="72" y="242" class="body">crawl logs · parse scores · detect engines</text>
+<g fill="none" stroke-linejoin="round" stroke-linecap="round">
+  <path d="M 330 240 L 400 240" stroke="#00f0ff" stroke-width="2.5" filter="url(#glow)"/>
+  <path d="M 330 420 L 400 420" stroke="#00f0ff" stroke-width="2.5" filter="url(#glow)"/>
+  
+  <path d="M 700 240 L 760 240" stroke="#38e68c" stroke-width="2.5" filter="url(#glow)"/>
+  <path d="M 700 420 L 760 420" stroke="#00f0ff" stroke-width="2.5" filter="url(#glow)"/>
+</g>
 
-<rect x="50" y="360" width="280" height="120" rx="22" fill="#ffffff" stroke="#d6e0e8" stroke-width="2"  filter="url(#softshadow)"/>
-<text x="72" y="395" class="label">PoseCrawler</text>
-<text x="72" y="422" class="body">collect pose files · select best · convert</text>
+<g stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none">
+  <g transform="translate(355, 230)" stroke="#00f0ff"><path d="M 0 0 L 8 10 L 0 20" filter="url(#glow)"/></g>
+  <g transform="translate(355, 410)" stroke="#00f0ff"><path d="M 0 0 L 8 10 L 0 20" filter="url(#glow)"/></g>
+  <g transform="translate(720, 230)" stroke="#38e68c"><path d="M 0 0 L 8 10 L 0 20" filter="url(#glow)"/></g>
+  <g transform="translate(720, 410)" stroke="#00f0ff"><path d="M 0 0 L 8 10 L 0 20" filter="url(#glow)"/></g>
+</g>
+<g transform="translate(50, 180)">
+  <rect x="0" y="6" width="280" height="120" rx="20" fill="#a4c2d6" filter="url(#softshadow)"/>
+  <rect x="0" y="0" width="280" height="120" rx="20" fill="url(#glassBox)" stroke="url(#boxStroke)" stroke-width="1.5"/>
+  <rect x="22" y="18" width="25" height="4" rx="2" fill="#00f0ff" filter="url(#glow)"/>
+  <text x="22" y="48" class="label"><tspan class="neon-text">1</tspan> <tspan fill="#8ab0cc">·</tspan> Extractor</text>
+  <text x="22" y="75" class="body"><tspan x="22" dy="0">crawl logs · parse scores</tspan><tspan x="22" dy="20">· detect engines</tspan></text>
+</g>
 
-<rect x="400" y="180" width="300" height="120" rx="22" fill="#f1f7f0" stroke="#d6e0e8" stroke-width="2"  filter="url(#softshadow)"/>
-<text x="422" y="215" class="label">InteractionProfiler</text>
-<text x="422" y="242" class="body">fingerprints · interaction events · summaries</text>
+<g transform="translate(50, 360)">
+  <rect x="0" y="6" width="280" height="120" rx="20" fill="#a4c2d6" filter="url(#softshadow)"/>
+  <rect x="0" y="0" width="280" height="120" rx="20" fill="url(#glassBox)" stroke="url(#boxStroke)" stroke-width="1.5"/>
+  <rect x="22" y="18" width="25" height="4" rx="2" fill="#00f0ff" filter="url(#glow)"/>
+  <text x="22" y="48" class="label"><tspan class="neon-text">2</tspan> <tspan fill="#8ab0cc">·</tspan> PoseCrawler</text>
+  <text x="22" y="75" class="body"><tspan x="22" dy="0">collect pose files · select best</tspan><tspan x="22" dy="20">· convert</tspan></text>
+</g>
 
-<rect x="400" y="360" width="300" height="120" rx="22" fill="#edf5fa" stroke="#d6e0e8" stroke-width="2"  filter="url(#softshadow)"/>
-<text x="422" y="395" class="label">Metrics</text>
-<text x="422" y="422" class="body">dock power · screen power</text>
 
-<rect x="760" y="170" width="430" height="420" rx="22" fill="#ffffff" stroke="#d6e0e8" stroke-width="2"  filter="url(#softshadow)"/>
-<text x="782" y="205" class="label">Reusable outputs</text>
-<text x="782" y="232" class="body">score tables · pose tables · interaction tables · similarity matrices</text>
+<g transform="translate(400, 180)">
+  <rect x="0" y="6" width="300" height="120" rx="20" fill="#8cbfa2" filter="url(#softshadow)"/>
+  <rect x="0" y="0" width="300" height="120" rx="20" fill="url(#glassBoxAccent)" stroke="url(#boxStrokeGreen)" stroke-width="1.5"/>
+  <rect x="22" y="18" width="25" height="4" rx="2" fill="#38e68c" filter="url(#glow)"/>
+  <text x="22" y="48" class="label"><tspan fill="#10b968">3</tspan> <tspan fill="#8bc7a6">·</tspan> InteractionProfiler</text>
+  <text x="22" y="75" class="body"><tspan x="22" dy="0">fingerprints · interaction events</tspan><tspan x="22" dy="20">· summaries</tspan></text>
+</g>
 
-<polygon points="340,236 372,236 372,230 390,240 372,250 372,244 340,244" fill="#3f76a3" opacity="0.95"/>
-<polygon points="710,236 732,236 732,230 750,240 732,250 732,244 710,244" fill="#8a7658" opacity="0.92"/>
+<g transform="translate(400, 360)">
+  <rect x="0" y="6" width="300" height="120" rx="20" fill="#a4c2d6" filter="url(#softshadow)"/>
+  <rect x="0" y="0" width="300" height="120" rx="20" fill="url(#glassBox)" stroke="url(#boxStroke)" stroke-width="1.5"/>
+  <rect x="22" y="18" width="25" height="4" rx="2" fill="#00f0ff" filter="url(#glow)"/>
+  <text x="22" y="48" class="label"><tspan class="neon-text">4</tspan> <tspan fill="#8ab0cc">·</tspan> Metrics</text>
+  <text x="22" y="75" class="body"><tspan x="22" dy="0">dock power · screen power</tspan></text>
+</g>
 
-<polygon points="340,416 372,416 372,410 390,420 372,430 372,424 340,424" fill="#3f76a3" opacity="0.95"/>
-<polygon points="710,416 732,416 732,410 750,420 732,430 732,424 710,424" fill="#8a7658" opacity="0.92"/>
 
-<rect x="790" y="260" width="190" height="120" rx="16" fill="#ffffff" stroke="#d6e0e8" stroke-width="2"  filter="url(#softshadow)"/>
-<line x1="806" y1="298" x2="964" y2="298" stroke="#dce7ef" stroke-width="1.8"/>
-<line x1="806" y1="318" x2="964" y2="318" stroke="#dce7ef" stroke-width="1.8"/>
-<line x1="806" y1="338" x2="964" y2="338" stroke="#dce7ef" stroke-width="1.8"/>
-<line x1="852" y1="278" x2="852" y2="362" stroke="#dce7ef" stroke-width="1.8"/>
-<line x1="898" y1="278" x2="898" y2="362" stroke="#dce7ef" stroke-width="1.8"/>
-<rect x="806" y="278" width="158" height="20" rx="8" fill="#edf5fa"/>
-<text x="885.0" y="402" class="tiny" text-anchor="middle">scores / poses</text>
+<g transform="translate(760, 170)">
+  <rect x="0" y="8" width="430" height="420" rx="22" fill="#a4c2d6" filter="url(#softshadow)"/>
+  <rect x="0" y="0" width="430" height="420" rx="22" fill="url(#glassBox)" stroke="url(#boxStroke)" stroke-width="2"/>
+  
+  <text x="30" y="35" class="label">Reusable outputs</text>
+  <text x="30" y="62" class="body">score tables · pose tables · interaction tables · similarity matrices</text>
+  
+  <g transform="translate(30, 90)">
+    <rect x="0" y="4" width="190" height="120" rx="16" fill="#8ba7ba" filter="url(#softshadow)"/>
+    <rect x="0" y="0" width="190" height="120" rx="16" fill="#ffffff" stroke="#c5d8e6" stroke-width="1.2"/>
+    <g transform="translate(15, 20), scale(1.1)">
+      <g filter="url(#cardShadow)">
+        <rect x="15" y="30" width="125" height="25" rx="5" fill="#e3edf4" stroke="#c9dceb" stroke-width="1.2"/>
+        <line x1="25" y1="42" x2="70" y2="42" stroke="#a0bed6" stroke-width="4" stroke-linecap="round"/>
+      </g>
+      <g filter="url(#cardShadow)">
+        <rect x="8" y="15" width="125" height="25" rx="5" fill="#f0f6fa" stroke="#c9dceb" stroke-width="1.2"/>
+        <line x1="18" y1="27" x2="80" y2="27" stroke="#7a9db8" stroke-width="4" stroke-linecap="round"/>
+      </g>
+      <g filter="url(#cardShadow)">
+        <rect x="0" y="0" width="125" height="25" rx="5" fill="#ffffff" stroke="#b1cbe0" stroke-width="1.2"/>
+        <line x1="10" y1="12" x2="90" y2="12" stroke="#3f76a3" stroke-width="4" stroke-linecap="round"/>
+        <circle cx="110" cy="12" r="4" fill="#0099ff"/>
+      </g>
+    </g>
+    <text x="90" y="115" class="tiny" text-anchor="middle">scores / poses</text>
+  </g>
 
-<rect x="1010" y="260" width="150" height="120" rx="16" fill="#ffffff" stroke="#d6e0e8" stroke-width="2"  filter="url(#softshadow)"/>
-<rect x="1022.0" y="272.0" width="22.2" height="16.2" rx="4" fill="#eaf3f8"/>
-<rect x="1047.2" y="272.0" width="22.2" height="16.2" rx="4" fill="#d6e7f1"/>
-<rect x="1072.4" y="272.0" width="22.2" height="16.2" rx="4" fill="#b5d2e5"/>
-<rect x="1097.6" y="272.0" width="22.2" height="16.2" rx="4" fill="#86bddc"/>
-<rect x="1122.8" y="272.0" width="22.2" height="16.2" rx="4" fill="#3f76a3"/>
-<rect x="1022.0" y="291.2" width="22.2" height="16.2" rx="4" fill="#d6e7f1"/>
-<rect x="1047.2" y="291.2" width="22.2" height="16.2" rx="4" fill="#b5d2e5"/>
-<rect x="1072.4" y="291.2" width="22.2" height="16.2" rx="4" fill="#86bddc"/>
-<rect x="1097.6" y="291.2" width="22.2" height="16.2" rx="4" fill="#3f76a3"/>
-<rect x="1122.8" y="291.2" width="22.2" height="16.2" rx="4" fill="#eaf3f8"/>
-<rect x="1022.0" y="310.4" width="22.2" height="16.2" rx="4" fill="#b5d2e5"/>
-<rect x="1047.2" y="310.4" width="22.2" height="16.2" rx="4" fill="#86bddc"/>
-<rect x="1072.4" y="310.4" width="22.2" height="16.2" rx="4" fill="#3f76a3"/>
-<rect x="1097.6" y="310.4" width="22.2" height="16.2" rx="4" fill="#eaf3f8"/>
-<rect x="1122.8" y="310.4" width="22.2" height="16.2" rx="4" fill="#d6e7f1"/>
-<rect x="1022.0" y="329.6" width="22.2" height="16.2" rx="4" fill="#86bddc"/>
-<rect x="1047.2" y="329.6" width="22.2" height="16.2" rx="4" fill="#3f76a3"/>
-<rect x="1072.4" y="329.6" width="22.2" height="16.2" rx="4" fill="#eaf3f8"/>
-<rect x="1097.6" y="329.6" width="22.2" height="16.2" rx="4" fill="#d6e7f1"/>
-<rect x="1122.8" y="329.6" width="22.2" height="16.2" rx="4" fill="#b5d2e5"/>
-<rect x="1022.0" y="348.8" width="22.2" height="16.2" rx="4" fill="#3f76a3"/>
-<rect x="1047.2" y="348.8" width="22.2" height="16.2" rx="4" fill="#eaf3f8"/>
-<rect x="1072.4" y="348.8" width="22.2" height="16.2" rx="4" fill="#d6e7f1"/>
-<rect x="1097.6" y="348.8" width="22.2" height="16.2" rx="4" fill="#b5d2e5"/>
-<rect x="1122.8" y="348.8" width="22.2" height="16.2" rx="4" fill="#86bddc"/>
-<text x="1085.0" y="402" class="tiny" text-anchor="middle">similarity</text>
+  <g transform="translate(250, 90)">
+    <rect x="0" y="4" width="155" height="120" rx="16" fill="#8ba7ba" filter="url(#softshadow)"/>
+    <rect x="0" y="0" width="155" height="120" rx="16" fill="#ffffff" stroke="#c5d8e6" stroke-width="1.2"/>
+    <g filter="url(#blocky3D)" transform="translate(25, 10) scale(0.9)">
+      <rect x="0" y="0" width="22" height="16" rx="3" fill="#eaf3f8"/>
+      <rect x="25" y="0" width="22" height="16" rx="3" fill="#d6e7f1"/>
+      <rect x="50" y="0" width="22" height="16" rx="3" fill="#b5d2e5"/>
+      <rect x="75" y="0" width="22" height="16" rx="3" fill="#86bddc"/>
+      <rect x="100" y="0" width="22" height="16" rx="3" fill="#3f76a3"/>
+      <rect x="0" y="20" width="22" height="16" rx="3" fill="#d6e7f1"/>
+      <rect x="25" y="20" width="22" height="16" rx="3" fill="#b5d2e5"/>
+      <rect x="50" y="20" width="22" height="16" rx="3" fill="#86bddc"/>
+      <rect x="75" y="20" width="22" height="16" rx="3" fill="#3f76a3"/>
+      <rect x="100" y="20" width="22" height="16" rx="3" fill="#eaf3f8"/>
+      <rect x="0" y="40" width="22" height="16" rx="3" fill="#b5d2e5"/>
+      <rect x="25" y="40" width="22" height="16" rx="3" fill="#86bddc"/>
+      <rect x="50" y="40" width="22" height="16" rx="3" fill="#3f76a3"/>
+      <rect x="75" y="40" width="22" height="16" rx="3" fill="#eaf3f8"/>
+      <rect x="100" y="40" width="22" height="16" rx="3" fill="#d6e7f1"/>
+      <rect x="0" y="60" width="22" height="16" rx="3" fill="#86bddc"/>
+      <rect x="25" y="60" width="22" height="16" rx="3" fill="#3f76a3"/>
+      <rect x="50" y="60" width="22" height="16" rx="3" fill="#eaf3f8"/>
+      <rect x="75" y="60" width="22" height="16" rx="3" fill="#d6e7f1"/>
+      <rect x="100" y="60" width="22" height="16" rx="3" fill="#b5d2e5"/>
+      <rect x="0" y="80" width="22" height="16" rx="3" fill="#3f76a3"/>
+      <rect x="25" y="80" width="22" height="16" rx="3" fill="#eaf3f8"/>
+      <rect x="50" y="80" width="22" height="16" rx="3" fill="#d6e7f1"/>
+      <rect x="75" y="80" width="22" height="16" rx="3" fill="#b5d2e5"/>
+      <rect x="100" y="80" width="22" height="16" rx="3" fill="#86bddc"/>
+    </g>
+    <text x="75" y="115" class="tiny" text-anchor="middle">similarity</text>
+  </g>
 
-<rect x="790" y="420" width="190" height="120" rx="16" fill="#ffffff" stroke="#d6e0e8" stroke-width="2"  filter="url(#softshadow)"/>
-<line x1="806" y1="458" x2="964" y2="458" stroke="#dce7ef" stroke-width="1.8"/>
-<line x1="806" y1="478" x2="964" y2="478" stroke="#dce7ef" stroke-width="1.8"/>
-<line x1="806" y1="498" x2="964" y2="498" stroke="#dce7ef" stroke-width="1.8"/>
-<line x1="852" y1="438" x2="852" y2="522" stroke="#dce7ef" stroke-width="1.8"/>
-<line x1="898" y1="438" x2="898" y2="522" stroke="#dce7ef" stroke-width="1.8"/>
-<rect x="806" y="438" width="158" height="20" rx="8" fill="#edf5fa"/>
-<text x="885.0" y="562" class="tiny" text-anchor="middle">interaction events</text>
+  <g transform="translate(30, 250)">
+    <rect x="0" y="4" width="190" height="120" rx="16" fill="#8ba7ba" filter="url(#softshadow)"/>
+    <rect x="0" y="0" width="190" height="120" rx="16" fill="#ffffff" stroke="#c5d8e6" stroke-width="1.2"/>
+    <g transform="translate(30, 5), scale(1.4)">
+      <line x1="10" y1="10" x2="40" y2="40" stroke="#a0bed6" stroke-width="2"/>
+      <line x1="40" y1="40" x2="70" y2="20" stroke="#a0bed6" stroke-width="2"/>
+      <line x1="40" y1="40" x2="80" y2="50" stroke="#a0bed6" stroke-width="2"/>
+      <circle cx="10" cy="10" r="6" fill="#0099ff" filter="url(#glow)"/>
+      <circle cx="40" cy="40" r="8" fill="#f4b93b" filter="url(#cardShadow)"/>
+      <circle cx="70" cy="20" r="5" fill="#ef6a48"/>
+      <circle cx="80" cy="50" r="6" fill="#38e68c"/>
+    </g>
+    <text x="95" y="105" class="tiny" text-anchor="middle">interaction events</text>
+  </g>
 
-<rect x="1010" y="420" width="150" height="120" rx="16" fill="#ffffff" stroke="#d6e0e8" stroke-width="2"  filter="url(#softshadow)"/>
-<line x1="1032" y1="510" x2="1142" y2="510" stroke="#9fb6c8" stroke-width="1.8"/>
-<line x1="1032" y1="445" x2="1032" y2="510" stroke="#9fb6c8" stroke-width="1.8"/>
-<polyline points="1038,492 1070,477 1100,500 1132,461" fill="none" stroke="#3f76a3" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
-<text x="1085.0" y="562" class="tiny" text-anchor="middle">metrics</text>
+  <g transform="translate(250, 250)">
+    <rect x="0" y="4" width="155" height="120" rx="16" fill="#8ba7ba" filter="url(#softshadow)"/>
+    <rect x="0" y="0" width="155" height="120" rx="16" fill="#ffffff" stroke="#c5d8e6" stroke-width="1.2"/>
+    <g transform="translate(17, 7)">
+      <line x1="0" y1="60" x2="120" y2="60" stroke="#a0bed6" stroke-width="1.5" stroke-dasharray="3,3"/>
+      <line x1="0" y1="30" x2="120" y2="30" stroke="#a0bed6" stroke-width="1.5" stroke-dasharray="3,3"/>
+      <path d="M 10 65 L 40 45 L 70 70 L 110 25 L 110 75 L 10 75 Z" fill="url(#chartAreaBlue)"/>
+      <polyline points="10,65 40,45 70,70 110,25" fill="none" stroke="#00f0ff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" filter="url(#glow)"/>
+      <circle cx="40" cy="45" r="3.5" fill="#ffffff" stroke="#00f0ff" stroke-width="2"/>
+      <circle cx="70" cy="70" r="3.5" fill="#ffffff" stroke="#00f0ff" stroke-width="2"/>
+      <circle cx="110" cy="25" r="4.5" fill="#ffffff" stroke="#00f0ff" stroke-width="2" filter="url(#glow)"/>
+    </g>
+    <text x="75" y="105" class="tiny" text-anchor="middle">metrics</text>
+  </g>
+
+</g>
 
 </svg>

@@ -52,7 +52,7 @@ from .optimize import Optimizer
 from prodock.io.logging import get_logger, StructuredAdapter
 
 logger = StructuredAdapter(
-    get_logger("prodock.chem.conformer"), {"component": "conformer"}
+    get_logger("prodock.preprocess.ligand.conformer"), {"component": "conformer"}
 )
 logger._base_logger = getattr(logger, "_base_logger", getattr(logger, "logger", None))
 

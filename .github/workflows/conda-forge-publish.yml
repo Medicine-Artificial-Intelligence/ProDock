@@ -7,6 +7,7 @@ on:
     branches:
       - conda
       - release
+
   workflow_dispatch:
 
 permissions:

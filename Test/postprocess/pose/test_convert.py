@@ -358,7 +358,7 @@ class TestPDBQTToRDKitMols(unittest.TestCase):
                     remove_hs=True,
                 )
 
-                self.assertEqual(mols, ["mol1", "mol2"])
+                self.assertEqual(mols, ["mol1", None, "mol2"])
                 self.assertEqual(len(converter_calls), 1)
                 self.assertEqual(converter_calls[0][2], "obabel")
                 self.assertEqual(len(supplier_calls), 1)

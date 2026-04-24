@@ -76,6 +76,7 @@ This architecture is intended to support:
 - multi-receptor and multi-engine benchmarking workflows
 - clean integration with pandas- and RDKit-based analysis
 
+
 ## Step-by-Step Installation Guide
 
 1. **Python Installation:**
@@ -104,6 +105,22 @@ This architecture is intended to support:
   pip install -r requirements.txt
   pip install black flake8 pytest # black for formating, flake8 for checking format, pytest for testing
   ```
+
+
+## Reproducing the Case Study
+
+To reproduce the case study, first clone and install ProDock as described above. Then run the command-line workflow using the provided configuration files:
+```bash
+python -m prodock \
+  --config Data/case/config.json \
+  --receptor-json Data/case/receptor.json \
+  --ligand-json Data/case/ligand.json
+```
+This command executes the case-study docking workflow using:
+
+- `Data/case/config.json`: global workflow and docking settings
+- `Data/case/receptor.json`: receptor definitions
+- `Data/case/ligand.json`: ligand definitions
 
 ## Setting Up Your Development Environment
 
@@ -169,7 +186,7 @@ git pull
 
 ## Publication
 
-[**ProDock**]()
+[**ProDock: From multi-target consensus docking into database-backed storage**](https://doi.org/10.48550/arXiv.2604.21828)
 
 
 ## License
