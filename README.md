@@ -22,7 +22,7 @@ For **DiffDock**, the evaluated descriptors include:
 
 The package writes structured intermediate files and target-specific output directories so that protein preparation, ligand preparation, docking, re-ranking, and downstream inspection can be repeated from explicit inputs.
 
-Overall workflow
+**Overall workflow**
 ![ProDock flow](fig/Flow.png)
 Protein Preparation
 ![ProDock protein_prep](fig/Protein-prep.png)
