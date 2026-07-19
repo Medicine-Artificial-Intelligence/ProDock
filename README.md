@@ -22,6 +22,186 @@ For **DiffDock**, the evaluated descriptors include:
 
 The package writes structured intermediate files and target-specific output directories so that protein preparation, ligand preparation, docking, re-ranking, and downstream inspection can be repeated from explicit inputs.
 
+## Installation
+
+### Requirements
+
+ProDock requires:
+
+- Linux
+- Git
+- Conda
+- Python 3.11
+- NVIDIA GPU recommended
+- A compatible CUDA installation for GPU-enabled DiffDock and GNINA execution
+
+### 1. Clone ProDock
+
+Clone the `Son-dev-updated` branch together with its registered submodules:
+
+```bash
+git clone \
+  --branch Son-dev-updated \
+  --recurse-submodules \
+  https://github.com/Medicine-Artificial-Intelligence/ProDock.git
+
+cd ProDock
+```
+
+The required directories should be located directly under the ProDock root:
+
+```text
+ProDock/
+├── DiffDock/
+├── gnina/
+├── environment.yml
+└── README.md
+```
+
+### 2. Create the ProDock Environment
+
+ProDock requires Python 3.11.
+
+Create the Conda environment from `environment.yml`:
+
+```bash
+conda env create --file environment.yml
+```
+
+Activate the environment:
+
+```bash
+conda activate ProDock
+```
+
+### 3. Install DiffDock
+
+Follow DiffDock installation [DiffDock]([https://www.rdkit.org/](https://github.com/gcorso/DiffDock)
+Make sure to clone DiffDock directly under ProDock root.
+
+```bash
+git
+  https://github.com/gcorso/DiffDock.git \
+  DiffDock
+```
+
+
+### 4. Install ESM
+
+The ESM Python package must be located directly inside the DiffDock directory:
+
+```text
+ProDock/DiffDock/esm/
+```
+The final directory structure must be:
+```text
+DiffDock/
+└── esm/
+    ├── esmfold/
+    ├── inverse_folding/
+    ├── model/
+    ├── __init__.py
+    ├── data.py
+    ├── modules.py
+    ├── pretrained.py
+    └── ...
+```
+
+Clone the ESM repository into a temporary directory:
+
+```bash
+git clone \
+  https://github.com/facebookresearch/esm.git \
+  esm_source=
+```
+
+Copy the inner ESM Python package directly into `DiffDock/esm`:
+
+```bash
+cp -r esm_source/esm DiffDock/esm
+```
+
+### 5. Install GNINA
+
+The GNINA directory must be located directly under the ProDock root:
+
+```text
+ProDock/gnina/
+```
+
+The GNINA executable must be located at:
+
+```text
+ProDock/gnina/gnina
+```
+
+Enter the GNINA directory:
+
+```bash
+mkdir -p gnina
+cd gnina
+```
+
+Download a compatible GNINA Linux binary from the official release page:
+
+https://github.com/gnina/gnina/releases
+
+Using `wget`:
+
+```bash
+wget -O gnina "<GNINA_BINARY_URL>"
+```
+
+Alternatively, using `curl`:
+
+```bash
+curl -L "<GNINA_BINARY_URL>" -o gnina
+```
+
+Replace `<GNINA_BINARY_URL>` with the URL of the selected GNINA release asset.
+
+Make the binary executable:
+
+```bash
+chmod +x gnina
+```
+
+Return to the ProDock root directory:
+
+```bash
+cd ..
+```
+
+Test the GNINA installation:
+
+```bash
+./gnina/gnina --version
+```
+
+Display the available GNINA options:
+
+```bash
+./gnina/gnina --help
+```
+
+### 6. Complete Installation
+
+The final directory structure should resemble:
+
+```text
+ProDock/
+├── Analysis_script/
+├── DiffDock/
+│   ├── esm/
+│   └── ...
+├── gnina/
+│   ├── gnina
+│   └── ...
+├── environment.yml
+├── LICENSE
+└── README.md
+```
+
 **Overall workflow**
 ![ProDock flow](fig/Flow.png)
 Protein Preparation
