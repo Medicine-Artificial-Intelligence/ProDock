@@ -1,4 +1,5 @@
 **ProDock — Semi-automated Rank-Resolved Multi-Engine Docking Pipeline for Virtual Screening**
+![ProDock graphic](fig/Graphic.png)
 **ProDock** is a semi-automated Python package for protein preparation, ligand preparation, docking execution, and rank-resolved post-docking analysis.
 
 The workflow combines global docking with **DiffDock** and local docking with **GNINA**, preserving multiple poses per ligand instead of reducing each docking run to a single top-ranked conformer. Each pose rank is evaluated independently using engine-specific scores and additional descriptors.
@@ -21,8 +22,6 @@ For **DiffDock**, the evaluated descriptors include:
 
 The package writes structured intermediate files and target-specific output directories so that protein preparation, ligand preparation, docking, re-ranking, and downstream inspection can be repeated from explicit inputs.
 
-The package writes structured intermediate files and target-specific output directories so that protein preparation, ligand preparation, docking, re-ranking, and downstream inspection can be repeated from explicit inputs.
-![ProDock graphic](fig/Graphic.png)
 Overall workflow
 ![ProDock flow](fig/Flow.png)
 Protein Preparation
