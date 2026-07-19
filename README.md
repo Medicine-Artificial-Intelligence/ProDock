@@ -8,15 +8,14 @@ For **GNINA**, these descriptors include:
 - empirical affinity;
 - `CNNpose`;
 - `CNNaffinity`;
-- reference-based protein–ligand interaction-fingerprint similarity;
-- steric clash counts; and
-- optional electrostatic solvation energy.
+- Reference-based protein–ligand interaction-fingerprint similarity: `Similarity-type1` and `Similarity-type2`
+- Steric clash counts; and
+- Optional electrostatic solvation energy.
 
 For **DiffDock**, the evaluated descriptors include:
-
-- confidence score;
-- a measurement of the unoccupied region, representing the absence of an interaction surface between the protein and ligand; and
-- a ligand-localization metric represented by the percentage of ligand atoms remaining within the binding site.
+- Confidence score;
+- Unoccupied region, representing the absence of an interaction surface between the protein and ligand; and
+- Percentage of ligand atoms remaining within the binding site and percentage of Occupancy.
 
 **ProDock** builds on established cheminformatics, visualization, and molecular-simulation libraries, including [RDKit](https://www.rdkit.org/), [PyMOL](https://www.pymol.org/), [Open Babel](https://openbabel.org/), [OpenMM](https://openmm.org/), [MDAnalysis](https://www.mdanalysis.org/), [ProLIF](https://prolif.readthedocs.io/), [Biopython](https://biopython.org/), and [APBS](https://www.poissonboltzmann.org/).
 
