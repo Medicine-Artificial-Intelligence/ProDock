@@ -28,3 +28,14 @@ Protein Preparation
 ![ProDock protein_prep](fig/Protein-prep.png)
 Ligand Preparation
 ![ProDock ligand_prep](fig/Ligand-prep.png)
+
+## License
+This project is licensed under MIT License - see the [License](LICENSE) file for details.
+
+## Authors & Contributors
+- [Lai Hoang Son Le](https://github.com/lelaihoangson)
+- [Thanh-An Pham](https://github.com/Thanh-An-Pham)
+- [Tieu-Long Phan](https://tieulongphan.github.io/)
+
+## Acknowledgments
+This work has received support from the Korea International Cooperation Agency (KOICA) under the project entitled ``Education and Research Capacity Building Project at University of Medicine and Pharmacy at Ho Chi Minh City,'' conducted from 2024 to 2025 (Project No. 2021-00020-3). TLP and PFS have received funding from the European Union's Horizon Europe Doctoral Network programme under the Marie Sk{\l}odowska-Curie grant agreement No.~101072930 (TACsy - Training Alliance for Computational systems chemistry).
