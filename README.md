@@ -191,6 +191,7 @@ The final directory structure should resemble:
 ```text
 ProDock/
 ├── Analysis_script/
+├── Optimization_script/
 ├── DiffDock/
 │   ├── esm/
 │   └── ...
@@ -208,6 +209,74 @@ Protein Preparation
 ![ProDock protein_prep](fig/Protein-prep.png)
 Ligand Preparation
 ![ProDock ligand_prep](fig/Ligand-prep.png)
+
+## Usage: Pose Re-ranking Optimization and Analysis
+
+After docking, ProDock keeps every pose rank and evaluates it with engine-specific
+scores and descriptors. The scripts below merge the per-pose GNINA and DiffDock
+results, use **Optuna** to tune per-descriptor thresholds that maximize a chosen
+performance metric (ROC-AUC, PR-AUC, or logAUC), and then extract and visualize the
+optimized results.
+
+### 1. Threshold Optimization (`Optimization_script/`)
+
+Expected input layout, one CSV of merged per-pose scores per target for each engine:
+
+```text
+all/
+├── gnina/{target}/Confidence_score/{target}_final.csv
+└── diffdock/{target}/Confidence_score/{target}_final.csv
+```
+
+Optimize a single target:
+
+```bash
+cd Optimization_script
+python optuna_combine_all_structure.py --protein ABL1 --base-dir all --metric roc-auc
+```
+
+Common options:
+
+- `--scoring-metric {affinity,cnnaffinity,cnn-combined}` — score used for the final ranking.
+- `--metric {roc-auc,pr-auc,logauc}` — objective that Optuna maximizes.
+- `--n-trials`, `--n-jobs`, `--top-k` — Optuna trial budget, parallel trials, poses kept per ligand.
+- `--split {train,test}`, `--data-dir split_merged`, `--eval-on-test` — train/test handling; with
+  `--data-dir` the inputs are read as `{data_dir}/{protein}_{split}.csv`.
+
+Optimize every target found under `--base-dir` (batch driver):
+
+```bash
+cd Optimization_script
+python run_all_proteins_optimization.py --base-dir all --metric roc-auc --parallel 4
+```
+
+Run this from inside `Optimization_script/`; it invokes `optuna_combine_all_structure.py`
+by relative path. For each target it writes
+`results_all_structure/{target}/{target}_all_structure_results.json` plus a batch-summary
+JSON. Repeating the run across the nine scoring × metric configurations reproduces the
+manuscript results.
+
+### 2. Results Extraction and Figures (`Analysis_script/`)
+
+Collect the optimized thresholds from the nine configuration folders
+(`aff|cnn|combined` × `log|pr|roc`) into one CSV per configuration:
+
+```bash
+cd Analysis_script
+python extract_optimized_thresholds.py --root .. --output-dir threshold_csv
+```
+
+Each configuration folder is expected to hold `{TARGET}/{TARGET}_all_structure_results.json`;
+the script writes `threshold_csv/{config}_thresholds.csv`.
+
+Generate the publication figures from the nine per-configuration summary files
+(`{scoring}_{metric}.json`, e.g. `aff_roc.json`, `cnn_pr.json`, `combined_log.json`) placed
+alongside the script; figures are written to `figures/`:
+
+```bash
+cd Analysis_script
+python visualize_results.py
+```
 
 ## License
 This project is licensed under MIT License - see the [License](LICENSE) file for details.
