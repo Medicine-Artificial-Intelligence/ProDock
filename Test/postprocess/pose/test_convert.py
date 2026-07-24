@@ -358,7 +358,7 @@ class TestPDBQTToRDKitMols(unittest.TestCase):
                     remove_hs=True,
                 )
 
-                self.assertEqual(mols, ["mol1", "mol2"])
+                self.assertEqual(mols, ["mol1", None, "mol2"])
                 self.assertEqual(len(converter_calls), 1)
                 self.assertEqual(converter_calls[0][2], "obabel")
                 self.assertEqual(len(supplier_calls), 1)
@@ -406,7 +406,11 @@ class TestConvertPoseTree(unittest.TestCase):
                 outputs = convert.convert_pose_tree([root], engine="vina")
 
                 self.assertEqual(
-                    outputs, [a.with_suffix(".sdf"), b.with_suffix(".sdf")]
+                    [p.resolve() for p in outputs],
+                    [
+                        a.with_suffix(".sdf").resolve(),
+                        b.with_suffix(".sdf").resolve(),
+                    ],
                 )
                 self.assertEqual(len(calls), 2)
         finally:

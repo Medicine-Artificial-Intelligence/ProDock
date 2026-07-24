@@ -147,7 +147,7 @@ except Exception:  # pragma: no cover
 
 
 logger = StructuredAdapter(
-    get_logger("prodock.process.ligand"),
+    get_logger("prodock.preprocess.ligand"),
     {"component": "ligand.process"},
 )
 logger._base_logger = getattr(logger, "_base_logger", getattr(logger, "logger", None))
@@ -994,7 +994,9 @@ class LigandPrep:
 
         if rc != 0:
             try:
-                rc = AllChem.EmbedMolecule(working)
+                rc = AllChem.EmbedMolecule(
+                    working, randomSeed=int(self._conformer_seed)
+                )
             except Exception as exc:
                 raise RuntimeError(f"RDKit embedding failed: {exc}") from exc
 

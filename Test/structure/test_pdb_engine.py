@@ -81,13 +81,14 @@ class TestPDBEngine(unittest.TestCase):
         self.td = tempfile.mkdtemp()
         self.base_out = Path(self.td) / "out" / "5N2F"
 
-        # Fresh fake cmd per test to avoid state/method leakage between tests
+        # Fresh fake cmd per test to avoid state leakage
         fake_pymol_mod.cmd = FakeCmd()
         self.fake_cmd = fake_pymol_mod.cmd
         pdb_engine_mod.cmd = self.fake_cmd
 
         self._orig_fetch = getattr(fetch_mod, "fetch_pdb_to_dir", None)
-        self._orig_convert = getattr(convert_mod, "convert_with_obabel", None)
+        self._orig_convert_obabel = getattr(convert_mod, "convert_with_obabel", None)
+        self._orig_pdb_to_sdf = getattr(convert_mod, "pdb_to_sdf", None)
 
         def fake_fetch(pdb_id, fetch_dir):
             fn = os.path.join(str(fetch_dir), f"{pdb_id}.pdb")
@@ -96,15 +97,22 @@ class TestPDBEngine(unittest.TestCase):
                 fh.write("HEADER")
             return fn
 
-        def fake_convert(src, dst, extra_args=None):
+        def fake_convert_obabel(src, dst, extra_args=None, **kwargs):
             dst = str(dst)
             os.makedirs(os.path.dirname(dst), exist_ok=True)
             with open(dst, "w", encoding="utf-8") as fh:
                 fh.write("SDF")
             return True
 
+        def fake_pdb_to_sdf(src, dst, backend="rdkit", extra_args=None):
+            dst = Path(dst)
+            dst.parent.mkdir(parents=True, exist_ok=True)
+            dst.write_text("SDF", encoding="utf-8")
+            return dst
+
         fetch_mod.fetch_pdb_to_dir = fake_fetch
-        convert_mod.convert_with_obabel = fake_convert
+        convert_mod.convert_with_obabel = fake_convert_obabel
+        convert_mod.pdb_to_sdf = fake_pdb_to_sdf
 
     def tearDown(self):
         if self._orig_fetch is None:
@@ -115,13 +123,21 @@ class TestPDBEngine(unittest.TestCase):
         else:
             fetch_mod.fetch_pdb_to_dir = self._orig_fetch
 
-        if self._orig_convert is None:
+        if self._orig_convert_obabel is None:
             try:
                 delattr(convert_mod, "convert_with_obabel")
             except Exception:
                 pass
         else:
-            convert_mod.convert_with_obabel = self._orig_convert
+            convert_mod.convert_with_obabel = self._orig_convert_obabel
+
+        if self._orig_pdb_to_sdf is None:
+            try:
+                delattr(convert_mod, "pdb_to_sdf")
+            except Exception:
+                pass
+        else:
+            convert_mod.pdb_to_sdf = self._orig_pdb_to_sdf
 
         shutil.rmtree(self.td)
 
@@ -292,10 +308,10 @@ class TestPDBEngine(unittest.TestCase):
         self.assertTrue(eng.ref_path.exists())
 
     def test_convert_reference_ligand_failure(self):
-        def fake_convert_fail(src, dst, extra_args=None):
-            return False
+        def fake_pdb_to_sdf_fail(src, dst, backend="rdkit", extra_args=None):
+            raise ValueError("RDKit parse failed")
 
-        convert_mod.convert_with_obabel = fake_convert_fail
+        convert_mod.pdb_to_sdf = fake_pdb_to_sdf_fail
 
         eng = self._engine().validate()
         tmp_pdb = eng._tmp_ligand_pdb_path()
@@ -317,8 +333,8 @@ class TestPDBEngine(unittest.TestCase):
         self.assertTrue(eng.cocrystal_path.exists())
 
     def test_convert_cocrystal_ligand_failure(self):
-        def fake_convert_fail(src, dst, extra_args=None):
-            return False
+        def fake_convert_fail(src, dst, extra_args=None, **kwargs):
+            raise RuntimeError("Open Babel failed")
 
         convert_mod.convert_with_obabel = fake_convert_fail
 
@@ -395,10 +411,10 @@ class TestPDBEngine(unittest.TestCase):
         self.assertIn("Failed to save reference ligand", str(ctx.exception))
 
     def test_extract_ligand_raises_when_reference_conversion_fails(self):
-        def fake_convert_fail(src, dst, extra_args=None):
-            return False
+        def fake_pdb_to_sdf_fail(src, dst, backend="rdkit", extra_args=None):
+            raise ValueError("RDKit parse failed")
 
-        convert_mod.convert_with_obabel = fake_convert_fail
+        convert_mod.pdb_to_sdf = fake_pdb_to_sdf_fail
 
         eng = self._engine().validate()
 
@@ -410,18 +426,17 @@ class TestPDBEngine(unittest.TestCase):
     def test_extract_ligand_removes_partial_outputs_when_cocrystal_conversion_fails(
         self,
     ):
-        call_counter = {"n": 0}
-
-        def fake_convert_ref_ok_cocrystal_fail(src, dst, extra_args=None):
-            call_counter["n"] += 1
+        def fake_pdb_to_sdf_ok(src, dst, backend="rdkit", extra_args=None):
             dst = Path(dst)
             dst.parent.mkdir(parents=True, exist_ok=True)
-            if call_counter["n"] == 1:
-                dst.write_text("REF", encoding="utf-8")
-                return True
-            return False
+            dst.write_text("REF", encoding="utf-8")
+            return dst
 
-        convert_mod.convert_with_obabel = fake_convert_ref_ok_cocrystal_fail
+        def fake_convert_cocrystal_fail(src, dst, extra_args=None, **kwargs):
+            raise RuntimeError("Open Babel failed")
+
+        convert_mod.pdb_to_sdf = fake_pdb_to_sdf_ok
+        convert_mod.convert_with_obabel = fake_convert_cocrystal_fail
 
         eng = self._engine().validate()
 

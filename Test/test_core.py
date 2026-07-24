@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import sys
 import shutil
 import tempfile
 import unittest
@@ -20,6 +21,7 @@ RUN_NETWORK_TESTS = True
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SOURCE_MULTI = REPO_ROOT / "Data" / "testcase" / "Multi"
+IS_LINUX = sys.platform.startswith("linux")
 
 
 def _reset_pymol_if_available() -> None:
@@ -40,6 +42,7 @@ def _reset_pymol_if_available() -> None:
         pass
 
 
+@unittest.skipUnless(IS_LINUX, "QVina integration tests run only on Linux")
 class TestProDockPipeline(unittest.TestCase):
     """Integration tests for the public ``prodock(...)`` entry point."""
 
