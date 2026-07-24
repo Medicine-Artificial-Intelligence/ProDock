@@ -154,12 +154,13 @@ git clone \
 cd ProDock
 ```
 
-The required directories should be located directly under the ProDock root:
+The submodule directories should be located under `Project/`:
 
 ```text
 ProDock/
-├── DiffDock/
-├── gnina/
+├── Project/
+│   ├── DiffDock/
+│   └── gnina/
 ├── environment.yml
 └── README.md
 ```
@@ -180,12 +181,12 @@ conda activate ProDock
 
 ### 3. Install DiffDock
 
-Follow the [DiffDock](https://github.com/gcorso/DiffDock) installation instructions. Make sure to clone DiffDock directly under the ProDock root.
+Follow the [DiffDock](https://github.com/gcorso/DiffDock) installation instructions. Make sure to clone DiffDock into `Project/`.
 
 ```bash
 git clone \
   https://github.com/gcorso/DiffDock.git \
-  DiffDock
+  Project/DiffDock
 ```
 
 ### 4. Install ESM
@@ -193,13 +194,13 @@ git clone \
 The ESM Python package must be located directly inside the DiffDock directory:
 
 ```text
-ProDock/DiffDock/esm/
+ProDock/Project/DiffDock/esm/
 ```
 
 The final directory structure must be:
 
 ```text
-DiffDock/
+Project/DiffDock/
 └── esm/
     ├── esmfold/
     ├── inverse_folding/
@@ -219,31 +220,31 @@ git clone \
   esm_source
 ```
 
-Copy the inner ESM Python package directly into `DiffDock/esm`:
+Copy the inner ESM Python package directly into `Project/DiffDock/esm`:
 
 ```bash
-cp -r esm_source/esm DiffDock/esm
+cp -r esm_source/esm Project/DiffDock/esm
 ```
 
 ### 5. Install GNINA
 
-The GNINA directory must be located directly under the ProDock root:
+The GNINA directory must be located under `Project/`:
 
 ```text
-ProDock/gnina/
+ProDock/Project/gnina/
 ```
 
 The GNINA executable must be located at:
 
 ```text
-ProDock/gnina/gnina
+ProDock/Project/gnina/gnina
 ```
 
 Enter the GNINA directory:
 
 ```bash
-mkdir -p gnina
-cd gnina
+mkdir -p Project/gnina
+cd Project/gnina
 ```
 
 Download a compatible GNINA Linux binary from the official [release page](https://github.com/gnina/gnina/releases).
@@ -271,19 +272,19 @@ chmod +x gnina
 Return to the ProDock root directory:
 
 ```bash
-cd ..
+cd ../..
 ```
 
 Test the GNINA installation:
 
 ```bash
-./gnina/gnina --version
+./Project/gnina/gnina --version
 ```
 
 Display the available GNINA options:
 
 ```bash
-./gnina/gnina --help
+./Project/gnina/gnina --help
 ```
 
 ### 6. Complete installation
@@ -292,26 +293,31 @@ The final directory structure should resemble:
 
 ```text
 ProDock/
-├── Analysis_script/
-├── DiffDock/
-│   ├── esm/
-│   └── ...
-├── gnina/
-│   ├── gnina
-│   └── ...
+├── Project/
+│   ├── Analysis_script/
+│   ├── Docking_script/
+│   ├── Preparation_script/
+│   ├── DiffDock/
+│   │   ├── esm/
+│   │   └── ...
+│   └── gnina/
+│       ├── gnina
+│       └── ...
+├── Data/
+│   └── fig/
 ├── environment.yml
 ├── LICENSE
 └── README.md
 ```
 
 **Overall workflow**
-![ProDock flow](fig/Flow.png)
+![ProDock flow](Data/fig/Flow.png)
 
 Protein Preparation
-![ProDock protein_prep](fig/Protein-prep.png)
+![ProDock protein_prep](Data/fig/Protein-prep.png)
 
 Ligand Preparation
-![ProDock ligand_prep](fig/Ligand-prep.png)
+![ProDock ligand_prep](Data/fig/Ligand-prep.png)
 
 
 ## Reproducing the Case Study
