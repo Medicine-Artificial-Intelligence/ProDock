@@ -1689,7 +1689,7 @@ class PoseDatabase:
 
     @staticmethod
     def _flatten_one_pose_interaction_payload(
-        payload: Mapping[str, Any],
+        payload: Optional[Mapping[str, Any]],
     ) -> list[dict[str, Any]]:
         """
         Flatten one summary or detailed interaction payload.
@@ -1701,9 +1701,12 @@ class PoseDatabase:
         - detailed:
           ``{"Hydrophobic": {"LEU23.A": [{...}, {...}]}}``
 
+        ``None`` and empty mappings are treated as "no interactions" and return
+        an empty list.
+
         :param payload:
             Pose-specific interaction payload.
-        :type payload: Mapping[str, Any]
+        :type payload: Optional[Mapping[str, Any]]
 
         :returns:
             Flat list of row dictionaries ready for insertion.
@@ -1712,12 +1715,27 @@ class PoseDatabase:
         :raises TypeError:
             If the payload shape is not recognized.
         """
+        if payload is None:
+            return []
+
+        if not isinstance(payload, Mapping):
+            raise TypeError(
+                "Interaction payload must be a mapping or None. "
+                f"Got {type(payload).__name__}."
+            )
+
         rows: list[dict[str, Any]] = []
         for interaction_type, value in payload.items():
+            if value is None:
+                continue
+
+            # Detailed format:
+            # {"Hydrophobic": {"LEU23.A": [{...}, {...}]}}
             if isinstance(value, Mapping):
                 for residue_id, events in value.items():
                     if events is None:
                         continue
+
                     if isinstance(events, Mapping):
                         event_list = [events]
                     elif isinstance(events, Sequence) and not isinstance(
@@ -1780,8 +1798,13 @@ class PoseDatabase:
                                 "metadata": metadata,
                             }
                         )
+
+            # Summary format:
+            # {"Hydrophobic": ["LEU23.A", "VAL31.A"]}
             elif isinstance(value, Sequence) and not isinstance(value, (str, bytes)):
                 for residue in value:
+                    if residue is None:
+                        continue
                     rows.append(
                         {
                             "interaction_type": str(interaction_type),
@@ -1800,13 +1823,14 @@ class PoseDatabase:
             else:
                 raise TypeError(
                     "Interaction payload values must be either a list of residue "
-                    "ids or a nested residue->events mapping."
+                    "ids, a nested residue->events mapping, or None."
                 )
+
         return rows
 
     def upsert_interaction_payload(
         self,
-        interactions_by_pose: Mapping[str, Mapping[str, Any]],
+        interactions_by_pose: Mapping[str, Optional[Mapping[str, Any]]],
         *,
         replace: bool = True,
     ) -> None:
@@ -1820,9 +1844,13 @@ class PoseDatabase:
         - detailed:
           ``{"Hydrophobic": {"LEU23.A": [{...}, {...}]}}``
 
+        ``None`` or empty payloads are treated as "no interactions". If
+        ``replace=True``, existing interactions for that pose are deleted and no
+        new rows are inserted.
+
         :param interactions_by_pose:
             Mapping from external ``pose_id`` to interaction payload.
-        :type interactions_by_pose: Mapping[str, Mapping[str, Any]]
+        :type interactions_by_pose: Mapping[str, Optional[Mapping[str, Any]]]
         :param replace:
             Whether existing interactions for each affected pose should first be
             deleted.
@@ -1856,13 +1884,27 @@ class PoseDatabase:
         with self._conn:
             for pose_id, payload in interactions_by_pose.items():
                 resolved_pose_db_id = self._resolve_pose_db_id(pose_id=str(pose_id))
+
                 if replace:
                     self._conn.execute(
                         "DELETE FROM interactions WHERE pose_db_id = ?",
                         (resolved_pose_db_id,),
                     )
 
+                # No interactions for this pose -> done
+                if payload is None:
+                    continue
+
+                if not isinstance(payload, Mapping):
+                    raise TypeError(
+                        "Each interaction payload must be a mapping or None. "
+                        f"Pose {pose_id!r} has type {type(payload).__name__}."
+                    )
+
                 rows = self._flatten_one_pose_interaction_payload(payload)
+                if not rows:
+                    continue
+
                 for row in rows:
                     residue_name, residue_number, chain_id = parse_residue_id(
                         row.get("residue_id")

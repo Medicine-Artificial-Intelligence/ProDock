@@ -58,9 +58,9 @@ ENV PATH=${CONDA_ENV_PREFIX}/bin:${PATH}
 
 # Filter out conda-installed packages so pip doesn't try to (re)build them
 RUN set -eux; \
-  grep -v -E '^(rdkit|openbabel-wheel|openbabel|pymol-open-source-whl|pymol-open-source|vina|py3Dmol|openmm|pdbfixer|mdanalysis)' requirements.txt > reqs-pip.txt || true; \
-  echo "== pip reqs to install (filtered) =="; cat reqs-pip.txt || true
-
+  grep -vi -E '^(rdkit|openbabel(-wheel)?|pymol[-_]open[-_]source(-whl)?|vina|py3dmol|openmm|pdbfixer|mdanalysis)([[:space:]]*[<>=!~].*)?$' requirements.txt > reqs-pip.txt || true; \
+  echo "== pip reqs to install (filtered) =="; \
+  cat reqs-pip.txt || true
 # Install pip-only deps inside env, then install your wheel without resolving heavy deps
 RUN set -eux; \
   micromamba run -n ${CONDA_ENV} python -m pip install --upgrade pip setuptools wheel; \

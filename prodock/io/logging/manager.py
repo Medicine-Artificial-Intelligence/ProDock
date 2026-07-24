@@ -150,7 +150,7 @@ class LoggerManager:
 
 
 # module-level default manager + helpers
-_default_manager: LoggerManager = LoggerManager()
+_default_manager: LoggerManager = LoggerManager(log_dir=None)
 
 
 def setup_logging(**kwargs) -> LoggerManager:

@@ -3,69 +3,328 @@
 
 <defs>
   <linearGradient id="bggrad" x1="0" x2="1" y1="0" y2="1">
-    <stop offset="0%" stop-color="#fbfdff"/>
-    <stop offset="100%" stop-color="#eef4f7"/>
+    <stop offset="0%" stop-color="#f0f5fa"/>
+    <stop offset="100%" stop-color="#e0eef8"/>
   </linearGradient>
-  <linearGradient id="bluegrad" x1="0" x2="1" y1="0" y2="1">
-    <stop offset="0%" stop-color="#86bddc"/>
-    <stop offset="100%" stop-color="#366c98"/>
+
+  <linearGradient id="glassBox" x1="0%" y1="0%" x2="100%" y2="100%">
+    <stop offset="0%" stop-color="#ffffff" stop-opacity="0.95"/>
+    <stop offset="100%" stop-color="#eaf3f8" stop-opacity="0.85"/>
   </linearGradient>
-  <linearGradient id="navygrad" x1="0" x2="1" y1="0" y2="1">
-    <stop offset="0%" stop-color="#2f5d82"/>
-    <stop offset="100%" stop-color="#1c3950"/>
+  <linearGradient id="glassBoxAccent" x1="0%" y1="0%" x2="100%" y2="100%">
+    <stop offset="0%" stop-color="#f2fcf6" stop-opacity="0.95"/>
+    <stop offset="100%" stop-color="#e0f5e8" stop-opacity="0.85"/>
   </linearGradient>
-  <linearGradient id="ambergrad" x1="0" x2="1" y1="0" y2="1">
-    <stop offset="0%" stop-color="#f6c86d"/>
-    <stop offset="100%" stop-color="#c48d2d"/>
+  <linearGradient id="boxStroke" x1="0%" y1="0%" x2="100%" y2="100%">
+    <stop offset="0%" stop-color="#55c2ff" stop-opacity="0.8"/>
+    <stop offset="100%" stop-color="#2a75b3" stop-opacity="0.2"/>
   </linearGradient>
-  <linearGradient id="sagegrad" x1="0" x2="1" y1="0" y2="1">
-    <stop offset="0%" stop-color="#9ab694"/>
-    <stop offset="100%" stop-color="#6d856d"/>
+  <linearGradient id="boxStrokeGreen" x1="0%" y1="0%" x2="100%" y2="100%">
+    <stop offset="0%" stop-color="#38e68c" stop-opacity="0.8"/>
+    <stop offset="100%" stop-color="#198a51" stop-opacity="0.2"/>
   </linearGradient>
-  <linearGradient id="stonegrad" x1="0" x2="1" y1="0" y2="1">
-    <stop offset="0%" stop-color="#c8bcaa"/>
-    <stop offset="100%" stop-color="#8f7c63"/>
+
+  <linearGradient id="chartAreaBlue" x1="0" x2="0" y1="0" y2="1">
+    <stop offset="0%" stop-color="#00f0ff" stop-opacity="0.35"/>
+    <stop offset="100%" stop-color="#00f0ff" stop-opacity="0.0"/>
   </linearGradient>
-  <linearGradient id="dbgrad" x1="0" x2="1" y1="0" y2="1">
-    <stop offset="0%" stop-color="#8bc6e8"/>
-    <stop offset="55%" stop-color="#3373ac"/>
-    <stop offset="100%" stop-color="#21517a"/>
+  <linearGradient id="chartAreaGreen" x1="0" x2="0" y1="0" y2="1">
+    <stop offset="0%" stop-color="#38e68c" stop-opacity="0.35"/>
+    <stop offset="100%" stop-color="#38e68c" stop-opacity="0.0"/>
   </linearGradient>
+
+  <linearGradient id="pillTop" x1="0%" y1="0%" x2="0%" y2="100%">
+    <stop offset="0%" stop-color="#ffffff"/>
+    <stop offset="100%" stop-color="#e2eef7"/>
+  </linearGradient>
+  <linearGradient id="pillSide" x1="0%" y1="0%" x2="0%" y2="100%">
+    <stop offset="0%" stop-color="#92bcdc"/>
+    <stop offset="100%" stop-color="#5a8bac"/>
+  </linearGradient>
+
+  <linearGradient id="dbBodyGrad" x1="0" x2="1" y1="0" y2="0">
+    <stop offset="0%" stop-color="#1c4463"/>
+    <stop offset="30%" stop-color="#3571a5"/>
+    <stop offset="70%" stop-color="#3571a5"/>
+    <stop offset="100%" stop-color="#143147"/>
+  </linearGradient>
+  <linearGradient id="dbTopGrad" x1="0" x2="1" y1="0" y2="1">
+    <stop offset="0%" stop-color="#6baae0"/>
+    <stop offset="100%" stop-color="#2c608c"/>
+  </linearGradient>
+
+  <radialGradient id="sphereBlue" cx="35%" cy="30%" r="60%">
+    <stop offset="0%" stop-color="#d4f1fa"/><stop offset="40%" stop-color="#57b8d9"/><stop offset="100%" stop-color="#14546b"/>
+  </radialGradient>
+  <radialGradient id="sphereRed" cx="35%" cy="30%" r="60%">
+    <stop offset="0%" stop-color="#ffc2b3"/><stop offset="40%" stop-color="#f24d3d"/><stop offset="100%" stop-color="#7a1005"/>
+  </radialGradient>
+  
+  <pattern id="cyberGrid" width="40" height="40" patternUnits="userSpaceOnUse">
+    <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#cddce8" stroke-width="0.8" opacity="0.6"/>
+    <circle cx="0" cy="0" r="1.5" fill="#a9c2d6" opacity="0.5"/>
+  </pattern>
+
+  <filter id="softshadow" x="-20%" y="-20%" width="140%" height="160%">
+    <feDropShadow dx="0" dy="10" stdDeviation="12" flood-color="#4d6f8f" flood-opacity="0.15"/>
+  </filter>
+  <filter id="innershadow" x="-20%" y="-20%" width="140%" height="140%">
+    <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#afbfcc" flood-opacity="0.10"/>
+  </filter>
+  <filter id="glow">
+    <feGaussianBlur stdDeviation="2.5" result="coloredBlur"/>
+    <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
+  </filter>
+  <filter id="glowGreen">
+    <feGaussianBlur stdDeviation="2.5" result="coloredBlur"/>
+    <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
+  </filter>
+
+  <filter id="blocky3D" x="-50%" y="-50%" width="200%" height="200%">
+    <feDropShadow dx="-2.5" dy="3.5" stdDeviation="0" flood-color="#1a364f" flood-opacity="0.4"/>
+    <feDropShadow dx="-1" dy="2" stdDeviation="1.5" flood-color="#000000" flood-opacity="0.2"/>
+  </filter>
+  <filter id="cardShadow" x="-30%" y="-30%" width="160%" height="160%">
+    <feDropShadow dx="0" dy="6" stdDeviation="6" flood-color="#3a566e" flood-opacity="0.18"/>
+  </filter>
+  <filter id="atomShadow" x="-30%" y="-30%" width="160%" height="160%">
+    <feDropShadow dx="1.5" dy="4" stdDeviation="2.5" flood-color="#051421" flood-opacity="0.5"/>
+  </filter>
+
   <style>
-    .title{font:700 30px Arial, sans-serif; fill:#23435f}
-    .subtitle{font:600 18px Arial, sans-serif; fill:#4579A8}
-    .label{font:700 17px Arial, sans-serif; fill:#27445D}
-    .body{font:400 14px Arial, sans-serif; fill:#5B7282}
-    .small{font:600 13px Arial, sans-serif; fill:#5B7282}
-    .tiny{font:600 11px Arial, sans-serif; fill:#6d7d87}
+    .title{font:700 32px 'Inter','Segoe UI',Arial,sans-serif; fill:#112a40; letter-spacing:-0.2px}
+    .label{font:800 17px 'Inter','Segoe UI',Arial,sans-serif; fill:#18364f}
+    .body{font:400 14px 'Inter','Segoe UI',Arial,sans-serif; fill:#47657d}
+    .small{font:600 13px 'Inter','Segoe UI',Arial,sans-serif; fill:#47657d}
+    .tiny{font:600 11.5px 'Inter','Segoe UI',Arial,sans-serif; fill:#6a7e8c; letter-spacing:0.1px}
+    .neon-text{fill:#0099ff}
+    .neon-green{fill:#10b968}
+    .cyber-dot{fill:#ff0f00}
   </style>
 </defs>
 
 <rect x="0" y="0" width="1200" height="650" rx="28" fill="url(#bggrad)"/>
+<rect x="12" y="12" width="1176" height="626" rx="26" fill="#ffffff" filter="url(#softshadow)"/>
+<rect x="12" y="12" width="1176" height="626" rx="26" fill="url(#cyberGrid)"/>
+<rect x="12" y="12" width="1176" height="626" rx="26" fill="none" stroke="#e3ebf1" stroke-width="1.5" pointer-events="none"/>
 
 <text x="60" y="72" class="title">Database to downstream analysis</text>
+<g transform="translate(1034, 40)">
+  <rect x="0" y="3" width="118" height="34" rx="17" fill="url(#pillSide)" filter="url(#innershadow)"/>
+  <rect x="0" y="0" width="118" height="34" rx="17" fill="url(#pillTop)"/>
+  <circle cx="18" cy="17" r="4.5" class="cyber-dot" filter="url(#glow)"/>
+  <text x="66" y="22" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="13" font-weight="700" fill="#315f86" text-anchor="middle">Analysis</text>
+</g>
 <text x="60" y="104" class="body">Store poses once, then branch into ranking, interaction mining, and reporting.</text>
-<ellipse cx="174.0" cy="268" rx="80.0" ry="18" fill="#a8d2ee" stroke="#21517a" stroke-width="2"/><rect x="94" y="268" width="160" height="134" fill="url(#dbgrad)" stroke="#21517a" stroke-width="2"/><ellipse cx="174.0" cy="268" rx="80.0" ry="18" fill="none" stroke="#e8f5fc" stroke-width="4" opacity="0.92"/><ellipse cx="174.0" cy="304" rx="80.0" ry="18" fill="none" stroke="#e8f5fc" stroke-width="4" opacity="0.92"/><ellipse cx="174.0" cy="340" rx="80.0" ry="18" fill="none" stroke="#e8f5fc" stroke-width="4" opacity="0.92"/><ellipse cx="174.0" cy="402" rx="80.0" ry="18" fill="url(#dbgrad)" stroke="#21517a" stroke-width="2"/><text x="174.0" y="448" class="small" text-anchor="middle">poses / scores / interactions</text>
-<polygon points="263.4,338.7 380.2,230.9 384.9,236.0 390.0,215.0 368.6,218.4 373.4,223.5 256.6,331.3" fill="#4579A8" opacity="0.95"/>
-<polygon points="260.0,340.0 372.0,340.0 372.0,347.0 390.0,335.0 372.0,323.0 372.0,330.0 260.0,330.0" fill="#4579A8" opacity="0.95"/>
-<polygon points="256.5,338.6 373.6,451.1 368.7,456.2 390.0,460.0 385.3,438.9 380.5,443.9 263.5,331.4" fill="#4579A8" opacity="0.95"/>
-<rect x="390" y="150" width="220" height="120" rx="16" fill="#ffffff" stroke="#d8e3ea" stroke-width="2" /><line x1="406" y1="188" x2="594" y2="188" stroke="#d7e6ef" stroke-width="2"/><line x1="406" y1="208" x2="594" y2="208" stroke="#d7e6ef" stroke-width="2"/><line x1="406" y1="228" x2="594" y2="228" stroke="#d7e6ef" stroke-width="2"/><line x1="452" y1="168" x2="452" y2="252" stroke="#d7e6ef" stroke-width="2"/><line x1="498" y1="168" x2="498" y2="252" stroke="#d7e6ef" stroke-width="2"/><rect x="406" y="168" width="188" height="20" rx="8" fill="#EAF3F8"/><text x="500.0" y="292" class="tiny" text-anchor="middle">pose table / score table</text>
-<rect x="390" y="275" width="220" height="120" rx="16" fill="#ffffff" stroke="#d8e3ea" stroke-width="2" /><line x1="406" y1="313" x2="594" y2="313" stroke="#d7e6ef" stroke-width="2"/><line x1="406" y1="333" x2="594" y2="333" stroke="#d7e6ef" stroke-width="2"/><line x1="406" y1="353" x2="594" y2="353" stroke="#d7e6ef" stroke-width="2"/><line x1="452" y1="293" x2="452" y2="377" stroke="#d7e6ef" stroke-width="2"/><line x1="498" y1="293" x2="498" y2="377" stroke="#d7e6ef" stroke-width="2"/><rect x="406" y="293" width="188" height="20" rx="8" fill="#EAF3F8"/><text x="500.0" y="417" class="tiny" text-anchor="middle">interaction events / summaries</text>
-<rect x="400" y="420" width="190" height="150" rx="16" fill="#ffffff" stroke="#d8e3ea" stroke-width="2" /><rect x="412.0" y="432.0" width="30.200000000000003" height="22.2" rx="4" fill="#eaf3f8"/><rect x="445.2" y="432.0" width="30.200000000000003" height="22.2" rx="4" fill="#d6e7f1"/><rect x="478.4" y="432.0" width="30.200000000000003" height="22.2" rx="4" fill="#b5d2e5"/><rect x="511.6" y="432.0" width="30.200000000000003" height="22.2" rx="4" fill="#86bddc"/><rect x="544.8" y="432.0" width="30.200000000000003" height="22.2" rx="4" fill="#4579A8"/><rect x="412.0" y="457.2" width="30.200000000000003" height="22.2" rx="4" fill="#d6e7f1"/><rect x="445.2" y="457.2" width="30.200000000000003" height="22.2" rx="4" fill="#b5d2e5"/><rect x="478.4" y="457.2" width="30.200000000000003" height="22.2" rx="4" fill="#86bddc"/><rect x="511.6" y="457.2" width="30.200000000000003" height="22.2" rx="4" fill="#4579A8"/><rect x="544.8" y="457.2" width="30.200000000000003" height="22.2" rx="4" fill="#eaf3f8"/><rect x="412.0" y="482.4" width="30.200000000000003" height="22.2" rx="4" fill="#b5d2e5"/><rect x="445.2" y="482.4" width="30.200000000000003" height="22.2" rx="4" fill="#86bddc"/><rect x="478.4" y="482.4" width="30.200000000000003" height="22.2" rx="4" fill="#4579A8"/><rect x="511.6" y="482.4" width="30.200000000000003" height="22.2" rx="4" fill="#eaf3f8"/><rect x="544.8" y="482.4" width="30.200000000000003" height="22.2" rx="4" fill="#d6e7f1"/><rect x="412.0" y="507.6" width="30.200000000000003" height="22.2" rx="4" fill="#86bddc"/><rect x="445.2" y="507.6" width="30.200000000000003" height="22.2" rx="4" fill="#4579A8"/><rect x="478.4" y="507.6" width="30.200000000000003" height="22.2" rx="4" fill="#eaf3f8"/><rect x="511.6" y="507.6" width="30.200000000000003" height="22.2" rx="4" fill="#d6e7f1"/><rect x="544.8" y="507.6" width="30.200000000000003" height="22.2" rx="4" fill="#b5d2e5"/><rect x="412.0" y="532.8" width="30.200000000000003" height="22.2" rx="4" fill="#4579A8"/><rect x="445.2" y="532.8" width="30.200000000000003" height="22.2" rx="4" fill="#eaf3f8"/><rect x="478.4" y="532.8" width="30.200000000000003" height="22.2" rx="4" fill="#d6e7f1"/><rect x="511.6" y="532.8" width="30.200000000000003" height="22.2" rx="4" fill="#b5d2e5"/><rect x="544.8" y="532.8" width="30.200000000000003" height="22.2" rx="4" fill="#86bddc"/><text x="495.0" y="592" class="tiny" text-anchor="middle">fingerprints / similarity</text>
-<polygon points="615.0,214.0 742.0,214.0 742.0,219.6 760.0,210.0 742.0,200.4 742.0,206.0 615.0,206.0" fill="#8f7c63" opacity="0.95"/>
-<polygon points="615.0,339.0 742.0,339.0 742.0,344.6 760.0,335.0 742.0,325.4 742.0,331.0 615.0,331.0" fill="#8f7c63" opacity="0.95"/>
-<polygon points="595.7,498.9 743.0,472.2 744.0,477.7 760.0,465.0 740.6,458.8 741.6,464.3 594.3,491.1" fill="#8f7c63" opacity="0.95"/>
-<rect x="760" y="150" width="170" height="115" rx="16" fill="#ffffff" stroke="#d8e3ea" stroke-width="2" /><line x1="782" y1="243" x2="912" y2="243" stroke="#9fb6c8" stroke-width="2"/><line x1="782" y1="168" x2="782" y2="243" stroke="#9fb6c8" stroke-width="2"/><polyline points="788,225 820,210 850,233 882,184" fill="none" stroke="#4579A8" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><text x="845.0" y="287" class="tiny" text-anchor="middle">ranking / affinity</text>
-<rect x="760" y="285" width="170" height="115" rx="16" fill="#ffffff" stroke="#d8e3ea" stroke-width="2" /><line x1="782" y1="378" x2="912" y2="378" stroke="#9fb6c8" stroke-width="2"/><line x1="782" y1="303" x2="782" y2="378" stroke="#9fb6c8" stroke-width="2"/><polyline points="788,360 820,345 850,368 882,319" fill="none" stroke="#4579A8" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><text x="845.0" y="422" class="tiny" text-anchor="middle">screening metrics</text>
-<rect x="745" y="430" width="200" height="100" rx="22" fill="#ffffff" stroke="#d8e3ea" stroke-width="2" /><text x="767" y="465" class="label">Visualization</text><text x="767" y="492" class="body">barcode · heatmap · complex view</text>
-<polygon points="935.8,213.5 1069.8,222.3 1069.5,227.2 1088.0,220.0 1070.6,210.4 1070.3,215.3 936.2,206.5" fill="#4579A8" opacity="0.95"/>
-<polygon points="936.2,338.5 1070.3,329.7 1070.6,334.6 1088.0,325.0 1069.5,317.8 1069.8,322.7 935.8,331.5" fill="#4579A8" opacity="0.95"/>
-<polygon points="946.8,483.4 1071.4,452.7 1072.5,457.5 1088.0,445.0 1068.5,441.2 1069.7,445.9 945.2,476.6" fill="#4579A8" opacity="0.95"/>
-<rect x="1088" y="165" width="84" height="84" rx="22" fill="#eef5ed" stroke="#d8e3ea" stroke-width="2" />
-<text x="1130" y="215" class="label" text-anchor="middle">QC</text>
-<rect x="1088" y="285" width="84" height="84" rx="22" fill="#eaf3f8" stroke="#d8e3ea" stroke-width="2" />
-<text x="1130" y="335" class="label" text-anchor="middle">SAR</text>
-<rect x="1088" y="405" width="84" height="84" rx="22" fill="#f6f1e7" stroke="#d8e3ea" stroke-width="2" />
-<text x="1130" y="455" class="label" text-anchor="middle">Report</text>
+
+<!-- <g fill="none" stroke-linejoin="round" stroke-linecap="round">
+  <path d="M 230 300 C 310 300, 310 170, 390 170" stroke="#ff0f00" stroke-width="2.5" filter="url(#glow)"/>
+  <path d="M 240 335 L 390 337" stroke="#ff0f00" stroke-width="2.5" filter="url(#glow)"/>
+  <path d="M 230 370 C 310 370, 310 495, 400 495" stroke="#ff0f00" stroke-width="2.5" filter="url(#glow)"/>
+
+  <path d="M 610 188 L 760 188" stroke="#00f0ff" stroke-width="2.5" filter="url(#glow)"/>
+  <path d="M 610 342 L 760 342" stroke="#00f0ff" stroke-width="2.5" filter="url(#glow)"/>
+  <path d="M 590 500 L 745 500" stroke="#00f0ff" stroke-width="2.5" filter="url(#glow)"/>
+
+  <path d="M 930 188 L 1080 188" stroke="#00f0ff" stroke-width="2.5" filter="url(#glow)"/>
+  <path d="M 930 342 L 1080 342" stroke="#00f0ff" stroke-width="2.5" filter="url(#glow)"/>
+  <path d="M 985 500 L 1080 500" stroke="#00f0ff" stroke-width="2.5" filter="url(#glow)"/>
+</g> -->
+
+<g stroke="#00f0ff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none">
+  <g transform="translate(345, 178)"><path d="M 0 0 L 8 10 L 0 20" filter="url(#glow)"/><path d="M 6 0 L 14 10 L 6 20" filter="url(#glow)"/></g>
+  <g transform="translate(345, 332)"><path d="M 0 0 L 8 10 L 0 20" filter="url(#glow)"/><path d="M 6 0 L 14 10 L 6 20" filter="url(#glow)"/></g>
+  <g transform="translate(345, 490)"><path d="M 0 0 L 8 10 L 0 20" filter="url(#glow)"/><path d="M 6 0 L 14 10 L 6 20" filter="url(#glow)"/></g>
+  <g transform="translate(665, 178)"><path d="M 0 0 L 8 10 L 0 20" filter="url(#glow)"/><path d="M 6 0 L 14 10 L 6 20" filter="url(#glow)"/></g>
+  <g transform="translate(665, 332)"><path d="M 0 0 L 8 10 L 0 20" filter="url(#glow)"/><path d="M 6 0 L 14 10 L 6 20" filter="url(#glow)"/></g>
+  <g transform="translate(660, 490)"><path d="M 0 0 L 8 10 L 0 20" filter="url(#glow)"/><path d="M 6 0 L 14 10 L 6 20" filter="url(#glow)"/></g>
+  <g transform="translate(1000, 178)"><path d="M 0 0 L 8 10 L 0 20" filter="url(#glow)"/><path d="M 6 0 L 14 10 L 6 20" filter="url(#glow)"/></g>
+  <g transform="translate(1000, 332)"><path d="M 0 0 L 8 10 L 0 20" filter="url(#glow)"/><path d="M 6 0 L 14 10 L 6 20" filter="url(#glow)"/></g>
+  <g transform="translate(1000, 490)"><path d="M 0 0 L 8 10 L 0 20" filter="url(#glow)"/><path d="M 6 0 L 14 10 L 6 20" filter="url(#glow)"/></g>
+</g>
+<g transform="translate(100, 220) scale(0.9)">
+  <ellipse cx="80" cy="160" rx="100" ry="30" fill="#0b1b29" opacity="0.25" filter="url(#softshadow)"/>
+  <path d="M -10,25 L -10,160 A 90 25 0 0 0 170,160 L 170,25 Z" fill="url(#dbBodyGrad)" filter="url(#softshadow)"/>
+  <path d="M -10,65 A 90 25 0 0 0 170,65" fill="none" stroke="#163954" stroke-width="3"/>
+  <path d="M -10,65 A 90 25 0 0 0 170,65" fill="none" stroke="#4886b8" stroke-width="1" opacity="0.5" transform="translate(0,-1)"/>
+  <path d="M -10,105 A 90 25 0 0 0 170,105" fill="none" stroke="#163954" stroke-width="3"/>
+  <path d="M -10,105 A 90 25 0 0 0 170,105" fill="none" stroke="#4886b8" stroke-width="1" opacity="0.5" transform="translate(0,-1)"/>
+  <rect x="20" y="50" width="10" height="3" fill="#4df08d" rx="1.5" filter="url(#glow)"/>
+  <rect x="35" y="50" width="3" height="3" fill="#4df08d" rx="1.5"/>
+  <rect x="20" y="90" width="10" height="3" fill="#4df08d" rx="1.5" filter="url(#glow)"/>
+  <rect x="35" y="90" width="3" height="3" fill="#f04d4d" rx="1.5" filter="url(#glow)"/>
+  <rect x="20" y="130" width="10" height="3" fill="#4df08d" rx="1.5" filter="url(#glow)"/>
+  <rect x="35" y="130" width="3" height="3" fill="#4df08d" rx="1.5"/>
+  <ellipse cx="80" cy="25" rx="90" ry="25" fill="url(#dbTopGrad)" stroke="#81c1f2" stroke-width="2"/>
+  <ellipse cx="80" cy="25" rx="75" ry="18" fill="none" stroke="#e8f5fc" stroke-width="1.5" opacity="0.6"/>
+  <ellipse cx="80" cy="25" rx="55" ry="12" fill="none" stroke="#a9d6f5" stroke-width="0.8" opacity="0.4"/>
+  <text x="80.0" y="215" class="small" text-anchor="middle">poses / scores / interactions</text>
+</g>
+
+
+<g transform="translate(390, 120)">
+  <rect x="0" y="6" width="220" height="120" rx="20" fill="#a4c2d6" filter="url(#softshadow)"/>
+  <rect x="0" y="0" width="220" height="120" rx="20" fill="url(#glassBox)" stroke="url(#boxStroke)" stroke-width="1.5"/>
+  <g transform="translate(30, 20)">
+    <g filter="url(#cardShadow)">
+      <rect x="15" y="30" width="150" height="25" rx="5" fill="#e3edf4" stroke="#c9dceb" stroke-width="1.2"/>
+      <line x1="25" y1="42" x2="80" y2="42" stroke="#a0bed6" stroke-width="4" stroke-linecap="round"/>
+      <rect x="135" y="38" width="20" height="8" rx="4" fill="#a0bed6"/>
+    </g>
+    <g filter="url(#cardShadow)">
+      <rect x="8" y="15" width="150" height="25" rx="5" fill="#f0f6fa" stroke="#c9dceb" stroke-width="1.2"/>
+      <line x1="18" y1="27" x2="90" y2="27" stroke="#7a9db8" stroke-width="4" stroke-linecap="round"/>
+      <rect x="128" y="23" width="20" height="8" rx="4" fill="#7a9db8"/>
+    </g>
+    <g filter="url(#cardShadow)">
+      <rect x="0" y="0" width="150" height="25" rx="5" fill="#ffffff" stroke="#b1cbe0" stroke-width="1.2"/>
+      <line x1="10" y1="12" x2="100" y2="12" stroke="#3f76a3" stroke-width="4" stroke-linecap="round"/>
+      <rect x="120" y="8" width="20" height="8" rx="4" fill="#0099ff"/>
+    </g>
+  </g>
+  <text x="110.0" y="102" class="tiny" text-anchor="middle">pose table / score table</text>
+</g>
+
+<g transform="translate(390, 275)">
+  <rect x="0" y="6" width="220" height="120" rx="20" fill="#a4c2d6" filter="url(#softshadow)"/>
+  <rect x="0" y="0" width="220" height="120" rx="20" fill="url(#glassBox)" stroke="url(#boxStroke)" stroke-width="1.5"/>
+
+    <g transform="translate(25, 15)">
+      <g transform="translate(35, 38)">
+        <circle cx="0" cy="0" r="24" fill="none" stroke="#d6e7f1" stroke-width="1.5" stroke-dasharray="4 4" />
+        <circle cx="0" cy="0" r="12" fill="none" stroke="#a0bed6" stroke-width="2" />
+        <circle cx="-16" cy="-16" r="4" fill="#ef6a48" />
+        <circle cx="20" cy="-8" r="4" fill="#f4b93b" />
+        <circle cx="-5" cy="20" r="5" fill="#0099ff" filter="url(#glow)"/>
+      </g>
+      <path d="M 75 38 L 95 38" fill="none" stroke="#a0bed6" stroke-width="2" stroke-linecap="round" stroke-dasharray="3 3"/>
+      <polygon points="95,35 100,38 95,41" fill="#a0bed6"/>
+      <g transform="translate(110, 8)" filter="url(#cardShadow)">
+        <rect x="0" y="0" width="60" height="56" rx="6" fill="#ffffff" stroke="#b1cbe0" stroke-width="1.2"/>
+        <rect x="0" y="0" width="60" height="14" rx="6" fill="#e3edf4"/>
+        <rect x="8" y="22" width="30" height="4" rx="2" fill="#3f76a3"/>
+        <rect x="8" y="32" width="40" height="4" rx="2" fill="#a0bed6"/>
+        <rect x="8" y="42" width="20" height="4" rx="2" fill="#7a9db8"/>
+      </g>
+  </g>
+  
+  <text x="110.0" y="102" class="tiny" text-anchor="middle">interaction events / summaries</text>
+</g>
+
+<g transform="translate(400, 420)">
+  <rect x="0" y="6" width="190" height="160" rx="20" fill="#a4c2d6" filter="url(#softshadow)"/>
+  <rect x="0" y="0" width="190" height="160" rx="20" fill="url(#glassBox)" stroke="url(#boxStroke)" stroke-width="1.5"/>
+  <g filter="url(#blocky3D)" transform="translate(20, 15)">
+    <rect x="0" y="0" width="26" height="18" rx="3" fill="#eaf3f8"/>
+    <rect x="30" y="0" width="26" height="18" rx="3" fill="#d6e7f1"/>
+    <rect x="60" y="0" width="26" height="18" rx="3" fill="#b5d2e5"/>
+    <rect x="90" y="0" width="26" height="18" rx="3" fill="#86bddc"/>
+    <rect x="120" y="0" width="26" height="18" rx="3" fill="#3f76a3"/>
+    <rect x="0" y="22" width="26" height="18" rx="3" fill="#d6e7f1"/>
+    <rect x="30" y="22" width="26" height="18" rx="3" fill="#b5d2e5"/>
+    <rect x="60" y="22" width="26" height="18" rx="3" fill="#86bddc"/>
+    <rect x="90" y="22" width="26" height="18" rx="3" fill="#3f76a3"/>
+    <rect x="120" y="22" width="26" height="18" rx="3" fill="#eaf3f8"/>
+    <rect x="0" y="44" width="26" height="18" rx="3" fill="#b5d2e5"/>
+    <rect x="30" y="44" width="26" height="18" rx="3" fill="#86bddc"/>
+    <rect x="60" y="44" width="26" height="18" rx="3" fill="#3f76a3"/>
+    <rect x="90" y="44" width="26" height="18" rx="3" fill="#eaf3f8"/>
+    <rect x="120" y="44" width="26" height="18" rx="3" fill="#d6e7f1"/>
+    <rect x="0" y="66" width="26" height="18" rx="3" fill="#86bddc"/>
+    <rect x="30" y="66" width="26" height="18" rx="3" fill="#3f76a3"/>
+    <rect x="60" y="66" width="26" height="18" rx="3" fill="#eaf3f8"/>
+    <rect x="90" y="66" width="26" height="18" rx="3" fill="#d6e7f1"/>
+    <rect x="120" y="66" width="26" height="18" rx="3" fill="#b5d2e5"/>
+    <rect x="0" y="88" width="26" height="18" rx="3" fill="#3f76a3"/>
+    <rect x="30" y="88" width="26" height="18" rx="3" fill="#eaf3f8"/>
+    <rect x="60" y="88" width="26" height="18" rx="3" fill="#d6e7f1"/>
+    <rect x="90" y="88" width="26" height="18" rx="3" fill="#b5d2e5"/>
+    <rect x="120" y="88" width="26" height="18" rx="3" fill="#86bddc"/>
+  </g>
+  <text x="95.0" y="145" class="tiny" text-anchor="middle">fingerprints / similarity</text>
+</g>
+
+
+<g transform="translate(750, 130)">
+  <rect x="0" y="6" width="170" height="115" rx="20" fill="#a4c2d6" filter="url(#softshadow)"/>
+  <rect x="0" y="0" width="170" height="115" rx="20" fill="url(#glassBox)" stroke="url(#boxStroke)" stroke-width="1.5"/>
+  <g transform="translate(15, 15)">
+    <line x1="0" y1="60" x2="130" y2="60" stroke="#a0bed6" stroke-width="1.5" stroke-dasharray="3,3"/>
+    <line x1="0" y1="30" x2="130" y2="30" stroke="#a0bed6" stroke-width="1.5" stroke-dasharray="3,3"/>
+    <path d="M 10 65 L 40 45 L 70 70 L 120 15 L 120 75 L 10 75 Z" fill="url(#chartAreaBlue)"/>
+    <polyline points="10,65 40,45 70,70 120,15" fill="none" stroke="#00f0ff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" filter="url(#glow)"/>
+    <circle cx="40" cy="45" r="4" fill="#ffffff" stroke="#00f0ff" stroke-width="2"/>
+    <circle cx="70" cy="70" r="4" fill="#ffffff" stroke="#00f0ff" stroke-width="2"/>
+    <circle cx="120" cy="15" r="5" fill="#ffffff" stroke="#00f0ff" stroke-width="2" filter="url(#glow)"/>
+  </g>
+  <text x="85.0" y="100" class="tiny" text-anchor="middle">ranking / affinity</text>
+</g>
+
+<g transform="translate(750, 285)">
+  <rect x="0" y="6" width="170" height="115" rx="20" fill="#8cbfa2" filter="url(#softshadow)"/>
+  <rect x="0" y="0" width="170" height="115" rx="20" fill="url(#glassBoxAccent)" stroke="url(#boxStrokeGreen)" stroke-width="1.5"/>
+  <g transform="translate(20, 20)">
+    <line x1="0" y1="60" x2="130" y2="60" stroke="#9bc7ad" stroke-width="1.5" stroke-dasharray="3,3"/>
+    <line x1="0" y1="30" x2="130" y2="30" stroke="#9bc7ad" stroke-width="1.5" stroke-dasharray="3,3"/>
+    <path d="M 10 70 L 40 50 L 70 20 L 120 45 L 120 75 L 10 75 Z" fill="url(#chartAreaGreen)"/>
+    <polyline points="10,70 40,50 70,20 120,45" fill="none" stroke="#38e68c" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" filter="url(#glowGreen)"/>
+    <circle cx="40" cy="50" r="4" fill="#ffffff" stroke="#38e68c" stroke-width="2"/>
+    <circle cx="70" cy="20" r="5" fill="#ffffff" stroke="#38e68c" stroke-width="2" filter="url(#glowGreen)"/>
+    <circle cx="120" cy="45" r="4" fill="#ffffff" stroke="#38e68c" stroke-width="2"/>
+  </g>
+  <text x="85.0" y="100" class="tiny" text-anchor="middle">screening metrics</text>
+</g>
+
+<g transform="translate(720, 450)">
+  <rect x="0" y="6" width="240" height="100" rx="20" fill="#a4c2d6" filter="url(#softshadow)"/>
+  <rect x="0" y="0" width="240" height="100" rx="20" fill="url(#glassBox)" stroke="url(#boxStroke)" stroke-width="1.5"/>
+  <g transform="translate(190, 45)">
+    <line x1="-15" y1="-10" x2="10" y2="10" stroke="#cbd6e0" stroke-width="3" stroke-linecap="round"/>
+    <line x1="-15" y1="-10" x2="-10" y2="15" stroke="#cbd6e0" stroke-width="3" stroke-linecap="round"/>
+    <circle cx="-15" cy="-10" r="8" fill="url(#sphereRed)" filter="url(#atomShadow)"/>
+    <circle cx="10" cy="10" r="6" fill="url(#sphereBlue)" filter="url(#atomShadow)"/>
+    <circle cx="-10" cy="15" r="7" fill="url(#sphereBlue)" filter="url(#atomShadow)"/>
+  </g>
+  <g transform="translate(135, 15)" fill="#3f76a3" opacity="0.6">
+    <rect x="0" y="0" width="3" height="30" rx="1"/>
+    <rect x="5" y="0" width="2" height="30" rx="1"/>
+    <rect x="9" y="0" width="5" height="30" rx="2"/>
+    <rect x="16" y="0" width="1" height="30" rx="0.5"/>
+    <rect x="19" y="0" width="4" height="30" rx="1.5"/>
+  </g>
+  <text x="22" y="35" class="label">Visualization</text>
+  <text x="22" y="65" class="body"> barcode &#183; heatmap</text>
+  <text x="22" y="85" class="body"> complex view</text>
+  <rect x="15" y="15" width="4" height="25" rx="2" fill="#00f0ff" filter="url(#glow)"/>
+</g>
+
+
+<g transform="translate(1060, 145)">
+  <rect x="0" y="6" width="84" height="84" rx="22" fill="#a4c2d6" filter="url(#softshadow)"/>
+  <rect x="0" y="0" width="84" height="84" rx="22" fill="url(#glassBox)" stroke="#81c1f2" stroke-width="2"/>
+  <circle cx="42" cy="30" r="14" fill="#eaf3f8" stroke="#00f0ff" stroke-width="2"/>
+  <circle cx="42" cy="30" r="6" fill="#00f0ff" filter="url(#glow)"/>
+  <text x="42" y="65" class="label" text-anchor="middle">QC</text>
+</g>
+
+<g transform="translate(1060, 295)">
+  <rect x="0" y="6" width="84" height="84" rx="22" fill="#a4c2d6" filter="url(#softshadow)"/>
+  <rect x="0" y="0" width="84" height="84" rx="22" fill="url(#glassBox)" stroke="#81c1f2" stroke-width="2"/>
+  <circle cx="42" cy="30" r="14" fill="#eaf3f8" stroke="#3f76a3" stroke-width="2"/>
+  <line x1="37" y1="25" x2="47" y2="35" stroke="#3f76a3" stroke-width="2"/>
+  <circle cx="37" cy="25" r="3" fill="#3f76a3"/>
+  <circle cx="47" cy="35" r="3" fill="#00f0ff" filter="url(#glow)"/>
+  <text x="42" y="65" class="label" text-anchor="middle">SAR</text>
+</g>
+
+<g transform="translate(1060, 465)">
+  <rect x="0" y="6" width="84" height="84" rx="22" fill="#a4c2d6" filter="url(#softshadow)"/>
+  <rect x="0" y="0" width="84" height="84" rx="22" fill="url(#glassBox)" stroke="#81c1f2" stroke-width="2"/>
+  <rect x="32" y="16" width="20" height="26" rx="3" fill="none" stroke="#3f76a3" stroke-width="2"/>
+  <line x1="37" y1="24" x2="47" y2="24" stroke="#3f76a3" stroke-width="2" stroke-linecap="round"/>
+  <line x1="37" y1="30" x2="47" y2="30" stroke="#00f0ff" stroke-width="2" stroke-linecap="round" filter="url(#glow)"/>
+  <line x1="37" y1="36" x2="43" y2="36" stroke="#3f76a3" stroke-width="2" stroke-linecap="round"/>
+  <text x="42" y="65" class="label" text-anchor="middle">Report</text>
+</g>
 
 </svg>

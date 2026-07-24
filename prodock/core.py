@@ -72,6 +72,7 @@ import pandas as pd
 from prodock.database import PoseDatabase
 from prodock.dock import BatchDock
 from prodock.dock.campaign import Campaign
+from prodock.io.logging import get_logger, setup_logging
 from prodock.postprocess.interaction.core import (
     InteractionProfiler,
     extract_pose_table_interactions,
@@ -83,6 +84,8 @@ from prodock.structure import PDBQuery
 
 PathLike = Union[str, Path]
 Vec3 = Tuple[float, float, float]
+
+logger = get_logger(__name__)
 
 
 @dataclass(frozen=True)
@@ -288,6 +291,10 @@ class ProDockPipeline:
         box_scale: float = 2.0,
         box_isotropic: bool = True,
         campaign_name: str = "campaign.json",
+        log_file: str = "prodock.log",
+        log_level: Union[str, int] = "INFO",
+        log_colored: bool = True,
+        log_json: bool = False,
     ) -> None:
         """
         Initialize a ProDock pipeline.
@@ -340,6 +347,15 @@ class ProDockPipeline:
         self.project_dir = Path(project_dir).resolve()
         self.project_dir.mkdir(parents=True, exist_ok=True)
 
+        setup_logging(
+            log_dir=self.project_dir,
+            log_file=log_file,
+            level=log_level,
+            colored=log_colored,
+            json=log_json,
+        )
+        self.logger = get_logger(__name__)
+
         self.engines = list(engines or ["smina", "qvina"])
         self.cpu = cpu
         self.seed = seed
@@ -355,6 +371,26 @@ class ProDockPipeline:
         self.box_scale = box_scale
         self.box_isotropic = box_isotropic
         self.campaign_name = campaign_name
+
+        self.logger.info(
+            "Initialized ProDockPipeline | project_dir=%s | engines=%s | cpu=%s | "
+            "n_jobs=%s | seed=%s | exhaustiveness=%s | n_poses=%s | "
+            "receptor_use_meeko=%s | ligand_output_format=%s | ligand_backend=%s | "
+            "box_scale=%s | box_isotropic=%s | campaign_name=%s",
+            self.project_dir,
+            self.engines,
+            self.cpu,
+            self.n_jobs,
+            self.seed,
+            self.exhaustiveness,
+            self.n_poses,
+            self.receptor_use_meeko,
+            self.ligand_output_format,
+            self.ligand_backend,
+            self.box_scale,
+            self.box_isotropic,
+            self.campaign_name,
+        )
 
     @staticmethod
     def _as_vec3(value: Sequence[float], *, field_name: str) -> Vec3:
@@ -396,10 +432,18 @@ class ProDockPipeline:
         """
         p = Path(path)
         if p.is_absolute():
-            return p.resolve()
+            resolved = p.resolve()
+            self.logger.debug("Resolved absolute path: %s -> %s", path, resolved)
+            return resolved
         if p.exists():
-            return p.resolve()
-        return (self.project_dir / p).resolve()
+            resolved = p.resolve()
+            self.logger.debug(
+                "Resolved existing relative path from cwd: %s -> %s", path, resolved
+            )
+            return resolved
+        resolved = (self.project_dir / p).resolve()
+        self.logger.debug("Resolved project-relative path: %s -> %s", path, resolved)
+        return resolved
 
     def _resolve_db_path(self, db_name: PathLike) -> Path:
         """
@@ -417,8 +461,14 @@ class ProDockPipeline:
         """
         p = Path(db_name)
         if p.is_absolute():
-            return p.resolve()
-        return (self.project_dir / p).resolve()
+            resolved = p.resolve()
+            self.logger.debug("Resolved absolute db path: %s -> %s", db_name, resolved)
+            return resolved
+        resolved = (self.project_dir / p).resolve()
+        self.logger.debug(
+            "Resolved project-relative db path: %s -> %s", db_name, resolved
+        )
+        return resolved
 
     @staticmethod
     def _infer_receptor_id_from_path(path: Path) -> str:
@@ -453,7 +503,13 @@ class ProDockPipeline:
         """
         pdb_id = str(record["pdb_id"])
         ligand_code = str(record["ligand_code"])
-        return self.project_dir / pdb_id / "reference_ligand" / f"{ligand_code}.sdf"
+        ref_path = self.project_dir / pdb_id / "reference_ligand" / f"{ligand_code}.sdf"
+        self.logger.debug(
+            "Default reference ligand path for receptor %s: %s",
+            pdb_id,
+            ref_path,
+        )
+        return ref_path
 
     def _box_from_record(self, record: Dict[str, Any]) -> Tuple[Vec3, Vec3]:
         """
@@ -493,9 +549,17 @@ class ProDockPipeline:
                 }
             )
         """
+        pdb_id = str(record.get("pdb_id", "<unknown>"))
+
         if record.get("center") is not None and record.get("size") is not None:
             center = self._as_vec3(record["center"], field_name="center")
             size = self._as_vec3(record["size"], field_name="size")
+            self.logger.info(
+                "Using explicit box for receptor %s | center=%s | size=%s",
+                pdb_id,
+                center,
+                size,
+            )
             return center, size
 
         ref_path = record.get("reference_ligand")
@@ -516,6 +580,15 @@ class ProDockPipeline:
         if not fmt:
             fmt = "sdf"
 
+        self.logger.info(
+            "Deriving docking box from reference ligand for receptor %s | path=%s | fmt=%s | scale=%s | isotropic=%s",
+            pdb_id,
+            ref_path,
+            fmt,
+            self.box_scale,
+            self.box_isotropic,
+        )
+
         gb = (
             GridBox()
             .load_ligand(str(ref_path), fmt=fmt)
@@ -526,6 +599,13 @@ class ProDockPipeline:
         )
         center = self._as_vec3(gb.center, field_name="center")
         size = self._as_vec3(gb.size, field_name="size")
+
+        self.logger.info(
+            "Computed box for receptor %s | center=%s | size=%s",
+            pdb_id,
+            center,
+            size,
+        )
         return center, size
 
     def _build_receptor_pdb_map(
@@ -558,8 +638,19 @@ class ProDockPipeline:
         """
         receptor_pdb_by_id: Dict[str, Path] = {}
 
+        self.logger.info(
+            "Building receptor PDB map for %d prepared receptors",
+            len(receptor_specs),
+        )
+
         for spec in receptor_specs:
             pdb_path = spec.receptor_pdbqt.with_suffix(".pdb")
+            self.logger.debug(
+                "Inferring receptor PDB path | receptor_id=%s | pdbqt=%s | pdb=%s",
+                spec.receptor_id,
+                spec.receptor_pdbqt,
+                pdb_path,
+            )
             if not pdb_path.exists():
                 raise FileNotFoundError(
                     "Could not infer receptor PDB file from prepared receptor "
@@ -567,6 +658,9 @@ class ProDockPipeline:
                 )
             receptor_pdb_by_id[spec.receptor_id] = pdb_path.resolve()
 
+        self.logger.info(
+            "Built receptor PDB map with %d entries", len(receptor_pdb_by_id)
+        )
         return receptor_pdb_by_id
 
     def prepare_receptors(
@@ -637,14 +731,24 @@ class ProDockPipeline:
         has_raw = receptors is not None
         has_prepared = prepared_receptors is not None
 
+        self.logger.info(
+            "Preparing receptors | raw_mode=%s | prepared_mode=%s",
+            has_raw,
+            has_prepared,
+        )
+
         if has_raw == has_prepared:
             raise ValueError(
                 "Provide exactly one of 'receptors' or 'prepared_receptors'."
             )
 
         if prepared_receptors is not None:
+            self.logger.info(
+                "Using prepared receptor mode with %d receptor records",
+                len(prepared_receptors),
+            )
             specs: List[PreparedReceptorSpec] = []
-            for item in prepared_receptors:
+            for idx, item in enumerate(prepared_receptors, start=1):
                 receptor_path = item.get("receptor_pdbqt", item.get("receptor"))
                 if receptor_path is None:
                     raise ValueError(
@@ -661,6 +765,15 @@ class ProDockPipeline:
                 center = self._as_vec3(item["center"], field_name="center")
                 size = self._as_vec3(item["size"], field_name="size")
 
+                self.logger.debug(
+                    "Prepared receptor record %d | receptor_id=%s | path=%s | center=%s | size=%s",
+                    idx,
+                    receptor_id,
+                    receptor_path,
+                    center,
+                    size,
+                )
+
                 if not receptor_path.exists():
                     raise FileNotFoundError(
                         f"Prepared receptor file not found: {receptor_path}"
@@ -674,18 +787,37 @@ class ProDockPipeline:
                         size=size,
                     )
                 )
+
+            self.logger.info(
+                "Prepared receptor mode complete | receptors=%d", len(specs)
+            )
             return specs
 
         assert receptors is not None
 
+        self.logger.info(
+            "Using raw receptor mode with %d receptor records", len(receptors)
+        )
         PDBQuery.process_batch(receptors, output_dir=str(self.project_dir))
+        self.logger.info(
+            "PDBQuery.process_batch completed | output_dir=%s", self.project_dir
+        )
 
         specs: List[PreparedReceptorSpec] = []
-        for record in receptors:
+        for idx, record in enumerate(receptors, start=1):
             pdb_id = str(record["pdb_id"])
             filtered_dir = self.project_dir / pdb_id / "filtered_protein"
             input_pdb = filtered_dir / f"{pdb_id}.pdb"
             output_pdbqt = filtered_dir / f"{pdb_id}.pdbqt"
+
+            self.logger.info(
+                "Preparing receptor %d/%d | pdb_id=%s | input_pdb=%s | output_pdbqt=%s",
+                idx,
+                len(receptors),
+                pdb_id,
+                input_pdb,
+                output_pdbqt,
+            )
 
             if not input_pdb.exists():
                 raise FileNotFoundError(
@@ -700,6 +832,12 @@ class ProDockPipeline:
                 add_prep_suffix=False,
             )
 
+            self.logger.debug(
+                "Receptor preparation finished | pdb_id=%s | output_dir=%s",
+                pdb_id,
+                filtered_dir,
+            )
+
             center, size = self._box_from_record(record)
 
             specs.append(
@@ -711,6 +849,7 @@ class ProDockPipeline:
                 )
             )
 
+        self.logger.info("Raw receptor preparation complete | receptors=%d", len(specs))
         return specs
 
     def prepare_ligands(
@@ -767,11 +906,18 @@ class ProDockPipeline:
         has_ligands = ligands is not None
         has_ligand_dir = ligand_dir is not None
 
+        self.logger.info(
+            "Preparing ligands | smiles_mode=%s | directory_mode=%s",
+            has_ligands,
+            has_ligand_dir,
+        )
+
         if has_ligands == has_ligand_dir:
             raise ValueError("Provide exactly one of 'ligands' or 'ligand_dir'.")
 
         if ligand_dir is not None:
             resolved = self._resolve_path(ligand_dir)
+            self.logger.info("Using existing ligand directory: %s", resolved)
             if not resolved.exists():
                 raise FileNotFoundError(f"Ligand directory not found: {resolved}")
             if not resolved.is_dir():
@@ -783,19 +929,31 @@ class ProDockPipeline:
         out_dir = self.project_dir / "ligands"
         out_dir.mkdir(parents=True, exist_ok=True)
 
+        self.logger.info(
+            "Preparing %d ligands from SMILES into %s | output_format=%s | backend=%s | seed=%s",
+            len(ligands),
+            out_dir,
+            self.ligand_output_format,
+            self.ligand_backend,
+            self.seed,
+        )
+
         (
             LigandPrep(
                 output_dir=str(out_dir),
                 smiles_key="smiles",
                 name_key="id",
             )
+            .set_conformer_seed(self.seed)
             .set_output_format(self.ligand_output_format)
             .set_converter_backend(self.ligand_backend)
             .from_list_of_dicts(ligands)
             .process_all()
         )
 
-        return out_dir.resolve()
+        resolved = out_dir.resolve()
+        self.logger.info("Ligand preparation complete | ligand_dir=%s", resolved)
+        return resolved
 
     def build_campaign(
         self,
@@ -833,7 +991,16 @@ class ProDockPipeline:
         receptors = [str(spec.receptor_pdbqt) for spec in receptor_specs]
         boxes = [(spec.center, spec.size) for spec in receptor_specs]
 
-        return Campaign.from_shared_ligand_dir(
+        self.logger.info(
+            "Building campaign | project_dir=%s | receptors=%d | ligand_dir=%s | engines=%s",
+            self.project_dir,
+            len(receptor_specs),
+            ligand_dir,
+            self.engines,
+        )
+        self.logger.debug("Campaign receptor_ids=%s", pdb_ids)
+
+        campaign = Campaign.from_shared_ligand_dir(
             working_dir=str(self.project_dir),
             pdb_ids=pdb_ids,
             receptors=receptors,
@@ -845,6 +1012,9 @@ class ProDockPipeline:
             exhaustiveness=self.exhaustiveness,
             n_poses=self.n_poses,
         )
+
+        self.logger.info("Campaign construction complete")
+        return campaign
 
     def save_campaign(
         self,
@@ -875,10 +1045,13 @@ class ProDockPipeline:
         """
         name = campaign_name or self.campaign_name
         out_path = self.project_dir / name
+        self.logger.info("Saving campaign JSON to %s", out_path)
         campaign.save_json(str(out_path))
-        return out_path.resolve()
+        resolved = out_path.resolve()
+        self.logger.info("Campaign JSON written: %s", resolved)
+        return resolved
 
-    def crawl_poses(self, *, backend: str = "obabel") -> pd.DataFrame:
+    def crawl_poses(self, *, backend: str = "auto") -> pd.DataFrame:
         """
         Crawl docked poses from the project directory.
 
@@ -900,8 +1073,21 @@ class ProDockPipeline:
             pose_df = pipeline.crawl_poses(backend="obabel")
             print(pose_df.head())
         """
+        self.logger.info(
+            "Crawling poses from project directory | root=%s | backend=%s",
+            self.project_dir,
+            backend,
+        )
         crawler = PoseCrawler([str(self.project_dir)])
-        return crawler.crawl_mols(backend=backend)
+        pose_df = crawler.crawl_mols(backend=backend)
+
+        self.logger.info(
+            "Pose crawling complete | rows=%d | columns=%d",
+            len(pose_df),
+            len(pose_df.columns),
+        )
+        self.logger.debug("Pose dataframe columns=%s", list(pose_df.columns))
+        return pose_df
 
     def extract_interactions(
         self,
@@ -984,10 +1170,32 @@ class ProDockPipeline:
             summary_df = interaction_result.summary_df
             compact = interaction_result.summary_dict(kind="compact")
         """
+        self.logger.info(
+            "Starting interaction extraction | poses=%d | receptors=%d | batch_size=%d | "
+            "progress=%s | n_jobs=%d | use_profiler=%s | include_fingerprint_columns=%s | "
+            "include_interaction_events=%s | include_bitvectors=%s | include_countvectors=%s | fail_fast=%s",
+            len(poses),
+            len(receptor_specs),
+            batch_size,
+            progress,
+            n_jobs,
+            use_profiler,
+            include_fingerprint_columns,
+            include_interaction_events,
+            include_bitvectors,
+            include_countvectors,
+            fail_fast,
+        )
+
         receptor_pdb_by_id = self._build_receptor_pdb_map(receptor_specs)
         receptor_pdb_by_id_str = {k: str(v) for k, v in receptor_pdb_by_id.items()}
+        self.logger.debug(
+            "Interaction receptor_pdb_by_id keys=%s",
+            list(receptor_pdb_by_id_str.keys()),
+        )
 
         if use_profiler:
+            self.logger.info("Using InteractionProfiler.run_pose_table")
             profiler = InteractionProfiler()
             result = profiler.run_pose_table(
                 poses=poses,
@@ -1002,6 +1210,7 @@ class ProDockPipeline:
                 fail_fast=fail_fast,
             )
         else:
+            self.logger.info("Using extract_pose_table_interactions")
             result = extract_pose_table_interactions(
                 poses=poses,
                 receptor_pdb_by_id=receptor_pdb_by_id_str,
@@ -1015,6 +1224,28 @@ class ProDockPipeline:
                 fail_fast=fail_fast,
             )
 
+        merged_rows = (
+            len(result.merged_df)
+            if getattr(result, "merged_df", None) is not None
+            else 0
+        )
+        interaction_rows = (
+            len(result.interaction_df)
+            if getattr(result, "interaction_df", None) is not None
+            else 0
+        )
+        summary_rows = (
+            len(result.summary_df)
+            if getattr(result, "summary_df", None) is not None
+            else 0
+        )
+
+        self.logger.info(
+            "Interaction extraction complete | merged_rows=%d | interaction_rows=%d | summary_rows=%d",
+            merged_rows,
+            interaction_rows,
+            summary_rows,
+        )
         return result, receptor_pdb_by_id
 
     def save_database(
@@ -1068,6 +1299,18 @@ class ProDockPipeline:
         db_path = self._resolve_db_path(db_name)
         db_path.parent.mkdir(parents=True, exist_ok=True)
 
+        self.logger.info(
+            "Saving results to database | db_path=%s | rows=%d | columns=%d | "
+            "with_interactions=%s | replace=%s | replace_interactions=%s",
+            db_path,
+            len(df),
+            len(df.columns),
+            interactions_by_pose is not None,
+            replace,
+            replace_interactions,
+        )
+        self.logger.debug("Database dataframe columns=%s", list(df.columns))
+
         db = PoseDatabase(str(db_path), create=True)
 
         if interactions_by_pose is None:
@@ -1083,7 +1326,9 @@ class ProDockPipeline:
                 replace_interactions=replace_interactions,
             )
 
-        return db_path.resolve()
+        resolved = db_path.resolve()
+        self.logger.info("Database write complete | db_path=%s", resolved)
+        return resolved
 
     def run(
         self,
@@ -1093,7 +1338,7 @@ class ProDockPipeline:
         ligands: Optional[List[Dict[str, str]]] = None,
         ligand_dir: Optional[PathLike] = None,
         campaign_name: Optional[str] = None,
-        crawl_backend: str = "obabel",
+        crawl_backend: str = "backend",
         extract_interaction: bool = False,
         interaction_batch_size: int = 1,
         interaction_progress: bool = False,
@@ -1224,15 +1469,27 @@ class ProDockPipeline:
                 interaction_n_jobs=1,
             )
         """
+        self.logger.info(
+            "Starting ProDock pipeline run | project_dir=%s | extract_interaction=%s | "
+            "save_to_database=%s | crawl_backend=%s | db_name=%s",
+            self.project_dir,
+            extract_interaction,
+            save_to_database,
+            crawl_backend,
+            db_name,
+        )
+
         receptor_specs = self.prepare_receptors(
             receptors=receptors,
             prepared_receptors=prepared_receptors,
         )
+        self.logger.info("Receptor stage complete | receptors=%d", len(receptor_specs))
 
         final_ligand_dir = self.prepare_ligands(
             ligands=ligands,
             ligand_dir=ligand_dir,
         )
+        self.logger.info("Ligand stage complete | ligand_dir=%s", final_ligand_dir)
 
         campaign = self.build_campaign(
             receptor_specs=receptor_specs,
@@ -1244,8 +1501,15 @@ class ProDockPipeline:
             campaign_name=campaign_name,
         )
 
+        self.logger.info(
+            "Launching batch docking | campaign_json=%s | n_jobs=%s | progress=%s",
+            campaign_json,
+            self.n_jobs,
+            self.progress,
+        )
         runner = BatchDock(n_jobs=self.n_jobs, progress=self.progress)
         docking_results = runner.run_from_config(str(campaign_json))
+        self.logger.info("Batch docking complete")
 
         pose_df = self.crawl_poses(backend=crawl_backend)
 
@@ -1257,6 +1521,7 @@ class ProDockPipeline:
         compact_interactions: Optional[Dict[str, Any]] = None
 
         if extract_interaction:
+            self.logger.info("Interaction extraction enabled")
             interaction_result, receptor_pdb_by_id = self.extract_interactions(
                 poses=pose_df,
                 receptor_specs=receptor_specs,
@@ -1275,7 +1540,15 @@ class ProDockPipeline:
             interaction_df = interaction_result.interaction_df
             summary_df = interaction_result.summary_df
             compact_interactions = interaction_result.summary_dict(kind="compact")
+
+            self.logger.info(
+                "Interaction stage complete | merged_rows=%d | interaction_rows=%s | summary_rows=%s",
+                len(merged_df),
+                None if interaction_df is None else len(interaction_df),
+                None if summary_df is None else len(summary_df),
+            )
         else:
+            self.logger.info("Interaction extraction skipped")
             receptor_pdb_by_id = self._build_receptor_pdb_map(receptor_specs)
 
         db_path: Optional[Path] = None
@@ -1287,8 +1560,10 @@ class ProDockPipeline:
                 replace=replace,
                 replace_interactions=replace_interactions,
             )
+        else:
+            self.logger.info("Database writing skipped")
 
-        return ProDockResult(
+        result = ProDockResult(
             project_dir=self.project_dir,
             ligand_dir=final_ligand_dir,
             campaign_json=campaign_json,
@@ -1304,6 +1579,17 @@ class ProDockPipeline:
             compact_interactions=compact_interactions,
             db_path=db_path,
         )
+
+        self.logger.info(
+            "ProDock pipeline run complete | project_dir=%s | campaign_json=%s | "
+            "pose_rows=%d | merged_rows=%d | db_path=%s",
+            result.project_dir,
+            result.campaign_json,
+            len(result.pose_df),
+            len(result.merged_df),
+            result.db_path,
+        )
+        return result
 
 
 def prodock(
@@ -1326,7 +1612,7 @@ def prodock(
     box_scale: float = 2.0,
     box_isotropic: bool = True,
     campaign_name: str = "campaign.json",
-    crawl_backend: str = "obabel",
+    crawl_backend: str = "auto",
     extract_interaction: bool = False,
     interaction_batch_size: int = 1,
     interaction_progress: bool = False,
@@ -1341,6 +1627,10 @@ def prodock(
     db_name: PathLike = "prodock.db",
     replace: bool = True,
     replace_interactions: bool = True,
+    log_file: str = "prodock.log",
+    log_level: Union[str, int] = "INFO",
+    log_colored: bool = True,
+    log_json: bool = False,
 ) -> ProDockResult:
     """
     Functional wrapper around :class:`ProDockPipeline`.
@@ -1519,6 +1809,14 @@ def prodock(
 
         print(result.summary_df.head())
     """
+    logger.info(
+        "prodock() called | project_dir=%s | extract_interaction=%s | save_to_database=%s | engines=%s",
+        project_dir,
+        extract_interaction,
+        save_to_database,
+        engines,
+    )
+
     pipeline = ProDockPipeline(
         project_dir=project_dir,
         engines=engines,
@@ -1534,9 +1832,13 @@ def prodock(
         box_scale=box_scale,
         box_isotropic=box_isotropic,
         campaign_name=campaign_name,
+        log_file=log_file,
+        log_level=log_level,
+        log_colored=log_colored,
+        log_json=log_json,
     )
 
-    return pipeline.run(
+    result = pipeline.run(
         receptors=receptors,
         prepared_receptors=prepared_receptors,
         ligands=ligands,
@@ -1558,6 +1860,14 @@ def prodock(
         replace=replace,
         replace_interactions=replace_interactions,
     )
+
+    logger.info(
+        "prodock() complete | campaign_json=%s | db_path=%s | pose_rows=%d",
+        result.campaign_json,
+        result.db_path,
+        len(result.pose_df),
+    )
+    return result
 
 
 run_prodock = prodock

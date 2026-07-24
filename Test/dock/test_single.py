@@ -1,3 +1,4 @@
+import sys
 import json
 import tempfile
 import unittest
@@ -7,6 +8,8 @@ import prodock.dock.single as single_mod
 from prodock.dock.base import RunArtifacts
 from prodock.dock.config import Box, SingleConfig
 from prodock.dock.single import SingleDock, SingleResult
+
+IS_LINUX = sys.platform.startswith("linux")
 
 
 class DummyBackend:
@@ -80,6 +83,7 @@ class DummyBackendNoSetExecutable(DummyBackend):
         raise AttributeError("set_executable intentionally unsupported")
 
 
+@unittest.skipUnless(IS_LINUX, "QVina integration tests run only on Linux")
 class TestSingleDock(unittest.TestCase):
     def setUp(self) -> None:
         self.tmpdir = tempfile.TemporaryDirectory()
@@ -369,6 +373,7 @@ class TestSingleDock(unittest.TestCase):
         self.assertEqual(dock._log, Path("tmp/erlotinib_qvina.log"))
 
 
+@unittest.skipUnless(IS_LINUX, "QVina integration tests run only on Linux")
 class TestSingleDockQVinaReal(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:

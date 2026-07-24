@@ -1,75 +1,347 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="680" viewBox="0 0 1200 680">
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="740" viewBox="0 0 1200 740">
 
 <defs>
   <linearGradient id="bggrad" x1="0" x2="1" y1="0" y2="1">
-    <stop offset="0%" stop-color="#fbfdff"/>
-    <stop offset="100%" stop-color="#eef4f7"/>
+    <stop offset="0%" stop-color="#f0f5fa"/>
+    <stop offset="100%" stop-color="#e0eef8"/>
   </linearGradient>
-  <linearGradient id="bluegrad" x1="0" x2="1" y1="0" y2="1">
-    <stop offset="0%" stop-color="#86bddc"/>
-    <stop offset="100%" stop-color="#366c98"/>
+
+    <linearGradient id="navygrad" x1="0" x2="1" y1="0" y2="1">
+    <stop offset="0%" stop-color="#376789"/>
+    <stop offset="100%" stop-color="#1f425f"/>
   </linearGradient>
-  <linearGradient id="navygrad" x1="0" x2="1" y1="0" y2="1">
-    <stop offset="0%" stop-color="#2f5d82"/>
-    <stop offset="100%" stop-color="#1c3950"/>
+    <linearGradient id="bluegrad" x1="0" x2="1" y1="0" y2="1">
+    <stop offset="0%" stop-color="#9cc6df"/>
+    <stop offset="100%" stop-color="#4f87b0"/>
   </linearGradient>
-  <linearGradient id="ambergrad" x1="0" x2="1" y1="0" y2="1">
-    <stop offset="0%" stop-color="#f6c86d"/>
-    <stop offset="100%" stop-color="#c48d2d"/>
+
+  <linearGradient id="glassBox" x1="0%" y1="0%" x2="100%" y2="100%">
+    <stop offset="0%" stop-color="#ffffff" stop-opacity="0.95"/>
+    <stop offset="100%" stop-color="#eaf3f8" stop-opacity="0.85"/>
   </linearGradient>
-  <linearGradient id="sagegrad" x1="0" x2="1" y1="0" y2="1">
-    <stop offset="0%" stop-color="#9ab694"/>
-    <stop offset="100%" stop-color="#6d856d"/>
+  <linearGradient id="glassBoxAccent" x1="0%" y1="0%" x2="100%" y2="100%">
+    <stop offset="0%" stop-color="#f2fcf6" stop-opacity="0.95"/>
+    <stop offset="100%" stop-color="#e0f5e8" stop-opacity="0.85"/>
   </linearGradient>
-  <linearGradient id="stonegrad" x1="0" x2="1" y1="0" y2="1">
-    <stop offset="0%" stop-color="#c8bcaa"/>
-    <stop offset="100%" stop-color="#8f7c63"/>
+  <linearGradient id="glassBoxBlue" x1="0%" y1="0%" x2="100%" y2="100%">
+    <stop offset="0%" stop-color="#f0f6fa" stop-opacity="0.95"/>
+    <stop offset="100%" stop-color="#dcecf5" stop-opacity="0.85"/>
   </linearGradient>
-  <linearGradient id="dbgrad" x1="0" x2="1" y1="0" y2="1">
-    <stop offset="0%" stop-color="#8bc6e8"/>
-    <stop offset="55%" stop-color="#3373ac"/>
-    <stop offset="100%" stop-color="#21517a"/>
+  <linearGradient id="boxStroke" x1="0%" y1="0%" x2="100%" y2="100%">
+    <stop offset="0%" stop-color="#55c2ff" stop-opacity="0.8"/>
+    <stop offset="100%" stop-color="#2a75b3" stop-opacity="0.2"/>
   </linearGradient>
+  <linearGradient id="boxStrokeGreen" x1="0%" y1="0%" x2="100%" y2="100%">
+    <stop offset="0%" stop-color="#38e68c" stop-opacity="0.8"/>
+    <stop offset="100%" stop-color="#198a51" stop-opacity="0.2"/>
+  </linearGradient>
+
+  <linearGradient id="pillTop" x1="0%" y1="0%" x2="0%" y2="100%">
+    <stop offset="0%" stop-color="#ffffff"/>
+    <stop offset="100%" stop-color="#e2eef7"/>
+  </linearGradient>
+  <linearGradient id="pillSide" x1="0%" y1="0%" x2="0%" y2="100%">
+    <stop offset="0%" stop-color="#92bcdc"/>
+    <stop offset="100%" stop-color="#5a8bac"/>
+  </linearGradient>
+
+  <linearGradient id="dbBodyGrad" x1="0" x2="1" y1="0" y2="0">
+    <stop offset="0%" stop-color="#1c4463"/>
+    <stop offset="30%" stop-color="#3571a5"/>
+    <stop offset="70%" stop-color="#3571a5"/>
+    <stop offset="100%" stop-color="#143147"/>
+  </linearGradient>
+  <linearGradient id="dbTopGrad" x1="0" x2="1" y1="0" y2="1">
+    <stop offset="0%" stop-color="#6baae0"/>
+    <stop offset="100%" stop-color="#2c608c"/>
+  </linearGradient>
+
+  <radialGradient id="sphereYellow" cx="35%" cy="30%" r="60%">
+    <stop offset="0%" stop-color="#ffebb3"/>
+    <stop offset="40%" stop-color="#f4b93b"/>
+    <stop offset="85%" stop-color="#c98d06"/>
+    <stop offset="100%" stop-color="#8a5f00"/>
+  </radialGradient>
+  <radialGradient id="sphereRed" cx="35%" cy="30%" r="60%">
+    <stop offset="0%" stop-color="#ffc2b3"/>
+    <stop offset="40%" stop-color="#f24d3d"/>
+    <stop offset="85%" stop-color="#bd2111"/>
+    <stop offset="100%" stop-color="#7a1005"/>
+  </radialGradient>
+  <radialGradient id="sphereBlue" cx="35%" cy="30%" r="60%">
+    <stop offset="0%" stop-color="#d4f1fa"/>
+    <stop offset="40%" stop-color="#57b8d9"/>
+    <stop offset="85%" stop-color="#2a86a6"/>
+    <stop offset="100%" stop-color="#14546b"/>
+  </radialGradient>
+  <radialGradient id="sphereOrange" cx="35%" cy="30%" r="60%">
+    <stop offset="0%" stop-color="#ffd1c2"/>
+    <stop offset="40%" stop-color="#ef6a48"/>
+    <stop offset="85%" stop-color="#b83614"/>
+    <stop offset="100%" stop-color="#751e08"/>
+  </radialGradient>
+  
+  <pattern id="cyberGrid" width="40" height="40" patternUnits="userSpaceOnUse">
+    <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#cddce8" stroke-width="0.8" opacity="0.6"/>
+    <circle cx="0" cy="0" r="1.5" fill="#a9c2d6" opacity="0.5"/>
+  </pattern>
+
+  <filter id="softshadow" x="-20%" y="-20%" width="140%" height="160%">
+    <feDropShadow dx="0" dy="10" stdDeviation="12" flood-color="#4d6f8f" flood-opacity="0.15"/>
+  </filter>
+  <filter id="innershadow" x="-20%" y="-20%" width="140%" height="140%">
+    <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#afbfcc" flood-opacity="0.10"/>
+  </filter>
+  <filter id="glow">
+    <feGaussianBlur stdDeviation="2.5" result="coloredBlur"/>
+    <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
+  </filter>
+  <filter id="glowGreen">
+    <feGaussianBlur stdDeviation="2.5" result="coloredBlur"/>
+    <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
+  </filter>
+
+  <filter id="blocky3D" x="-50%" y="-50%" width="200%" height="200%">
+    <feDropShadow dx="-2.5" dy="3.5" stdDeviation="0" flood-color="#1a364f" flood-opacity="0.4"/>
+    <feDropShadow dx="-1" dy="2" stdDeviation="1.5" flood-color="#000000" flood-opacity="0.2"/>
+  </filter>
+  <filter id="cardShadow" x="-30%" y="-30%" width="160%" height="160%">
+    <feDropShadow dx="0" dy="6" stdDeviation="6" flood-color="#3a566e" flood-opacity="0.18"/>
+  </filter>
+  <filter id="atomShadow" x="-30%" y="-30%" width="160%" height="160%">
+    <feDropShadow dx="1.5" dy="4" stdDeviation="2.5" flood-color="#051421" flood-opacity="0.5"/>
+  </filter>
+
   <style>
-    .title{font:700 30px Arial, sans-serif; fill:#23435f}
-    .subtitle{font:600 18px Arial, sans-serif; fill:#4579A8}
-    .label{font:700 17px Arial, sans-serif; fill:#27445D}
-    .body{font:400 14px Arial, sans-serif; fill:#5B7282}
-    .small{font:600 13px Arial, sans-serif; fill:#5B7282}
-    .tiny{font:600 11px Arial, sans-serif; fill:#6d7d87}
+    .title{font:700 32px 'Inter','Segoe UI',Arial,sans-serif; fill:#112a40; letter-spacing:-0.2px}
+    .label{font:800 17px 'Inter','Segoe UI',Arial,sans-serif; fill:#18364f}
+    .body{font:400 14px 'Inter','Segoe UI',Arial,sans-serif; fill:#47657d}
+    .small{font:600 13px 'Inter','Segoe UI',Arial,sans-serif; fill:#47657d}
+    .tiny{font:600 11.5px 'Inter','Segoe UI',Arial,sans-serif; fill:#6a7e8c; letter-spacing:0.1px}
+    .neon-green{fill:#10b968}
+    .cyber-dot{fill:#ffc000}
   </style>
 </defs>
 
-<rect x="0" y="0" width="1200" height="680" rx="28" fill="url(#bggrad)"/>
+<rect x="0" y="0" width="1200" height="740" rx="28" fill="url(#bggrad)"/>
+<rect x="12" y="12" width="1176" height="716" rx="26" fill="#ffffff" filter="url(#softshadow)"/>
+<rect x="12" y="12" width="1176" height="716" rx="26" fill="url(#cyberGrid)"/>
+<rect x="12" y="12" width="1176" height="716" rx="26" fill="none" stroke="#e3ebf1" stroke-width="1.5" pointer-events="none"/>
 
 <text x="60" y="72" class="title">Package map</text>
+<g transform="translate(1034, 40)">
+  <rect x="0" y="3" width="118" height="34" rx="17" fill="url(#pillSide)" filter="url(#innershadow)"/>
+  <rect x="0" y="0" width="118" height="34" rx="17" fill="url(#pillTop)"/>
+  <circle cx="18" cy="17" r="4.5" class="cyber-dot" filter="url(#glow)"/>
+  <text x="66" y="22" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="13" font-weight="700" fill="#315f86" text-anchor="middle">Architecture</text>
+</g>
 <text x="60" y="104" class="body">Small orchestration layer, domain-specific modules, and a pose-centric storage backend.</text>
-<rect x="465" y="70" width="270" height="90" rx="22" fill="#eef5ed" stroke="#d8e3ea" stroke-width="2" /><text x="487" y="105" class="label">prodock.core</text><text x="487" y="132" class="body">high-level pipeline orchestration</text>
-<polygon points="596.0,160.0 596.0,190.0 590.4,190.0 600.0,208.0 609.6,190.0 604.0,190.0 604.0,160.0" fill="#5d83a0" opacity="0.95"/>
-<rect x="70" y="230" width="200" height="170" rx="22" fill="#ffffff" stroke="#d8e3ea" stroke-width="2" /><text x="92" y="265" class="label">structure</text><text x="92" y="292" class="body">PDBQuery · PDBEngine · PDBQTSanitizer</text>
-<rect x="300" y="230" width="200" height="170" rx="22" fill="#ffffff" stroke="#d8e3ea" stroke-width="2" /><text x="322" y="265" class="label">preprocess</text><text x="322" y="292" class="body">LigandPrep · ReceptorPrep · GridBox</text>
-<rect x="530" y="220" width="220" height="190" rx="22" fill="#eaf3f8" stroke="#d8e3ea" stroke-width="2" /><text x="552" y="255" class="label">dock</text><text x="552" y="282" class="body">SingleDock · BatchDock · registry · engines</text>
-<rect x="780" y="230" width="200" height="170" rx="22" fill="#ffffff" stroke="#d8e3ea" stroke-width="2" /><text x="802" y="265" class="label">postprocess</text><text x="802" y="292" class="body">Extractor · PoseCrawler · InteractionProfiler</text>
-<rect x="1010" y="230" width="140" height="170" rx="22" fill="#ffffff" stroke="#d8e3ea" stroke-width="2" /><text x="1032" y="265" class="label">database</text><text x="1032" y="292" class="body">PoseDatabase · records</text>
-<polygon points="599.8,204.5 187.8,223.7 187.6,218.8 170.0,228.0 188.4,235.6 188.1,230.7 600.2,211.5" fill="#8f7c63" opacity="0.95"/>
-<polygon points="599.7,204.5 417.6,222.7 417.1,217.9 400.0,228.0 418.7,234.6 418.3,229.7 600.3,211.5" fill="#8f7c63" opacity="0.95"/>
-<polygon points="599.2,211.4 621.7,217.0 620.5,221.8 640.0,218.0 624.6,205.5 623.4,210.2 600.8,204.6" fill="#8f7c63" opacity="0.95"/>
-<polygon points="599.8,211.5 861.8,230.2 861.4,235.1 880.0,228.0 862.6,218.3 862.3,223.2 600.2,204.5" fill="#8f7c63" opacity="0.95"/>
-<polygon points="599.9,211.5 1061.9,230.7 1061.7,235.6 1080.0,228.0 1062.4,218.9 1062.2,223.8 600.1,204.5" fill="#8f7c63" opacity="0.95"/>
-<rect x="95" y="420" width="150" height="28" rx="14.0" fill="#EEF5ED"/><text x="170.0" y="439.0" font-family="Arial,sans-serif" font-size="13" font-weight="700" fill="#27445D" text-anchor="middle">raw structures</text>
-<rect x="326" y="420" width="150" height="28" rx="14.0" fill="#EAF3F8"/><text x="401.0" y="439.0" font-family="Arial,sans-serif" font-size="13" font-weight="700" fill="#27445D" text-anchor="middle">prepared inputs</text>
-<rect x="570" y="420" width="140" height="28" rx="14.0" fill="#F6F1E7"/><text x="640.0" y="439.0" font-family="Arial,sans-serif" font-size="13" font-weight="700" fill="#27445D" text-anchor="middle">pose files</text>
-<rect x="805" y="420" width="150" height="28" rx="14.0" fill="#EEF5ED"/><text x="880.0" y="439.0" font-family="Arial,sans-serif" font-size="13" font-weight="700" fill="#27445D" text-anchor="middle">parsed summaries</text>
-<rect x="1015" y="420" width="130" height="28" rx="14.0" fill="#EAF3F8"/><text x="1080.0" y="439.0" font-family="Arial,sans-serif" font-size="13" font-weight="700" fill="#27445D" text-anchor="middle">storage</text>
-<g transform="translate(70,500)"><path d="M20,71.5 C20,20 76.5,5 105.4,28 C132.6,10 160,60 152,62.4 C160,102 132.6,112 108.8,100 C81.6,128 22,112 18,67.60000000000001 Z" fill="url(#bluegrad)" opacity="0.92"/><path d="M58,71.5 C62,70 71.39999999999999,62 95.2,88 C115.60000000000001,70 100,100 96,68.9 C90,44 118.99999999999999,60 98.6,46 C73.1,84 65,72 60,71.5 Z" fill="url(#navygrad)" opacity="0.98"/><line x1="95.0" y1="69.5" x2="117.0" y2="59.5" stroke="#f7e6c2" stroke-width="8.0" stroke-linecap="round" opacity="0.95"/><line x1="117.0" y1="59.5" x2="137.0" y2="72.5" stroke="#f7e6c2" stroke-width="8.0" stroke-linecap="round" opacity="0.95"/><line x1="137.0" y1="72.5" x2="159.0" y2="57.5" stroke="#f7e6c2" stroke-width="8.0" stroke-linecap="round" opacity="0.95"/><line x1="159.0" y1="57.5" x2="180.0" y2="69.5" stroke="#f7e6c2" stroke-width="8.0" stroke-linecap="round" opacity="0.95"/><line x1="180.0" y1="69.5" x2="205.0" y2="61.5" stroke="#f7e6c2" stroke-width="8.0" stroke-linecap="round" opacity="0.95"/><circle cx="95.0" cy="69.5" r="9.0" fill="#f24d3d" stroke="#ffffff" stroke-width="2.0"/><circle cx="117.0" cy="59.5" r="9.0" fill="#ef6a48" stroke="#ffffff" stroke-width="2.0"/><circle cx="137.0" cy="72.5" r="9.0" fill="#f4b93b" stroke="#ffffff" stroke-width="2.0"/><circle cx="159.0" cy="57.5" r="9.0" fill="#ef6a48" stroke="#ffffff" stroke-width="2.0"/><circle cx="180.0" cy="69.5" r="9.0" fill="#f4b93b" stroke="#ffffff" stroke-width="2.0"/><circle cx="205.0" cy="61.5" r="9.0" fill="#f0d05a" stroke="#ffffff" stroke-width="2.0"/><circle cx="147.0" cy="45.5" r="6.0" fill="#57b8d9" stroke="#fff" stroke-width="2.0"/><line x1="137.0" y1="72.5" x2="147.0" y2="45.5" stroke="#f7e6c2" stroke-width="5.0" stroke-linecap="round"/></g>
-<polygon points="242.0,569.0 314.0,569.0 314.0,574.6 332.0,565.0 314.0,555.4 314.0,561.0 242.0,561.0" fill="#4579A8" opacity="0.95"/>
-<g transform="translate(322,490)"><rect x="0" y="0" width="150" height="110" rx="16" fill="#ffffff" stroke="#d8e3ea" stroke-width="2" /><line x1="16" y1="38" x2="134" y2="38" stroke="#d7e6ef" stroke-width="2"/><line x1="16" y1="58" x2="134" y2="58" stroke="#d7e6ef" stroke-width="2"/><line x1="16" y1="78" x2="134" y2="78" stroke="#d7e6ef" stroke-width="2"/><line x1="62" y1="18" x2="62" y2="92" stroke="#d7e6ef" stroke-width="2"/><line x1="108" y1="18" x2="108" y2="92" stroke="#d7e6ef" stroke-width="2"/><rect x="16" y="18" width="118" height="20" rx="8" fill="#EAF3F8"/></g>
-<polygon points="476.0,549.0 542.0,549.0 542.0,554.6 560.0,545.0 542.0,535.4 542.0,541.0 476.0,541.0" fill="#4579A8" opacity="0.95"/>
-<g transform="translate(548,485)"><rect x="0" y="0" width="160" height="115" rx="16" fill="#ffffff" stroke="#d8e3ea" stroke-width="2" /><line x1="22" y1="93" x2="142" y2="93" stroke="#9fb6c8" stroke-width="2"/><line x1="22" y1="18" x2="22" y2="93" stroke="#9fb6c8" stroke-width="2"/><polyline points="28,75 60,60 90,83 122,34" fill="none" stroke="#4579A8" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></g>
-<polygon points="708.0,549.0 784.0,549.0 784.0,554.6 802.0,545.0 784.0,535.4 784.0,541.0 708.0,541.0" fill="#4579A8" opacity="0.95"/>
-<g transform="translate(790,490)"><rect x="0" y="0" width="135" height="110" rx="16" fill="#ffffff" stroke="#d8e3ea" stroke-width="2" /><rect x="12.0" y="12.0" width="19.2" height="14.2" rx="4" fill="#eaf3f8"/><rect x="34.2" y="12.0" width="19.2" height="14.2" rx="4" fill="#d6e7f1"/><rect x="56.4" y="12.0" width="19.2" height="14.2" rx="4" fill="#b5d2e5"/><rect x="78.6" y="12.0" width="19.2" height="14.2" rx="4" fill="#86bddc"/><rect x="100.8" y="12.0" width="19.2" height="14.2" rx="4" fill="#4579A8"/><rect x="12.0" y="29.2" width="19.2" height="14.2" rx="4" fill="#d6e7f1"/><rect x="34.2" y="29.2" width="19.2" height="14.2" rx="4" fill="#b5d2e5"/><rect x="56.4" y="29.2" width="19.2" height="14.2" rx="4" fill="#86bddc"/><rect x="78.6" y="29.2" width="19.2" height="14.2" rx="4" fill="#4579A8"/><rect x="100.8" y="29.2" width="19.2" height="14.2" rx="4" fill="#eaf3f8"/><rect x="12.0" y="46.4" width="19.2" height="14.2" rx="4" fill="#b5d2e5"/><rect x="34.2" y="46.4" width="19.2" height="14.2" rx="4" fill="#86bddc"/><rect x="56.4" y="46.4" width="19.2" height="14.2" rx="4" fill="#4579A8"/><rect x="78.6" y="46.4" width="19.2" height="14.2" rx="4" fill="#eaf3f8"/><rect x="100.8" y="46.4" width="19.2" height="14.2" rx="4" fill="#d6e7f1"/><rect x="12.0" y="63.599999999999994" width="19.2" height="14.2" rx="4" fill="#86bddc"/><rect x="34.2" y="63.599999999999994" width="19.2" height="14.2" rx="4" fill="#4579A8"/><rect x="56.4" y="63.599999999999994" width="19.2" height="14.2" rx="4" fill="#eaf3f8"/><rect x="78.6" y="63.599999999999994" width="19.2" height="14.2" rx="4" fill="#d6e7f1"/><rect x="100.8" y="63.599999999999994" width="19.2" height="14.2" rx="4" fill="#b5d2e5"/><rect x="12.0" y="80.8" width="19.2" height="14.2" rx="4" fill="#4579A8"/><rect x="34.2" y="80.8" width="19.2" height="14.2" rx="4" fill="#eaf3f8"/><rect x="56.4" y="80.8" width="19.2" height="14.2" rx="4" fill="#d6e7f1"/><rect x="78.6" y="80.8" width="19.2" height="14.2" rx="4" fill="#b5d2e5"/><rect x="100.8" y="80.8" width="19.2" height="14.2" rx="4" fill="#86bddc"/></g>
-<polygon points="930.0,549.0 996.0,549.0 996.0,554.6 1014.0,545.0 996.0,535.4 996.0,541.0 930.0,541.0" fill="#4579A8" opacity="0.95"/>
-<g transform="translate(1000,485)"><ellipse cx="55.0" cy="18" rx="55.0" ry="18" fill="#a8d2ee" stroke="#21517a" stroke-width="2"/><rect x="0" y="18" width="110" height="79" fill="url(#dbgrad)" stroke="#21517a" stroke-width="2"/><ellipse cx="55.0" cy="18" rx="55.0" ry="18" fill="none" stroke="#e8f5fc" stroke-width="4" opacity="0.92"/><ellipse cx="55.0" cy="54" rx="55.0" ry="18" fill="none" stroke="#e8f5fc" stroke-width="4" opacity="0.92"/><ellipse cx="55.0" cy="90" rx="55.0" ry="18" fill="none" stroke="#e8f5fc" stroke-width="4" opacity="0.92"/><ellipse cx="55.0" cy="97" rx="55.0" ry="18" fill="url(#dbgrad)" stroke="#21517a" stroke-width="2"/></g>
+
+<g stroke="#00f0ff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none" transform="translate(0, 60)">
+  <g transform="translate(600, 178)"><path d="M 0 0 L 10 8 L 20 0" filter="url(#glow)"/><path d="M 0 6 L 10 14 L 20 6" filter="url(#glow)"/></g>
+  <g transform="translate(345, 332)"><path d="M 0 0 L 8 10 L 0 20" filter="url(#glow)"/><path d="M 6 0 L 14 10 L 6 20" filter="url(#glow)"/></g>
+  <g transform="translate(345, 490)"><path d="M 0 0 L 8 10 L 0 20" filter="url(#glow)"/><path d="M 6 0 L 14 10 L 6 20" filter="url(#glow)"/></g>
+  
+  <g transform="translate(170, 460)"><path d="M 0 0 L 10 8 L 20 0" filter="url(#glow)"/><path d="M 0 6 L 10 14 L 20 6" filter="url(#glow)"/></g>
+  <g transform="translate(391, 460)"><path d="M 0 0 L 10 8 L 20 0" filter="url(#glow)"/><path d="M 0 6 L 10 14 L 20 6" filter="url(#glow)"/></g>
+  <g transform="translate(640, 460)"><path d="M 0 0 L 10 8 L 20 0" filter="url(#glow)"/><path d="M 0 6 L 10 14 L 20 6" filter="url(#glow)"/></g>
+  <g transform="translate(880, 460)"><path d="M 0 0 L 10 8 L 20 0" filter="url(#glow)"/><path d="M 0 6 L 10 14 L 20 6" filter="url(#glow)"/></g>
+  <g transform="translate(1080, 460)"><path d="M 0 0 L 10 8 L 20 0" filter="url(#glow)"/><path d="M 0 6 L 10 14 L 20 6" filter="url(#glow)"/></g>
+</g>
+
+<g transform="translate(0, 60)">
+  <g transform="translate(465, 70)">
+    <rect x="0" y="6" width="270" height="90" rx="22" fill="#a4c2d6" filter="url(#softshadow)"/>
+    <rect x="0" y="0" width="270" height="90" rx="22" fill="url(#glassBoxAccent)" stroke="url(#boxStrokeGreen)" stroke-width="1.5"/>
+    <text x="22" y="35" class="label">prodock.core</text>
+    <text x="22" y="62" class="body">high-level pipeline orchestration</text>
+    <rect x="15" y="15" width="4" height="25" rx="2" fill="#38e68c" filter="url(#glowGreen)"/>
+  </g>
+
+  <g transform="translate(70, 230)">
+    <rect x="0" y="6" width="200" height="170" rx="22" fill="#a4c2d6" filter="url(#softshadow)"/>
+    <rect x="0" y="0" width="200" height="170" rx="22" fill="url(#glassBox)" stroke="url(#boxStroke)" stroke-width="1.5"/>
+    <text x="22" y="35" class="label">structure</text>
+    <text x="22" y="65" class="body">
+      <tspan x="22" dy="0">• PDBQuery</tspan>
+      <tspan x="22" dy="24">• PDBEngine</tspan>
+      <tspan x="22" dy="24">• PDBQTSanitizer</tspan>
+    </text>
+    <rect x="15" y="15" width="4" height="25" rx="2" fill="#00f0ff" filter="url(#glow)"/>
+  </g>
+
+  <g transform="translate(300, 230)">
+    <rect x="0" y="6" width="200" height="170" rx="22" fill="#a4c2d6" filter="url(#softshadow)"/>
+    <rect x="0" y="0" width="200" height="170" rx="22" fill="url(#glassBox)" stroke="url(#boxStroke)" stroke-width="1.5"/>
+    <text x="22" y="35" class="label">preprocess</text>
+    <text x="22" y="65" class="body">
+      <tspan x="22" dy="0">• LigandPrep</tspan>
+      <tspan x="22" dy="24">• ReceptorPrep</tspan>
+      <tspan x="22" dy="24">• GridBox</tspan>
+    </text>
+    <rect x="15" y="15" width="4" height="25" rx="2" fill="#00f0ff" filter="url(#glow)"/>
+  </g>
+
+  <g transform="translate(530, 220)">
+    <rect x="0" y="6" width="220" height="190" rx="22" fill="#a4c2d6" filter="url(#softshadow)"/>
+    <rect x="0" y="0" width="220" height="190" rx="22" fill="url(#glassBoxBlue)" stroke="url(#boxStroke)" stroke-width="1.5"/>
+    <text x="22" y="35" class="label">dock</text>
+    <text x="22" y="65" class="body">
+      <tspan x="22" dy="0">• SingleDock</tspan>
+      <tspan x="22" dy="24">• BatchDock</tspan>
+      <tspan x="22" dy="24">• registry</tspan>
+      <tspan x="22" dy="24">• engines</tspan>
+    </text>
+    <rect x="15" y="15" width="4" height="25" rx="2" fill="#00f0ff" filter="url(#glow)"/>
+  </g>
+
+  <g transform="translate(780, 230)">
+    <rect x="0" y="6" width="200" height="170" rx="22" fill="#a4c2d6" filter="url(#softshadow)"/>
+    <rect x="0" y="0" width="200" height="170" rx="22" fill="url(#glassBox)" stroke="url(#boxStroke)" stroke-width="1.5"/>
+    <text x="22" y="35" class="label">postprocess</text>
+    <text x="22" y="65" class="body">
+      <tspan x="22" dy="0">• Extractor</tspan>
+      <tspan x="22" dy="24">• PoseCrawler</tspan>
+      <tspan x="22" dy="24">• InteractionProfiler</tspan>
+    </text>
+    <rect x="15" y="15" width="4" height="25" rx="2" fill="#00f0ff" filter="url(#glow)"/>
+  </g>
+
+  <g transform="translate(1010, 230)">
+    <rect x="0" y="6" width="140" height="170" rx="22" fill="#a4c2d6" filter="url(#softshadow)"/>
+    <rect x="0" y="0" width="140" height="170" rx="22" fill="url(#glassBox)" stroke="url(#boxStroke)" stroke-width="1.5"/>
+    <text x="22" y="35" class="label">database</text>
+    <text x="22" y="65" class="body">
+      <tspan x="22" dy="0">• PoseDatabase</tspan>
+      <tspan x="22" dy="24">• records</tspan>
+    </text>
+    <rect x="15" y="15" width="4" height="25" rx="2" fill="#00f0ff" filter="url(#glow)"/>
+  </g>
+
+  <rect x="95" y="420" width="150" height="28" rx="14.0" fill="#f1f7f0"/><text x="170.0" y="439.0" class="label" fill="#23445f" text-anchor="middle" font-size="13">raw structures</text>
+  <rect x="326" y="420" width="150" height="28" rx="14.0" fill="#edf5fa"/><text x="401.0" y="439.0" class="label" fill="#23445f" text-anchor="middle" font-size="13">prepared inputs</text>
+  <rect x="570" y="420" width="140" height="28" rx="14.0" fill="#f8f4ec"/><text x="640.0" y="439.0" class="label" fill="#23445f" text-anchor="middle" font-size="13">pose files</text>
+  <rect x="795" y="420" width="170" height="28" rx="14.0" fill="#f1f7f0"/><text x="880.0" y="439.0" class="label" fill="#23445f" text-anchor="middle" font-size="13">parsed summaries</text>
+  <rect x="1015" y="420" width="130" height="28" rx="14.0" fill="#edf5fa"/><text x="1080.0" y="439.0" class="label" fill="#23445f" text-anchor="middle" font-size="13">storage</text>
+
+  <g transform="translate(0,-50) scale(1.2)">
+    <path d="M 80,480 C 70,530 100,560 150,560 C 200,560 230,530 220,480 C 215,445 190,440 175,465 C 165,480 135,480 125,465 C 110,440 85,445 80,480 Z" fill="url(#bluegrad)" opacity="0.95" filter="url(#softshadow)"/>
+    <path d="M 88,483 C 80,525 108,550 150,550 C 192,550 220,525 212,483 C 205,450 185,448 170,470 C 160,485 140,485 130,470 C 115,448 95,450 88,483 Z" fill="#4a7c9f" opacity="0.8"/>
+    <path d="M 95,485 C 95,520 120,540 150,540 C 180,540 205,520 205,485 C 190,465 175,485 150,485 C 125,485 110,465 95,485 Z" fill="url(#navygrad)" opacity="1"/>
+    <line x1="130" y1="495" x2="105" y2="475" stroke="#00f0ff" stroke-width="2.5" stroke-dasharray="4,3" stroke-linecap="round" filter="url(#glow)"/>
+    <line x1="170" y1="495" x2="195" y2="475" stroke="#00f0ff" stroke-width="2.5" stroke-dasharray="4,3" stroke-linecap="round" filter="url(#glow)"/>
+    <line x1="150" y1="530" x2="150" y2="550" stroke="#00f0ff" stroke-width="2.5" stroke-dasharray="4,3" stroke-linecap="round" filter="url(#glow)"/>
+    <line x1="150" y1="510" x2="130" y2="495" stroke="#5a6b7a" stroke-width="7" stroke-linecap="round"/>
+    <line x1="150" y1="510" x2="130" y2="495" stroke="#cbd6e0" stroke-width="3.5" stroke-linecap="round"/>
+    <line x1="150" y1="510" x2="170" y2="495" stroke="#5a6b7a" stroke-width="7" stroke-linecap="round"/>
+    <line x1="150" y1="510" x2="170" y2="495" stroke="#cbd6e0" stroke-width="3.5" stroke-linecap="round"/>
+    <line x1="150" y1="510" x2="150" y2="530" stroke="#5a6b7a" stroke-width="7" stroke-linecap="round"/>
+    <line x1="150" y1="510" x2="150" y2="530" stroke="#cbd6e0" stroke-width="3.5" stroke-linecap="round"/>
+    <circle cx="130" cy="495" r="9.5" fill="url(#sphereRed)" filter="url(#atomShadow)"/>
+    <circle cx="170" cy="495" r="9.5" fill="url(#sphereBlue)" filter="url(#atomShadow)"/>
+    <circle cx="150" cy="530" r="9.5" fill="url(#sphereOrange)" filter="url(#atomShadow)"/>
+    <circle cx="150" cy="510" r="11" fill="url(#sphereYellow)" filter="url(#atomShadow)"/>
+  </g>
+
+
+  <g transform="translate(300, 485)">
+    <!-- <rect x="0" y="6" width="200" height="120" rx="22" fill="#a4c2d6" filter="url(#softshadow)"/>
+    <rect x="0" y="0" width="200" height="120" rx="22" fill="url(#glassBox)" stroke="url(#boxStroke)" stroke-width="1.5"/> -->
+    
+    <g transform="translate(100, 55) scale(2.0)">
+      <rect x="-45" y="-30" width="90" height="60" rx="8" fill="#ffffff" stroke="#c9dceb" stroke-width="2" filter="url(#cardShadow)"/>
+      
+      <path d="M -15 -10 L 15 -10 L 15 15 L -15 15 Z" fill="#f0f6fa" stroke="#a0bed6" stroke-width="1.5" stroke-dasharray="2 2"/>
+      <path d="M -15 -10 L -25 -5" fill="none" stroke="#a0bed6" stroke-width="1.5" stroke-dasharray="2 2"/>
+      <path d="M 15 -10 L 25 -5" fill="none" stroke="#a0bed6" stroke-width="1.5" stroke-dasharray="2 2"/>
+      <path d="M 15 15 L 25 20" fill="none" stroke="#a0bed6" stroke-width="1.5" stroke-dasharray="2 2"/>
+      <path d="M -15 15 L -25 20" fill="none" stroke="#a0bed6" stroke-width="1.5" stroke-dasharray="2 2"/>
+      <path d="M -25 -5 L 25 -5 L 25 20 L -25 20 Z" fill="none" stroke="#3f76a3" stroke-width="2"/>
+      
+      <line x1="-5" y1="0" x2="5" y2="8" stroke="#38e68c" stroke-width="3" filter="url(#glowGreen)"/>
+      <circle cx="-5" cy="0" r="4" fill="#198a51"/>
+      <circle cx="5" cy="8" r="4" fill="#38e68c" filter="url(#glowGreen)"/>
+      
+      <line x1="-35" y1="-20" x2="-15" y2="-20" stroke="#d6e7f1" stroke-width="3" stroke-linecap="round"/>
+      <line x1="-35" y1="-12" x2="-20" y2="-12" stroke="#d6e7f1" stroke-width="3" stroke-linecap="round"/>
+    </g>
+    
+    <text x="100" y="142" class="small" text-anchor="middle">PDBQT / grid maps</text>
+  </g>
+
+
+  <g transform="translate(530, 485)">
+    <!-- <rect x="0" y="6" width="220" height="120" rx="22" fill="#a4c2d6" filter="url(#softshadow)"/>
+    <rect x="0" y="0" width="220" height="120" rx="22" fill="url(#glassBox)" stroke="url(#boxStroke)" stroke-width="1.5"/> -->
+    
+    <g transform="translate(110, 70) scale(2.0)">
+      <path d="M -40 10 L 0 25 L 40 10 L 0 -5 Z" fill="#eaf3f8" stroke="#a0bed6" stroke-width="1.5"/>
+      <path d="M -40 0 L 0 15 L 40 0 L 0 -15 Z" fill="#d6e7f1" stroke="#86bddc" stroke-width="1.5"/>
+      <path d="M -40 -10 L 0 5 L 40 -10 L 0 -25 Z" fill="#ffffff" stroke="#55c2ff" stroke-width="2" filter="url(#glow)"/>
+      
+      <line x1="-10" y1="-5" x2="20" y2="5" stroke="#a0bed6" stroke-width="2" stroke-dasharray="2 2"/>
+      <circle cx="-10" cy="-5" r="4" fill="#a0bed6" opacity="0.6"/>
+      <circle cx="20" cy="5" r="4" fill="#a0bed6" opacity="0.6"/>
+
+      <line x1="-15" y1="-15" x2="15" y2="-5" stroke="#3f76a3" stroke-width="3"/>
+      <line x1="15" y1="-5" x2="5" y2="10" stroke="#3f76a3" stroke-width="3"/>
+      <circle cx="-15" cy="-15" r="5" fill="#ef6a48"/>
+      <circle cx="15" cy="-5" r="5" fill="#0099ff" filter="url(#glow)"/>
+      <circle cx="5" cy="10" r="5" fill="#f4b93b"/>
+    </g>
+
+    <!-- <text x="110" y="102" class="tiny" text-anchor="middle">docking results / ensembles</text> -->
+  </g>
+
+
+  <g transform="translate(780, 485)">
+    <rect x="0" y="6" width="200" height="120" rx="22" fill="#a4c2d6" filter="url(#softshadow)"/>
+    <rect x="0" y="0" width="200" height="120" rx="22" fill="url(#glassBox)" stroke="url(#boxStroke)" stroke-width="1.5"/>
+    <g filter="url(#blocky3D)" transform="translate(20, 15) scale(1.1)">
+      <rect x="0" y="0" width="26" height="15" rx="3" fill="#eaf3f8"/>
+      <rect x="30" y="0" width="26" height="15" rx="3" fill="#d6e7f1"/>
+      <rect x="60" y="0" width="26" height="15" rx="3" fill="#b5d2e5"/>
+      <rect x="90" y="0" width="26" height="15" rx="3" fill="#86bddc"/>
+      <rect x="120" y="0" width="26" height="15" rx="3" fill="#3f76a3"/>
+      <rect x="0" y="19" width="26" height="15" rx="3" fill="#d6e7f1"/>
+      <rect x="30" y="19" width="26" height="15" rx="3" fill="#b5d2e5"/>
+      <rect x="60" y="19" width="26" height="15" rx="3" fill="#86bddc"/>
+      <rect x="90" y="19" width="26" height="15" rx="3" fill="#3f76a3"/>
+      <rect x="120" y="19" width="26" height="15" rx="3" fill="#eaf3f8"/>
+      <rect x="0" y="38" width="26" height="15" rx="3" fill="#b5d2e5"/>
+      <rect x="30" y="38" width="26" height="15" rx="3" fill="#86bddc"/>
+      <rect x="60" y="38" width="26" height="15" rx="3" fill="#3f76a3"/>
+      <rect x="90" y="38" width="26" height="15" rx="3" fill="#eaf3f8"/>
+      <rect x="120" y="38" width="26" height="15" rx="3" fill="#d6e7f1"/>
+      <rect x="0" y="57" width="26" height="15" rx="3" fill="#86bddc"/>
+      <rect x="30" y="57" width="26" height="15" rx="3" fill="#3f76a3"/>
+      <rect x="60" y="57" width="26" height="15" rx="3" fill="#eaf3f8"/>
+      <rect x="90" y="57" width="26" height="15" rx="3" fill="#d6e7f1"/>
+      <rect x="120" y="57" width="26" height="15" rx="3" fill="#b5d2e5"/>
+    </g>
+  </g>
+
+  <g transform="translate(1010, 485)">
+    <!-- <rect x="0" y="6" width="140" height="120" rx="22" fill="#a4c2d6" filter="url(#softshadow)"/>
+    <rect x="0" y="0" width="140" height="120" rx="22" fill="url(#glassBox)" stroke="url(#boxStroke)" stroke-width="1.5"/> -->
+    <g transform="translate(30, 15) scale(0.6)">
+      <ellipse cx="80" cy="160" rx="100" ry="30" fill="#0b1b29" opacity="0.25" filter="url(#softshadow)"/>
+      <path d="M -10,25 L -10,160 A 90 25 0 0 0 170,160 L 170,25 Z" fill="url(#dbBodyGrad)" filter="url(#softshadow)"/>
+      <ellipse cx="80" cy="25" rx="90" ry="25" fill="url(#dbTopGrad)" stroke="#81c1f2" stroke-width="2"/>
+      <ellipse cx="80" cy="25" rx="75" ry="18" fill="none" stroke="#e8f5fc" stroke-width="1.5" opacity="0.6"/>
+      <ellipse cx="80" cy="25" rx="55" ry="12" fill="none" stroke="#a9d6f5" stroke-width="0.8" opacity="0.4"/>
+      <path d="M -10,65 A 90 25 0 0 0 170,65" fill="none" stroke="#163954" stroke-width="3"/>
+      <path d="M -10,105 A 90 25 0 0 0 170,105" fill="none" stroke="#163954" stroke-width="3"/>
+      <rect x="20" y="50" width="10" height="3" fill="#38e68c" rx="1.5" filter="url(#glowGreen)"/>
+      <rect x="35" y="50" width="3" height="3" fill="#38e68c" rx="1.5"/>
+      <rect x="20" y="90" width="10" height="3" fill="#38e68c" rx="1.5" filter="url(#glowGreen)"/>
+      <rect x="35" y="90" width="3" height="3" fill="#f04d4d" rx="1.5" filter="url(#glow)"/>
+      <rect x="20" y="130" width="10" height="3" fill="#38e68c" rx="1.5" filter="url(#glowGreen)"/>
+      <rect x="35" y="130" width="3" height="3" fill="#38e68c" rx="1.5"/>
+    </g>
+    <!-- <text x="70" y="102" class="tiny" text-anchor="middle">storage</text> -->
+  </g>
+</g>
 
 </svg>

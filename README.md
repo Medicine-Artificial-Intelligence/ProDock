@@ -13,16 +13,10 @@ Automatic pipeline for molecular modeling
 [![Stars](https://img.shields.io/github/stars/Medicine-Artificial-Intelligence/prodock.svg?style=social&label=Star)](https://github.com/Medicine-Artificial-Intelligence/prodock/stargazers)
 
 
-**Toolkit for molecular modeling**
-
-For more details on each utility within the repository, please refer to the documentation provided in the respective folders.
-
-![ProDock](https://raw.githubusercontent.com/Medicine-Artificial-Intelligence/ProDock/main/doc/fig/prodock.png)
-
-
 ## Overview
 
-**ProDock** is a toolkit for building automated molecular docking workflows. It is designed for campaigns involving multiple receptors, multiple ligands, and multiple docking engines, with support for downstream pose extraction, interaction profiling, visualization, and SQLite-backed result management.
+**ProDock** is a toolkit for building automated molecular docking workflows. It is designed for campaigns involving multiple receptors, multiple ligands, and multiple docking engines, with support for downstream pose extraction, interaction profiling, visualization, and SQLite-backed result management. Please visit [Documentation](https://prodock.readthedocs.io/en/latest/) for more details.
+
 
 The project aims to provide one consistent workflow for:
 
@@ -82,6 +76,7 @@ This architecture is intended to support:
 - multi-receptor and multi-engine benchmarking workflows
 - clean integration with pandas- and RDKit-based analysis
 
+
 ## Step-by-Step Installation Guide
 
 1. **Python Installation:**
@@ -110,6 +105,22 @@ This architecture is intended to support:
   pip install -r requirements.txt
   pip install black flake8 pytest # black for formating, flake8 for checking format, pytest for testing
   ```
+
+
+## Reproducing the Case Study
+
+To reproduce the case study, first clone and install ProDock as described above. Then run the command-line workflow using the provided configuration files:
+```bash
+python -m prodock \
+  --config Data/case/config.json \
+  --receptor-json Data/case/receptor.json \
+  --ligand-json Data/case/ligand.json
+```
+This command executes the case-study docking workflow using:
+
+- `Data/case/config.json`: global workflow and docking settings
+- `Data/case/receptor.json`: receptor definitions
+- `Data/case/ligand.json`: ligand definitions
 
 ## Setting Up Your Development Environment
 
@@ -175,7 +186,7 @@ git pull
 
 ## Publication
 
-[**ProDock**]()
+[**ProDock: From multi-target consensus docking into database-backed storage**](https://doi.org/10.48550/arXiv.2604.21828)
 
 
 ## License
