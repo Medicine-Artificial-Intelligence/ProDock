@@ -55,9 +55,7 @@ def setup_logging(output_dir, protein_path, ligands_path, total_ligands):
 
     logger = logging.getLogger()
     logger.setLevel(logging.INFO)
-    formatter = logging.Formatter(
-        "%(asctime)s - %(levelname)s - %(percent)s - %(message)s"
-    )
+    formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(percent)s - %(message)s")
     file_handler = logging.FileHandler(log_file)
     file_handler.setFormatter(formatter)
     logger.addHandler(file_handler)
@@ -104,31 +102,21 @@ def process_ligand(protein_path, ligand_file, output_dir, logger, percent_filter
         fp.run_from_iterable([prolif_ligand], protein)
         df = fp.to_dataframe()
 
-        output_csv = (
-            output_dir / "prolif_output/csv_files" / f"prolif_{ligand_file.stem}.csv"
-        )
+        output_csv = output_dir / "prolif_output/csv_files" / f"prolif_{ligand_file.stem}.csv"
         df.to_csv(output_csv)
 
         # Generate the HTML interaction diagram
         html_fig = fp.plot_lignetwork(prolif_ligand)
         if isinstance(html_fig, HTML):
             html_content = html_fig.data  # Access the HTML content from the HTML object
-            html_output_path = (
-                output_dir
-                / "prolif_output/html_files"
-                / f"prolif_{ligand_file.stem}.html"
-            )
+            html_output_path = output_dir / "prolif_output/html_files" / f"prolif_{ligand_file.stem}.html"
             with open(html_output_path, "w") as file:
                 file.write(html_content)
         else:
-            logger.error(
-                f"Unexpected output type from plot_lignetwork: {type(html_fig)}"
-            )
+            logger.error(f"Unexpected output type from plot_lignetwork: {type(html_fig)}")
 
         percent_filter.current += 1
-        logger.info(
-            f"Successfully processed and saved fingerprint and HTML diagram for {output_csv.name}"
-        )
+        logger.info(f"Successfully processed and saved fingerprint and HTML diagram for {output_csv.name}")
     except Exception as e:
         logger.error(f"Error processing {ligand_file.name}: {str(e)}")
     finally:
@@ -136,12 +124,8 @@ def process_ligand(protein_path, ligand_file, output_dir, logger, percent_filter
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        description="Generate interaction fingerprints for multiple ligands."
-    )
-    parser.add_argument(
-        "-p", "--protein", required=True, help="Path to the original protein PDB file."
-    )
+    parser = argparse.ArgumentParser(description="Generate interaction fingerprints for multiple ligands.")
+    parser.add_argument("-p", "--protein", required=True, help="Path to the original protein PDB file.")
     parser.add_argument(
         "-l",
         "--ligands",
@@ -160,27 +144,17 @@ def main():
     ensure_directory_exists(f"{args.output_folder}/prolif_output")
     ensure_directory_exists(f"{args.output_folder}/prolif_output/csv_files")
     ensure_directory_exists(f"{args.output_folder}/prolif_output/html_files")
-    ligand_files = [
-        file for ext in extensions for file in Path(args.ligands).glob(f"*.{ext}")
-    ]
+    ligand_files = [file for ext in extensions for file in Path(args.ligands).glob(f"*.{ext}")]
     total_ligands = len(ligand_files)
-    logger, percent_filter = setup_logging(
-        output_dir, Path(args.protein), Path(args.ligands), total_ligands
-    )
+    logger, percent_filter = setup_logging(output_dir, Path(args.protein), Path(args.ligands), total_ligands)
     original_protein_path = Path(args.protein)
-    new_protein_filename = (
-        f"{original_protein_path.stem}_hydro{original_protein_path.suffix}"
-    )
-    new_protein_path = add_hydrogens_pymol(
-        str(original_protein_path), new_protein_filename
-    )
+    new_protein_filename = f"{original_protein_path.stem}_hydro{original_protein_path.suffix}"
+    new_protein_path = add_hydrogens_pymol(str(original_protein_path), new_protein_filename)
     if not new_protein_path:
         logger.error("Failed to add hydrogens to protein.")
         return
     for index, ligand_file in enumerate(ligand_files):
-        process_ligand(
-            original_protein_path, ligand_file, output_dir, logger, percent_filter
-        )
+        process_ligand(original_protein_path, ligand_file, output_dir, logger, percent_filter)
     new_protein_path.unlink()
 
 

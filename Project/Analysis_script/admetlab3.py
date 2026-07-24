@@ -2,14 +2,10 @@ import os
 import time
 import argparse
 import pandas as pd
-import matplotlib
-matplotlib.use("Agg")
-import matplotlib.pyplot as plt
 import shutil
 import prolif as plf
 import MDAnalysis as mda
 import tempfile
-import numpy as np
 from rdkit import Chem
 from rdkit.Chem import Draw
 from selenium import webdriver
@@ -18,12 +14,15 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 import json
-import openpyxl
 from openpyxl import load_workbook
 from openpyxl.drawing.image import Image as XLImage
 from openpyxl.utils import get_column_letter as get_excel_column_letter
 from PIL import Image as PILImage
 import glob
+import matplotlib
+
+matplotlib.use("Agg")
+
 
 def run_admetlab_evaluation_with_ketcher(Smiles, output_dir, compound_id, max_retries=1):
     """
@@ -33,10 +32,7 @@ def run_admetlab_evaluation_with_ketcher(Smiles, output_dir, compound_id, max_re
     via Selenium’s JS argument API to avoid any quoting issues.
     """
     downloaded_exts = set()
-    target_names = {
-        "csv": f"{compound_id}_admetlab_results.csv",
-        "pdf": f"{compound_id}_admetlab_summary.pdf"
-    }
+    target_names = {"csv": f"{compound_id}_admetlab_results.csv", "pdf": f"{compound_id}_admetlab_summary.pdf"}
 
     # 1) Check for already-downloaded files
     for ext, fname in target_names.items():
@@ -53,14 +49,14 @@ def run_admetlab_evaluation_with_ketcher(Smiles, output_dir, compound_id, max_re
         # Setup headless Chrome with download prefs
         chrome_options = Options()
         prefs = {
-            'download.default_directory': os.path.abspath(output_dir),
-            'download.prompt_for_download': False,
-            'download.directory_upgrade': True,
-            'safebrowsing.enabled': True,
-            'profile.default_content_setting_values.automatic_downloads': 1
+            "download.default_directory": os.path.abspath(output_dir),
+            "download.prompt_for_download": False,
+            "download.directory_upgrade": True,
+            "safebrowsing.enabled": True,
+            "profile.default_content_setting_values.automatic_downloads": 1,
         }
-        chrome_options.add_experimental_option('prefs', prefs)
-        chrome_options.add_argument('--headless')   # enable if desired
+        chrome_options.add_experimental_option("prefs", prefs)
+        chrome_options.add_argument("--headless")  # enable if desired
 
         driver = webdriver.Chrome(options=chrome_options)
         wait = WebDriverWait(driver, 15)
@@ -68,19 +64,22 @@ def run_admetlab_evaluation_with_ketcher(Smiles, output_dir, compound_id, max_re
         try:
             # 2a) Load the evaluation page
             driver.get("https://admetlab3.scbdd.com/server/evaluation")
-            wait.until(lambda d: d.execute_script('return document.readyState') == 'complete')
+            wait.until(lambda d: d.execute_script("return document.readyState") == "complete")
 
             # 2b) Dump all input/textarea IDs (debug)
             for elt in driver.find_elements(By.CSS_SELECTOR, "input, textarea"):
                 print(
                     elt.tag_name,
-                    "id=", elt.get_attribute("id"),
-                    "name=", elt.get_attribute("name"),
-                    "placeholder=", elt.get_attribute("placeholder")
+                    "id=",
+                    elt.get_attribute("id"),
+                    "name=",
+                    elt.get_attribute("name"),
+                    "placeholder=",
+                    elt.get_attribute("placeholder"),
                 )
 
             # 2c) Locate the SMILES input by its real ID (replace "smiles" if different)
-            input_box = driver.find_element(By.ID, "smiles")  
+            input_box = driver.find_element(By.ID, "smiles")
 
             # 2d) Clean up and strip
             Smiles_clean = Smiles.strip()
@@ -94,7 +93,7 @@ def run_admetlab_evaluation_with_ketcher(Smiles, output_dir, compound_id, max_re
                 "arguments[0].dispatchEvent(new Event('input',{bubbles:true})); "
                 "arguments[0].dispatchEvent(new Event('change',{bubbles:true}));",
                 input_box,
-                Smiles_clean
+                Smiles_clean,
             )
             time.sleep(0.1)
 
@@ -153,6 +152,7 @@ def run_admetlab_evaluation_with_ketcher(Smiles, output_dir, compound_id, max_re
     else:
         print(f"[X] Failed to process {compound_id} after {max_retries} attempts.")
 
+
 def rename_latest_file(folder, extension, new_name):
     files = [f for f in os.listdir(folder) if f.endswith(f".{extension}")]
     if not files:
@@ -175,6 +175,7 @@ def rename_latest_file(folder, extension, new_name):
         print(f"[✗] Failed to rename {latest} to {new_name}: {e}")
         return None
 
+
 def draw_molecule(Smiles, path):
     mol = Chem.MolFromSmiles(Smiles)
     if mol:
@@ -183,19 +184,18 @@ def draw_molecule(Smiles, path):
     else:
         print(f"[!] Invalid Smiles: {Smiles}")
 
+
 def draw_radar_plot(compound_name, props, save_path):
     import matplotlib.pyplot as plt
     import matplotlib.colors as mcolors
     import numpy as np
 
-    keys = ['MW', 'logP', 'logS', 'logD', 'nHA', 'nHD', 'TPSA',
-            'nRot', 'nRing', 'MaxRing', 'nHet', 'fChar', 'nRig']
+    keys = ["MW", "logP", "logS", "logD", "nHA", "nHD", "TPSA", "nRot", "nRing", "MaxRing", "nHet", "fChar", "nRig"]
 
     upper_limit = [600, 3, 0.5, 3, 12, 7, 140, 11, 6, 18, 15, 4, 30]
     lower_limit = [100, 0, -4, 1, 0, 0, 0, 0, 0, 0, 1, -4, 0]
 
-    buffer_percent = [0.5, 0.10, 0.40, 0.05, 0.5, 0.25, 0.55,
-                      0.30, 0.65, 0.15, 0.35, 0.35, 0.05]
+    buffer_percent = [0.5, 0.10, 0.40, 0.05, 0.5, 0.25, 0.55, 0.30, 0.65, 0.15, 0.35, 0.35, 0.05]
 
     values = [props.get(k, 0) for k in keys]
 
@@ -214,7 +214,7 @@ def draw_radar_plot(compound_name, props, save_path):
 
     norm_values = [normalize(v, lo, hi) for v, lo, hi in zip(values, plot_min, plot_max)]
     norm_upper = [normalize(u, lo, hi) for u, lo, hi in zip(upper_limit, plot_min, plot_max)]
-    norm_lower = [normalize(l, lo, hi) for l, lo, hi in zip(lower_limit, plot_min, plot_max)]
+    norm_lower = [normalize(lim, lo, hi) for lim, lo, hi in zip(lower_limit, plot_min, plot_max)]
 
     norm_values += norm_values[:1]
     norm_upper += norm_upper[:1]
@@ -224,23 +224,23 @@ def draw_radar_plot(compound_name, props, save_path):
 
     fig, ax = plt.subplots(figsize=(8, 8), subplot_kw=dict(polar=True))
 
-    ax.plot(angles, norm_upper, color='blue', linewidth=1.5, label='Upper Limit')
-    ax.fill(angles, norm_upper, color='blue', alpha=0.1)
-    ax.plot(angles, norm_lower, color='green', linewidth=1.5, label='Lower Limit')
-    ax.fill(angles, norm_lower, color='green', alpha=0.1)
+    ax.plot(angles, norm_upper, color="blue", linewidth=1.5, label="Upper Limit")
+    ax.fill(angles, norm_upper, color="blue", alpha=0.1)
+    ax.plot(angles, norm_lower, color="green", linewidth=1.5, label="Lower Limit")
+    ax.fill(angles, norm_lower, color="green", alpha=0.1)
 
     cmap = mcolors.LinearSegmentedColormap.from_list("compound_grad", ["yellow", "orange", "yellow"])
     norm = plt.Normalize(0, len(keys) - 1)
 
     for i in range(len(keys)):
-        ax.plot(angles[i:i+2], norm_values[i:i+2], color=cmap(norm(i)), linewidth=2)
+        ax.plot(angles[i : i + 2], norm_values[i : i + 2], color=cmap(norm(i)), linewidth=2)
 
     for i, key in enumerate(keys):
         real = values[i]
         if real < lower_limit[i] or real > upper_limit[i]:
-            ax.plot(angles[i], norm_values[i], 'o', color='red', markersize=8)
+            ax.plot(angles[i], norm_values[i], "o", color="red", markersize=8)
         else:
-            ax.plot(angles[i], norm_values[i], 'o', color=cmap(norm(i)), markersize=8)
+            ax.plot(angles[i], norm_values[i], "o", color=cmap(norm(i)), markersize=8)
 
     ax.set_thetagrids(np.degrees(angles[:-1]), keys)
     ax.set_ylim(0, 1)
@@ -248,6 +248,7 @@ def draw_radar_plot(compound_name, props, save_path):
     plt.tight_layout()
     plt.savefig(save_path)
     plt.close()
+
 
 def screenshot_lignetwork(protein_path, ligand_sdf, output_png):
     """
@@ -288,6 +289,7 @@ def screenshot_lignetwork(protein_path, ligand_sdf, output_png):
     time.sleep(2)  # allow any JS to finish rendering
     driver.save_screenshot(output_png)
     driver.quit()
+
 
 def merge_and_draw(output_dir):
     merged_csv = os.path.join(output_dir, "merged_admet_results.csv")
@@ -397,10 +399,7 @@ def merge_and_draw(output_dir):
 
     wb = load_workbook(merged_xlsx)
     ws = wb.active
-    letter_map = {
-        col: get_excel_column_letter(i + 1)
-        for i, col in enumerate(xlsx_df.columns)
-    }
+    letter_map = {col: get_excel_column_letter(i + 1) for i, col in enumerate(xlsx_df.columns)}
 
     # Embed images and adjust sizes
     width_2d = None
@@ -449,6 +448,7 @@ def merge_and_draw(output_dir):
 
     wb.save(merged_xlsx)
     print(f"[✓] Excel file with embedded images saved: {merged_xlsx}")
+
 
 def main(args):
     # ensure output directory exists
@@ -515,38 +515,25 @@ def main(args):
                     print(f"[!] SDF not found for {compound} at rank {rank}")
                     continue
 
-            screenshot_lignetwork(
-                protein_path,
-                sdf_path,
-                os.path.join(folder, f"{compound}_2d_plot.png")
-            )
+            screenshot_lignetwork(protein_path, sdf_path, os.path.join(folder, f"{compound}_2d_plot.png"))
 
     merge_and_draw(args.output_dir)
     print("[✔] All compounds processed and results merged.")
 
+
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description="Batch ADMETLab 3.0 evaluator with optional 2D lignetwork plots"
-    )
+    parser = argparse.ArgumentParser(description="Batch ADMETLab 3.0 evaluator with optional 2D lignetwork plots")
     parser.add_argument(
-        "--input_csv",
-        required=True,
-        help="CSV with columns: Compounds, Smiles. Optional column: Cluster"
+        "--input_csv", required=True, help="CSV with columns: Compounds, Smiles. Optional column: Cluster"
     )
+    parser.add_argument("--output_dir", required=True, help="Base output directory for results")
     parser.add_argument(
-        "--output_dir",
-        required=True,
-        help="Base output directory for results"
-    )
-    parser.add_argument(
-        "--protein_path",
-        required=False,
-        help="Path to the single .pdb protein file (triggers 2D plot when used)"
+        "--protein_path", required=False, help="Path to the single .pdb protein file (triggers 2D plot when used)"
     )
     parser.add_argument(
         "--gnina_output_dir",
         required=False,
-        help="Directory containing GNINA outputs; subfolders are ranks (required if --protein_path is used)"
+        help="Directory containing GNINA outputs; subfolders are ranks (required if --protein_path is used)",
     )
     args = parser.parse_args()
     main(args)

@@ -8,9 +8,7 @@ from rdkit.Chem import AllChem
 
 
 def parse_arguments():
-    parser = argparse.ArgumentParser(
-        description="Perform energy minimization on ligands."
-    )
+    parser = argparse.ArgumentParser(description="Perform energy minimization on ligands.")
     parser.add_argument(
         "--ligand_dir",
         type=str,
@@ -154,13 +152,9 @@ def main():
         if is_file:
             if args.ligand_dir.endswith(".sdf"):
                 supplier = Chem.SDMolSupplier(args.ligand_dir)
-                success, failure = process_sdf_molecules(
-                    supplier, args.output_dir, args.prefix, is_single_file=True
-                )
+                success, failure = process_sdf_molecules(supplier, args.output_dir, args.prefix, is_single_file=True)
             elif args.ligand_dir.endswith(".csv"):
-                success, failure = process_csv_molecules(
-                    args.ligand_dir, args.output_dir
-                )
+                success, failure = process_csv_molecules(args.ligand_dir, args.output_dir)
             else:
                 raise ValueError("Input file must be a .sdf or .csv file.")
         else:
@@ -169,9 +163,7 @@ def main():
                 if file_name.endswith(".sdf"):
                     supplier = Chem.SDMolSupplier(file_path)
                     prefix = os.path.splitext(file_name)[0]
-                    s, f = process_sdf_molecules(
-                        supplier, args.output_dir, prefix, is_single_file=False
-                    )
+                    s, f = process_sdf_molecules(supplier, args.output_dir, prefix, is_single_file=False)
                     success += s
                     failure += f
                 elif file_name.endswith(".csv"):
@@ -187,11 +179,10 @@ def main():
     total_time = end_time - start_time
 
     logging.error(
-        f"Run Summary: {success} molecules processed successfully, {failure} failed. Total runtime: {total_time:.2f} seconds."
+        f"Run Summary: {success} molecules processed successfully, {failure} failed. "
+        f"Total runtime: {total_time:.2f} seconds."
     )
-    print(
-        f"\nRun Summary: {success} molecules processed successfully, {failure} failed."
-    )
+    print(f"\nRun Summary: {success} molecules processed successfully, {failure} failed.")
     print(f"Total runtime: {total_time:.2f} seconds.")
     print(f"\nProcessing complete. See {log_filename} for details on failed molecules.")
 

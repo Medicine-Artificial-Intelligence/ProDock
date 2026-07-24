@@ -4,9 +4,7 @@ import pandas as pd
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(
-        description="Strip salts/counter-ions from a SMILES column in a CSV file."
-    )
+    parser = argparse.ArgumentParser(description="Strip salts/counter-ions from a SMILES column in a CSV file.")
     parser.add_argument(
         "--input",
         type=str,
