@@ -1103,6 +1103,7 @@ class ProDockPipeline:
         include_countvectors: bool = False,
         fail_fast: bool = True,
         use_profiler: bool = False,
+        receptor_guess_bonds: bool = False,
     ) -> Tuple[Any, Dict[str, Path]]:
         """
         Extract protein-ligand interactions from a crawled pose dataframe.
@@ -1196,7 +1197,9 @@ class ProDockPipeline:
 
         if use_profiler:
             self.logger.info("Using InteractionProfiler.run_pose_table")
-            profiler = InteractionProfiler()
+            profiler = InteractionProfiler(
+                receptor_guess_bonds=receptor_guess_bonds,
+            )
             result = profiler.run_pose_table(
                 poses=poses,
                 receptor_pdb_by_id=receptor_pdb_by_id_str,
@@ -1222,6 +1225,7 @@ class ProDockPipeline:
                 include_bitvectors=include_bitvectors,
                 include_countvectors=include_countvectors,
                 fail_fast=fail_fast,
+                receptor_guess_bonds=receptor_guess_bonds,
             )
 
         merged_rows = (
@@ -1349,6 +1353,7 @@ class ProDockPipeline:
         include_countvectors: bool = False,
         fail_fast: bool = True,
         use_interaction_profiler: bool = False,
+        receptor_guess_bonds: bool = False,
         save_to_database: bool = True,
         db_name: PathLike = "prodock.db",
         replace: bool = True,
@@ -1417,6 +1422,12 @@ class ProDockPipeline:
             Whether to use :class:`InteractionProfiler` for interaction
             extraction.
         :type use_interaction_profiler: bool
+        :param receptor_guess_bonds:
+            Whether ProLIF should guess receptor bonds during interaction
+            extraction. Disabled by default because enabling it can segfault
+            on some receptor topologies; when disabled, MDAnalysis still infers
+            bonds through its RDKit converter.
+        :type receptor_guess_bonds: bool
         :param save_to_database:
             Whether to create or update the SQLite database and insert results.
         :type save_to_database: bool
@@ -1534,6 +1545,7 @@ class ProDockPipeline:
                 include_countvectors=include_countvectors,
                 fail_fast=fail_fast,
                 use_profiler=use_interaction_profiler,
+                receptor_guess_bonds=receptor_guess_bonds,
             )
 
             merged_df = interaction_result.merged_df
@@ -1623,6 +1635,7 @@ def prodock(
     include_countvectors: bool = False,
     fail_fast: bool = True,
     use_interaction_profiler: bool = False,
+    receptor_guess_bonds: bool = False,
     save_to_database: bool = True,
     db_name: PathLike = "prodock.db",
     replace: bool = True,
@@ -1725,6 +1738,12 @@ def prodock(
     :param use_interaction_profiler:
         Whether to use :class:`InteractionProfiler`.
     :type use_interaction_profiler: bool
+    :param receptor_guess_bonds:
+        Whether ProLIF should guess receptor bonds during interaction
+        extraction. Disabled by default because enabling it can segfault on
+        some receptor topologies; when disabled, MDAnalysis still infers bonds
+        through its RDKit converter.
+    :type receptor_guess_bonds: bool
     :param save_to_database:
         Whether to write results into the SQLite database.
     :type save_to_database: bool
@@ -1855,6 +1874,7 @@ def prodock(
         include_countvectors=include_countvectors,
         fail_fast=fail_fast,
         use_interaction_profiler=use_interaction_profiler,
+        receptor_guess_bonds=receptor_guess_bonds,
         save_to_database=save_to_database,
         db_name=db_name,
         replace=replace,
