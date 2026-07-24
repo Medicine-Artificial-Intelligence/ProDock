@@ -45,7 +45,9 @@ def convert_single_smiles(smi):
 
 
 def smiles_to_ecfp4(smiles_list, n_jobs):
-    results = Parallel(n_jobs=n_jobs)(delayed(convert_single_smiles)(smi) for smi in smiles_list)
+    results = Parallel(n_jobs=n_jobs)(
+        delayed(convert_single_smiles)(smi) for smi in smiles_list
+    )
     fps, mols = zip(*results)
     return list(fps), list(mols)
 
@@ -54,7 +56,9 @@ def tanimoto_distance_matrix(fps, n_jobs):
     def get_dists(i):
         return [1 - x for x in DataStructs.BulkTanimotoSimilarity(fps[i], fps[:i])]
 
-    all_dists = Parallel(n_jobs=n_jobs)(delayed(get_dists)(i) for i in range(1, len(fps)))
+    all_dists = Parallel(n_jobs=n_jobs)(
+        delayed(get_dists)(i) for i in range(1, len(fps))
+    )
     return [d for sublist in all_dists for d in sublist]
 
 
@@ -74,7 +78,11 @@ def compute_centroids(clusters, fps, compounds):
             max_sim = -1
             center = cluster[0]
             for i in cluster:
-                sims = [DataStructs.TanimotoSimilarity(fps[i], fps[j]) for j in cluster if i != j]
+                sims = [
+                    DataStructs.TanimotoSimilarity(fps[i], fps[j])
+                    for j in cluster
+                    if i != j
+                ]
                 avg_sim = sum(sims) / len(sims) if sims else 0
                 if avg_sim > max_sim:
                     max_sim = avg_sim
@@ -97,7 +105,14 @@ def compute_silhouette(fps, labels):
 
 
 def assign_remaining_by_centroid(
-    fps, clusters, compounds, smiles_list, min_compounds, tanimoto_threshold, threshold_decrement, max_iter=10
+    fps,
+    clusters,
+    compounds,
+    smiles_list,
+    min_compounds,
+    tanimoto_threshold,
+    threshold_decrement,
+    max_iter=10,
 ):
     large_clusters = [c for c in clusters if len(c) >= min_compounds]
     small_clusters = [c for c in clusters if len(c) < min_compounds]
@@ -193,7 +208,15 @@ def visualize_clusters(fps, clusters, output_prefix):
     palette = sns.color_palette("hls", n_colors=num_clusters)
 
     plt.figure(figsize=(12, 8))
-    sns.scatterplot(data=df_tsne, x="tsne-1", y="tsne-2", hue="Cluster", palette=palette, s=8, legend="full")
+    sns.scatterplot(
+        data=df_tsne,
+        x="tsne-1",
+        y="tsne-2",
+        hue="Cluster",
+        palette=palette,
+        s=8,
+        legend="full",
+    )
     cluster_sizes = [len(cluster) for cluster in clusters]
     legend_labels = [f"Cluster {i} (n={size})" for i, size in enumerate(cluster_sizes)]
     handles, _ = plt.gca().get_legend_handles_labels()
@@ -220,7 +243,9 @@ def visualize_clusters(fps, clusters, output_prefix):
     plt.close()
 
     # === Step 2b: UMAP ===
-    reducer = umap.UMAP(n_neighbors=10, min_dist=0.1, metric="euclidean", random_state=42)
+    reducer = umap.UMAP(
+        n_neighbors=10, min_dist=0.1, metric="euclidean", random_state=42
+    )
     reduced_umap = reducer.fit_transform(reduced_pca)
 
     df_umap = pd.DataFrame(reduced_umap, columns=["umap-1", "umap-2"])
@@ -230,7 +255,15 @@ def visualize_clusters(fps, clusters, output_prefix):
     sil_umap_str = f"{sil_umap:.2f}" if sil_umap >= 0 else "NA"
 
     plt.figure(figsize=(12, 8))
-    sns.scatterplot(data=df_umap, x="umap-1", y="umap-2", hue="Cluster", palette=palette, s=8, legend="full")
+    sns.scatterplot(
+        data=df_umap,
+        x="umap-1",
+        y="umap-2",
+        hue="Cluster",
+        palette=palette,
+        s=8,
+        legend="full",
+    )
     handles, _ = plt.gca().get_legend_handles_labels()
     plt.legend(
         handles=handles,
@@ -339,7 +372,11 @@ def main(args):
     for cluster_id, cluster in enumerate(clusters):
         for idx in cluster:
             compound_cluster_mapping.append(
-                {"Compounds": compounds[idx], "Smiles": smiles_list[idx], "Cluster": cluster_id}
+                {
+                    "Compounds": compounds[idx],
+                    "Smiles": smiles_list[idx],
+                    "Cluster": cluster_id,
+                }
             )
 
     centroids = compute_centroids(clusters, fps, compounds)
@@ -349,14 +386,18 @@ def main(args):
         print(f" - {compounds[idx]}")
 
     plot_prefix = os.path.join(args.output_dir, "cluster_plot")
-    cluster_labels, silhouette = visualize_clusters(fps, clusters, output_prefix=plot_prefix)
+    cluster_labels, silhouette = visualize_clusters(
+        fps, clusters, output_prefix=plot_prefix
+    )
 
     output_cluster_csv = os.path.join(
         args.output_dir,
         f"compound_clusters_decrement{args.threshold_decrement}"
         f"_tanimoto{args.tanimoto_threshold}_min{args.min_compounds}.csv",
     )
-    df_result = pd.DataFrame({"Compounds": compounds, "Smiles": smiles_list, "Cluster": cluster_labels})
+    df_result = pd.DataFrame(
+        {"Compounds": compounds, "Smiles": smiles_list, "Cluster": cluster_labels}
+    )
     df_result.to_csv(output_cluster_csv, index=False)
     print(f"[✓] Exported cluster assignments to: {output_cluster_csv}")
 
@@ -390,16 +431,37 @@ def main(args):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Butina Clustering with Distance Matrix and Silhouette Scoring")
-    parser.add_argument("--ligand_dir", required=True, help="Directory of .sdf files")
-    parser.add_argument("--output_dir", required=True, help="Directory to store output CSVs and plots")
-    parser.add_argument("--source_csv", required=True, help="CSV file containing Compounds column")
-    parser.add_argument("--tanimoto_threshold", type=float, default=0.35, help="Initial Tanimoto similarity cutoff")
-    parser.add_argument(
-        "--threshold_decrement", type=float, default=0.05, help="Decrease of similarity cutoff per iteration"
+    parser = argparse.ArgumentParser(
+        description="Butina Clustering with Distance Matrix and Silhouette Scoring"
     )
-    parser.add_argument("--cpu", type=int, default=-1, help="Number of CPUs to use for parallel jobs")
-    parser.add_argument("--min_compounds", type=int, default=10, help="Minimum cluster size before reassignment")
+    parser.add_argument("--ligand_dir", required=True, help="Directory of .sdf files")
+    parser.add_argument(
+        "--output_dir", required=True, help="Directory to store output CSVs and plots"
+    )
+    parser.add_argument(
+        "--source_csv", required=True, help="CSV file containing Compounds column"
+    )
+    parser.add_argument(
+        "--tanimoto_threshold",
+        type=float,
+        default=0.35,
+        help="Initial Tanimoto similarity cutoff",
+    )
+    parser.add_argument(
+        "--threshold_decrement",
+        type=float,
+        default=0.05,
+        help="Decrease of similarity cutoff per iteration",
+    )
+    parser.add_argument(
+        "--cpu", type=int, default=-1, help="Number of CPUs to use for parallel jobs"
+    )
+    parser.add_argument(
+        "--min_compounds",
+        type=int,
+        default=10,
+        help="Minimum cluster size before reassignment",
+    )
     args = parser.parse_args()
     os.makedirs(args.output_dir, exist_ok=True)
     main(args)

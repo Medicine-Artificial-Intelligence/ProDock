@@ -9,19 +9,25 @@ import logging
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="Automate DiffDock on multiple ligands with .sdf extension.")
+    parser = argparse.ArgumentParser(
+        description="Automate DiffDock on multiple ligands with .sdf extension."
+    )
     parser.add_argument(
         "--protein_dir",
         required=True,
         help="Path to the folder containing protein PDB files",
     )
-    parser.add_argument("--ligand_dir", required=True, help="Directory containing the ligand files")
+    parser.add_argument(
+        "--ligand_dir", required=True, help="Directory containing the ligand files"
+    )
     parser.add_argument(
         "--output_dir",
         default=os.getcwd(),
         help="Directory to save the docking output.",
     )
-    parser.add_argument("--model_dir", default=None, help="Directory to the model folder")
+    parser.add_argument(
+        "--model_dir", default=None, help="Directory to the model folder"
+    )
     parser.add_argument(
         "--save_visualisation",
         choices=["yes", "no"],
@@ -34,7 +40,9 @@ def parse_args():
         default=None,
         help="Number of samples per complex",
     )
-    parser.add_argument("--batch_size", type=int, default=None, help="Batch size for processing")
+    parser.add_argument(
+        "--batch_size", type=int, default=None, help="Batch size for processing"
+    )
     return parser.parse_args()
 
 
@@ -45,7 +53,9 @@ def create_directory(path):
 
 def run_diffdock(args, protein_file, ligand_file, complex_name, output_dir):
     current_dir = os.getcwd()
-    diffdock_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "DiffDock")
+    diffdock_dir = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "DiffDock"
+    )
     os.chdir(diffdock_dir)
     diffdock_script = os.path.join(diffdock_dir, "inference.py")
     config_dir = os.path.join(diffdock_dir, "default_inference_args.yaml")
@@ -73,7 +83,9 @@ def run_diffdock(args, protein_file, ligand_file, complex_name, output_dir):
         command.extend(["--save_visualisation", ""])
 
     start_time = time.time()
-    result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    result = subprocess.run(
+        command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+    )
     duration = time.time() - start_time
     os.chdir(current_dir)
     return duration, result.stdout, result.stderr
@@ -127,7 +139,9 @@ def main():
         ligand_bar.reset()
         protein_path = os.path.join(args.protein_dir, protein)
         output_temp_dir = re.sub(r"_protein.*", "", protein)
-        output_dir_individual = os.path.splitext(os.path.join(output_dir, output_temp_dir))[0]
+        output_dir_individual = os.path.splitext(
+            os.path.join(output_dir, output_temp_dir)
+        )[0]
         create_directory(output_dir_individual)
 
         for ligand in ligands:
@@ -141,13 +155,17 @@ def main():
                     str(complex_name),
                     str(output_dir_individual),
                 )
-                logger_time.info(f"{complex_name} docked with {output_temp_dir}_protein in {duration:.2f} seconds.")
+                logger_time.info(
+                    f"{complex_name} docked with {output_temp_dir}_protein in {duration:.2f} seconds."
+                )
                 if stdout:
                     logger_out.info(stdout)
                 if stderr:
                     logger_error.error(stderr)
             except Exception as e:
-                logger_error.error(f"An error occurred while processing {complex_name}: {str(e)}")
+                logger_error.error(
+                    f"An error occurred while processing {complex_name}: {str(e)}"
+                )
             ligand_bar.update(1)
         protein_bar.update(1)
     protein_bar.close()

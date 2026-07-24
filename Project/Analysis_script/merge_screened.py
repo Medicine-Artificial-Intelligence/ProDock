@@ -11,14 +11,20 @@ def merge_and_sort_csv(gnina_file, diffdock_file, output_dir):
     df2 = df2.rename(columns={"Best_satisfied_rank": "Best_satisfied_rank_DiffDock"})
 
     # Merge using INNER JOIN (only common columns)
-    merged_df = pd.merge(df1, df2, how="inner", on="Compounds")  # Keeps only matching rows
+    merged_df = pd.merge(
+        df1, df2, how="inner", on="Compounds"
+    )  # Keeps only matching rows
 
     # Ensure "Affinity" and "CNNpose" columns are numeric for sorting
     merged_df["Affinity"] = pd.to_numeric(merged_df["Affinity"], errors="coerce")
     merged_df["CNNpose"] = pd.to_numeric(merged_df["CNNpose"], errors="coerce")
     merged_df["CNNaffinity"] = pd.to_numeric(merged_df["CNNaffinity"], errors="coerce")
-    merged_df["Similarity-type1"] = pd.to_numeric(merged_df["Similarity-type1"], errors="coerce")
-    merged_df["Similarity-type2"] = pd.to_numeric(merged_df["Similarity-type2"], errors="coerce")
+    merged_df["Similarity-type1"] = pd.to_numeric(
+        merged_df["Similarity-type1"], errors="coerce"
+    )
+    merged_df["Similarity-type2"] = pd.to_numeric(
+        merged_df["Similarity-type2"], errors="coerce"
+    )
     merged_df["Solvation"] = pd.to_numeric(merged_df["Solvation"], errors="coerce")
     merged_df["%Occupation"] = pd.to_numeric(merged_df["%Occupation"], errors="coerce")
 
@@ -48,10 +54,14 @@ def merge_and_sort_csv(gnina_file, diffdock_file, output_dir):
 
 if __name__ == "__main__":
     # Argument parser for command-line execution
-    parser = argparse.ArgumentParser(description="Merge two CSV files using an inner join and sort the results.")
+    parser = argparse.ArgumentParser(
+        description="Merge two CSV files using an inner join and sort the results."
+    )
     parser.add_argument("--gnina_file", type=str, help="Path to the first CSV file")
     parser.add_argument("--diffdock_file", type=str, help="Path to the second CSV file")
-    parser.add_argument("--output_dir", type=str, help="Directory to save the merged CSV")
+    parser.add_argument(
+        "--output_dir", type=str, help="Directory to save the merged CSV"
+    )
     parser.add_argument(
         "--name",
         type=str,

@@ -10,7 +10,11 @@ def parse_file_content(file_path):
         content = file.read()
 
     # Extract mode 1 data using regular expression
-    match = re.search(r"^\s*1\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s+(\d+\.\d+)\s+(\d+\.\d+)", content, re.MULTILINE)
+    match = re.search(
+        r"^\s*1\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s+(\d+\.\d+)\s+(\d+\.\d+)",
+        content,
+        re.MULTILINE,
+    )
     if match:
         affinity = float(match.group(1))
         intramol = float(match.group(2))
@@ -22,9 +26,14 @@ def parse_file_content(file_path):
 
 # Set up argument parsing
 parser = argparse.ArgumentParser(description="Extract and save ligand data to a CSV.")
-parser.add_argument("--input_dir", type=str, required=True, help="Directory containing all log files")
 parser.add_argument(
-    "--output_dir", type=str, default=".", help="Directory to save the output CSV (defaults to current directory)"
+    "--input_dir", type=str, required=True, help="Directory containing all log files"
+)
+parser.add_argument(
+    "--output_dir",
+    type=str,
+    default=".",
+    help="Directory to save the output CSV (defaults to current directory)",
 )
 parser.add_argument(
     "--output_name",

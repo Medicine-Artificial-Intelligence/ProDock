@@ -24,7 +24,9 @@ import matplotlib
 matplotlib.use("Agg")
 
 
-def run_admetlab_evaluation_with_ketcher(Smiles, output_dir, compound_id, max_retries=1):
+def run_admetlab_evaluation_with_ketcher(
+    Smiles, output_dir, compound_id, max_retries=1
+):
     """
     Submits a SMILES string to ADMETLab 3.0 (with the Ketcher widget),
     downloads CSV and PDF results, and draws a radar plot.
@@ -32,7 +34,10 @@ def run_admetlab_evaluation_with_ketcher(Smiles, output_dir, compound_id, max_re
     via Selenium’s JS argument API to avoid any quoting issues.
     """
     downloaded_exts = set()
-    target_names = {"csv": f"{compound_id}_admetlab_results.csv", "pdf": f"{compound_id}_admetlab_summary.pdf"}
+    target_names = {
+        "csv": f"{compound_id}_admetlab_results.csv",
+        "pdf": f"{compound_id}_admetlab_summary.pdf",
+    }
 
     # 1) Check for already-downloaded files
     for ext, fname in target_names.items():
@@ -45,7 +50,9 @@ def run_admetlab_evaluation_with_ketcher(Smiles, output_dir, compound_id, max_re
             print(f"[✓] All files already downloaded for {compound_id}. Skipping.")
             break
 
-        print(f"[{compound_id}] Attempt {attempt} (missing: {', '.join({'csv','pdf'} - downloaded_exts)})")
+        print(
+            f"[{compound_id}] Attempt {attempt} (missing: {', '.join({'csv','pdf'} - downloaded_exts)})"
+        )
         # Setup headless Chrome with download prefs
         chrome_options = Options()
         prefs = {
@@ -64,7 +71,9 @@ def run_admetlab_evaluation_with_ketcher(Smiles, output_dir, compound_id, max_re
         try:
             # 2a) Load the evaluation page
             driver.get("https://admetlab3.scbdd.com/server/evaluation")
-            wait.until(lambda d: d.execute_script("return document.readyState") == "complete")
+            wait.until(
+                lambda d: d.execute_script("return document.readyState") == "complete"
+            )
 
             # 2b) Dump all input/textarea IDs (debug)
             for elt in driver.find_elements(By.CSS_SELECTOR, "input, textarea"):
@@ -102,7 +111,9 @@ def run_admetlab_evaluation_with_ketcher(Smiles, output_dir, compound_id, max_re
             print(f"[→] SMILES now in box: {current!r}")
 
             # 2g) Submit the form
-            submit_button = driver.find_element(By.XPATH, '//button[contains(text(), "Submit")]')
+            submit_button = driver.find_element(
+                By.XPATH, '//button[contains(text(), "Submit")]'
+            )
             submit_button.click()
             print(f"[✓] Clicked submit for {compound_id}")
 
@@ -133,7 +144,9 @@ def run_admetlab_evaluation_with_ketcher(Smiles, output_dir, compound_id, max_re
                         break
                     time.sleep(0.1)
                 if not success:
-                    print(f"[!] Missing .{ext} after attempt {attempt} for {compound_id}")
+                    print(
+                        f"[!] Missing .{ext} after attempt {attempt} for {compound_id}"
+                    )
 
             # 2k) Generate radar plot if both are present
             if downloaded_exts == {"csv", "pdf"}:
@@ -159,7 +172,9 @@ def rename_latest_file(folder, extension, new_name):
         print(f"[!] No .{extension} file found in {folder}")
         return None
 
-    files = sorted([os.path.join(folder, f) for f in files], key=os.path.getmtime, reverse=True)
+    files = sorted(
+        [os.path.join(folder, f) for f in files], key=os.path.getmtime, reverse=True
+    )
     latest = files[0]
     new_path = os.path.join(folder, new_name)
 
@@ -190,12 +205,40 @@ def draw_radar_plot(compound_name, props, save_path):
     import matplotlib.colors as mcolors
     import numpy as np
 
-    keys = ["MW", "logP", "logS", "logD", "nHA", "nHD", "TPSA", "nRot", "nRing", "MaxRing", "nHet", "fChar", "nRig"]
+    keys = [
+        "MW",
+        "logP",
+        "logS",
+        "logD",
+        "nHA",
+        "nHD",
+        "TPSA",
+        "nRot",
+        "nRing",
+        "MaxRing",
+        "nHet",
+        "fChar",
+        "nRig",
+    ]
 
     upper_limit = [600, 3, 0.5, 3, 12, 7, 140, 11, 6, 18, 15, 4, 30]
     lower_limit = [100, 0, -4, 1, 0, 0, 0, 0, 0, 0, 1, -4, 0]
 
-    buffer_percent = [0.5, 0.10, 0.40, 0.05, 0.5, 0.25, 0.55, 0.30, 0.65, 0.15, 0.35, 0.35, 0.05]
+    buffer_percent = [
+        0.5,
+        0.10,
+        0.40,
+        0.05,
+        0.5,
+        0.25,
+        0.55,
+        0.30,
+        0.65,
+        0.15,
+        0.35,
+        0.35,
+        0.05,
+    ]
 
     values = [props.get(k, 0) for k in keys]
 
@@ -212,9 +255,15 @@ def draw_radar_plot(compound_name, props, save_path):
     def normalize(val, lo, hi):
         return (val - lo) / (hi - lo) if hi != lo else 0.5
 
-    norm_values = [normalize(v, lo, hi) for v, lo, hi in zip(values, plot_min, plot_max)]
-    norm_upper = [normalize(u, lo, hi) for u, lo, hi in zip(upper_limit, plot_min, plot_max)]
-    norm_lower = [normalize(lim, lo, hi) for lim, lo, hi in zip(lower_limit, plot_min, plot_max)]
+    norm_values = [
+        normalize(v, lo, hi) for v, lo, hi in zip(values, plot_min, plot_max)
+    ]
+    norm_upper = [
+        normalize(u, lo, hi) for u, lo, hi in zip(upper_limit, plot_min, plot_max)
+    ]
+    norm_lower = [
+        normalize(lim, lo, hi) for lim, lo, hi in zip(lower_limit, plot_min, plot_max)
+    ]
 
     norm_values += norm_values[:1]
     norm_upper += norm_upper[:1]
@@ -229,11 +278,15 @@ def draw_radar_plot(compound_name, props, save_path):
     ax.plot(angles, norm_lower, color="green", linewidth=1.5, label="Lower Limit")
     ax.fill(angles, norm_lower, color="green", alpha=0.1)
 
-    cmap = mcolors.LinearSegmentedColormap.from_list("compound_grad", ["yellow", "orange", "yellow"])
+    cmap = mcolors.LinearSegmentedColormap.from_list(
+        "compound_grad", ["yellow", "orange", "yellow"]
+    )
     norm = plt.Normalize(0, len(keys) - 1)
 
     for i in range(len(keys)):
-        ax.plot(angles[i : i + 2], norm_values[i : i + 2], color=cmap(norm(i)), linewidth=2)
+        ax.plot(
+            angles[i : i + 2], norm_values[i : i + 2], color=cmap(norm(i)), linewidth=2
+        )
 
     for i, key in enumerate(keys):
         real = values[i]
@@ -399,7 +452,9 @@ def merge_and_draw(output_dir):
 
     wb = load_workbook(merged_xlsx)
     ws = wb.active
-    letter_map = {col: get_excel_column_letter(i + 1) for i, col in enumerate(xlsx_df.columns)}
+    letter_map = {
+        col: get_excel_column_letter(i + 1) for i, col in enumerate(xlsx_df.columns)
+    }
 
     # Embed images and adjust sizes
     width_2d = None
@@ -456,7 +511,9 @@ def main(args):
 
     # validate: if a protein is given, GNINA outputs must be too
     if args.protein_path and not args.gnina_output_dir:
-        raise ValueError("When --protein_path is specified, --gnina_output_dir must also be provided")
+        raise ValueError(
+            "When --protein_path is specified, --gnina_output_dir must also be provided"
+        )
 
     # read compounds list
     df = pd.read_csv(args.input_csv)
@@ -464,7 +521,9 @@ def main(args):
     required_cols = {"Compounds", "Smiles"}
     missing_cols = required_cols - set(df.columns)
     if missing_cols:
-        raise ValueError(f"Input CSV is missing required columns: {', '.join(missing_cols)}")
+        raise ValueError(
+            f"Input CSV is missing required columns: {', '.join(missing_cols)}"
+        )
 
     has_cluster = "Cluster" in df.columns
 
@@ -506,7 +565,9 @@ def main(args):
             sdf_path = os.path.join(gnina_output_dir, str(rank), f"{compound}.sdf")
 
             if not os.path.exists(sdf_path):
-                pattern = os.path.join(gnina_output_dir, "*", str(rank), f"{compound}.sdf")
+                pattern = os.path.join(
+                    gnina_output_dir, "*", str(rank), f"{compound}.sdf"
+                )
                 matches = glob.glob(pattern)
 
                 if matches:
@@ -515,20 +576,30 @@ def main(args):
                     print(f"[!] SDF not found for {compound} at rank {rank}")
                     continue
 
-            screenshot_lignetwork(protein_path, sdf_path, os.path.join(folder, f"{compound}_2d_plot.png"))
+            screenshot_lignetwork(
+                protein_path, sdf_path, os.path.join(folder, f"{compound}_2d_plot.png")
+            )
 
     merge_and_draw(args.output_dir)
     print("[✔] All compounds processed and results merged.")
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Batch ADMETLab 3.0 evaluator with optional 2D lignetwork plots")
-    parser.add_argument(
-        "--input_csv", required=True, help="CSV with columns: Compounds, Smiles. Optional column: Cluster"
+    parser = argparse.ArgumentParser(
+        description="Batch ADMETLab 3.0 evaluator with optional 2D lignetwork plots"
     )
-    parser.add_argument("--output_dir", required=True, help="Base output directory for results")
     parser.add_argument(
-        "--protein_path", required=False, help="Path to the single .pdb protein file (triggers 2D plot when used)"
+        "--input_csv",
+        required=True,
+        help="CSV with columns: Compounds, Smiles. Optional column: Cluster",
+    )
+    parser.add_argument(
+        "--output_dir", required=True, help="Base output directory for results"
+    )
+    parser.add_argument(
+        "--protein_path",
+        required=False,
+        help="Path to the single .pdb protein file (triggers 2D plot when used)",
     )
     parser.add_argument(
         "--gnina_output_dir",

@@ -49,7 +49,9 @@ def calculate_contact_surface_area(ligand_selection, binding_site_selection):
     binding_site_area = cmd.get_area("isolated_binding_site")
     # Create a temporary object that includes both the ligand and the binding site
     try:
-        cmd.create("temp_complex", f"({ligand_selection}) or ({binding_site_selection})")
+        cmd.create(
+            "temp_complex", f"({ligand_selection}) or ({binding_site_selection})"
+        )
         complex_sasa = cmd.get_area("temp_complex")
     finally:
         cmd.delete("temp_complex")
@@ -60,7 +62,9 @@ def calculate_contact_surface_area(ligand_selection, binding_site_selection):
         unoccupied = binding_site_area
     else:
         unoccupied = abs(isolated_sasa - complex_sasa)
-    occupancy_percent = (abs((binding_site_area - unoccupied)) / binding_site_area) * 100
+    occupancy_percent = (
+        abs((binding_site_area - unoccupied)) / binding_site_area
+    ) * 100
     print(unoccupied, occupancy_percent)
     return unoccupied, occupancy_percent
 
@@ -92,10 +96,14 @@ def natural_sort_key(s):
     """
     Sort strings containing numbers by converting numeric parts into integers.
     """
-    return [int(text) if text.isdigit() else text.lower() for text in re.split(r"(\d+)", s)]
+    return [
+        int(text) if text.isdigit() else text.lower() for text in re.split(r"(\d+)", s)
+    ]
 
 
-def merge_confidence_contact(directory, output_file, atom_threshold, occupancy_threshold, confidence_threshold):
+def merge_confidence_contact(
+    directory, output_file, atom_threshold, occupancy_threshold, confidence_threshold
+):
     """
     Merge confidence score and contact files into a single output CSV.
     """
@@ -112,7 +120,9 @@ def merge_confidence_contact(directory, output_file, atom_threshold, occupancy_t
     final_name = os.path.basename(directory)
 
     # Identify the relevant columns for criteriae
-    confidence_column = [col for col in df1.columns if re.match(r"Confidence_score.*", col)]
+    confidence_column = [
+        col for col in df1.columns if re.match(r"Confidence_score.*", col)
+    ]
 
     if atom_column and confidence_column:
         # Calculate 'Final' column
@@ -164,7 +174,9 @@ def interaction_fingerprint(protein_file, ligand_file, distance, clashing_dist):
             df_melted = df_melted[df_melted["Presence"] == 1]
             df_melted["Residue"] = df_melted["Residue"].astype(str)
             df_melted["Interaction"] = df_melted["Interaction"].astype(str)
-            df_melted["Residue-Interaction"] = df_melted["Residue"].str.strip() + ":" + df_melted["Interaction"]
+            df_melted["Residue-Interaction"] = (
+                df_melted["Residue"].str.strip() + ":" + df_melted["Interaction"]
+            )
 
             df_pivot = df_melted.pivot_table(
                 index="Ligand",
@@ -195,7 +207,9 @@ def interaction_fingerprint(protein_file, ligand_file, distance, clashing_dist):
 
         parser = PDB.PDBParser(QUIET=True)
 
-        protein_atoms = [atom for atom in parser.get_structure("protein", protein_file).get_atoms()]
+        protein_atoms = [
+            atom for atom in parser.get_structure("protein", protein_file).get_atoms()
+        ]
 
         suppl = Chem.SDMolSupplier(ligand_file)
         ligand_mol = suppl[0]
@@ -212,7 +226,11 @@ def interaction_fingerprint(protein_file, ligand_file, distance, clashing_dist):
             p_pos = p_atom.get_coord()
             for l_atom in ligand_atoms:
                 l_pos = [l_atom[1], l_atom[2], l_atom[3]]
-                dist = ((p_pos[0] - l_pos[0]) ** 2 + (p_pos[1] - l_pos[1]) ** 2 + (p_pos[2] - l_pos[2]) ** 2) ** 0.5
+                dist = (
+                    (p_pos[0] - l_pos[0]) ** 2
+                    + (p_pos[1] - l_pos[1]) ** 2
+                    + (p_pos[2] - l_pos[2]) ** 2
+                ) ** 0.5
 
                 if dist < clashing_dist:
                     clashes.append((p_atom, l_atom, dist))
@@ -274,7 +292,14 @@ def merge_interaction_affinity(
     cnnaffinity_column = [col for col in df1.columns if re.match(r"CNNaffinity.*", col)]
     affinity_column = [col for col in df1.columns if re.match(r"Affinity.*", col)]
 
-    if type1_column and type2_column and cnnaffinity_column and cnnpose_column and affinity_column and clashing_column:
+    if (
+        type1_column
+        and type2_column
+        and cnnaffinity_column
+        and cnnpose_column
+        and affinity_column
+        and clashing_column
+    ):
         # Calculate 'Final' column
         df1[f"Final_{final_name}"] = (
             (df1[cnnpose_column[0]] >= cnnpose_threshold)
@@ -305,20 +330,28 @@ def process_ligand_diffdock(ligand_file, args, total_sasa):
     cmd.load(args.protein_file, "protein")
     if args.reference_ligand:
         cmd.load(args.reference_ligand, "ref_ligand")
-        binding_site_selection_str = f"byres (protein within {args.distance} of ref_ligand)"
+        binding_site_selection_str = (
+            f"byres (protein within {args.distance} of ref_ligand)"
+        )
         cmd.select("binding_site", binding_site_selection_str)
     elif args.residues:
         binding_site_selection_str = f"resi {' or resi '.join(args.residues)}"
         cmd.select("binding_site", binding_site_selection_str)
     else:
-        raise ValueError("Either a reference ligand or residues must be provided to define the binding site.")
+        raise ValueError(
+            "Either a reference ligand or residues must be provided to define the binding site."
+        )
     if ligand_file.endswith(".sdf"):
         ligand_path = os.path.join(args.ligand_dir, ligand_file)
 
         if validate_ligand(ligand_path):
             cmd.load(ligand_path, "ligand")
-            unoccupied, occupancy_percentage = calculate_contact_surface_area("ligand", "binding_site")
-            atom_percentage_in_site = percentage_atoms_in_site("ligand", "binding_site", args.distance)
+            unoccupied, occupancy_percentage = calculate_contact_surface_area(
+                "ligand", "binding_site"
+            )
+            atom_percentage_in_site = percentage_atoms_in_site(
+                "ligand", "binding_site", args.distance
+            )
             cmd.delete("ligand")
             return [
                 ligand_file[:-4],
@@ -346,19 +379,27 @@ def process_ligand_gnina(ligand_file, args, reference_fp_type1, reference_fp_typ
             if clash_count is not None:
                 if args.reference_ligand:
                     aligned_ligand_fp_type1 = ligand_fp_type1.reindex(
-                        columns=ligand_fp_type1.columns.union(reference_fp_type1.columns, sort=False),
+                        columns=ligand_fp_type1.columns.union(
+                            reference_fp_type1.columns, sort=False
+                        ),
                         fill_value=0,
                     )
                     aligned_reference_fp_type1 = reference_fp_type1.reindex(
-                        columns=ligand_fp_type1.columns.union(reference_fp_type1.columns, sort=False),
+                        columns=ligand_fp_type1.columns.union(
+                            reference_fp_type1.columns, sort=False
+                        ),
                         fill_value=0,
                     )
                     aligned_ligand_fp_type2 = ligand_fp_type2.reindex(
-                        columns=ligand_fp_type2.columns.union(reference_fp_type2.columns, sort=False),
+                        columns=ligand_fp_type2.columns.union(
+                            reference_fp_type2.columns, sort=False
+                        ),
                         fill_value=0,
                     )
                     aligned_reference_fp_type2 = reference_fp_type2.reindex(
-                        columns=ligand_fp_type2.columns.union(reference_fp_type2.columns, sort=False),
+                        columns=ligand_fp_type2.columns.union(
+                            reference_fp_type2.columns, sort=False
+                        ),
                         fill_value=0,
                     )
                     overlap_type1 = interaction_similarity(
@@ -393,19 +434,25 @@ def main(args):
 
         if args.reference_ligand:
             cmd.load(args.reference_ligand, "ref_ligand")
-            cmd.select("binding_site", f"byres (ref_ligand within {args.distance} of protein)")
+            cmd.select(
+                "binding_site", f"byres (ref_ligand within {args.distance} of protein)"
+            )
         elif args.residues:
             binding_site_selection_str = f"resi {' or resi '.join(args.residues)}"
             cmd.select("binding_site", binding_site_selection_str)
         else:
-            raise ValueError("Either a reference ligand or residues must be provided to define the binding site.")
+            raise ValueError(
+                "Either a reference ligand or residues must be provided to define the binding site."
+            )
 
         total_sasa = calculate_total_sasa("binding_site")
         ligand_files = sorted(os.listdir(args.ligand_dir), key=natural_sort_key)
 
         # Determine output file path
         output_directory = args.output_dir if args.output_dir else os.getcwd()
-        output_file_path = os.path.join(output_directory, f"{os.path.basename(output_directory)}_contact.csv")
+        output_file_path = os.path.join(
+            output_directory, f"{os.path.basename(output_directory)}_contact.csv"
+        )
 
         # Write header (overwrite if file exists)
         with open(output_file_path, "w", newline="") as csvfile:
@@ -425,12 +472,15 @@ def main(args):
 
             # Process the ligands in the current batch
             results = Parallel(n_jobs=cpu, backend="loky")(
-                delayed(process_ligand_diffdock)(ligand, args, total_sasa) for ligand in batch
+                delayed(process_ligand_diffdock)(ligand, args, total_sasa)
+                for ligand in batch
             )
             results = [r for r in results if r is not None]
 
             # Append results directly to CSV
-            with open(output_file_path, "a", newline="") as csvfile:  # 'a' for append mode
+            with open(
+                output_file_path, "a", newline=""
+            ) as csvfile:  # 'a' for append mode
                 writer = csv.writer(csvfile)
                 writer.writerows(results)
 
@@ -450,11 +500,13 @@ def main(args):
     if args.metric == "gnina":
         if args.reference_ligand:
             print(args.clashing_dist)
-            reference_fp_type1, reference_fp_type2, reference_clash_count = interaction_fingerprint(
-                protein_file=args.protein_file,
-                ligand_file=args.reference_ligand,
-                distance=args.distance,
-                clashing_dist=args.clashing_dist,
+            reference_fp_type1, reference_fp_type2, reference_clash_count = (
+                interaction_fingerprint(
+                    protein_file=args.protein_file,
+                    ligand_file=args.reference_ligand,
+                    distance=args.distance,
+                    clashing_dist=args.clashing_dist,
+                )
             )
         else:
             raise ValueError(
@@ -465,7 +517,9 @@ def main(args):
 
         # Determine output file path
         output_directory = args.output_dir if args.output_dir else os.getcwd()
-        output_file_path = os.path.join(output_directory, f"{os.path.basename(output_directory)}_interaction.csv")
+        output_file_path = os.path.join(
+            output_directory, f"{os.path.basename(output_directory)}_interaction.csv"
+        )
 
         # Write header (overwrite if file exists)
         with open(output_file_path, "w", newline="") as csvfile:
@@ -488,7 +542,9 @@ def main(args):
 
                 with Parallel(n_jobs=cpu, backend="loky") as parallel:
                     results = parallel(
-                        delayed(process_ligand_gnina)(ligand, args, reference_fp_type1, reference_fp_type2)
+                        delayed(process_ligand_gnina)(
+                            ligand, args, reference_fp_type1, reference_fp_type2
+                        )
                         for ligand in batch
                     )
 
@@ -520,12 +576,17 @@ def main(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description=(
-            "Calculate the surface contact area and atom percentage occupancy " "of ligands in a protein binding site."
+            "Calculate the surface contact area and atom percentage occupancy "
+            "of ligands in a protein binding site."
         )
     )
-    parser.add_argument("--protein_file", required=True, help="Path to the protein PDB file")
+    parser.add_argument(
+        "--protein_file", required=True, help="Path to the protein PDB file"
+    )
     parser.add_argument("--reference_ligand", help="Path to the reference ligand file")
-    parser.add_argument("--ligand_dir", required=True, help="Directory containing ligand files")
+    parser.add_argument(
+        "--ligand_dir", required=True, help="Directory containing ligand files"
+    )
     parser.add_argument(
         "--residues",
         nargs="+",
