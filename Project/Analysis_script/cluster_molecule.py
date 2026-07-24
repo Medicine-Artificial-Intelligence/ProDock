@@ -77,24 +77,41 @@ def cluster_sdfs(
     os.chdir(current_dir)
 
     df = pd.DataFrame(csv_list, columns=["representative", "member", "rmsd"])
-    df_sorted = df.loc[natsorted(df.index, key=lambda i: df.loc[i, "representative"])].reset_index(drop=True)
+    df_sorted = df.loc[
+        natsorted(df.index, key=lambda i: df.loc[i, "representative"])
+    ].reset_index(drop=True)
     if df_sorted["member"].duplicated().any():
         df_sorted = (
             df_sorted.sort_values(by="rmsd", ascending=True)
             .drop_duplicates(subset=["member"], keep="first")
             .reset_index(drop=True)
         )
-    df_sorted["representative"].value_counts(dropna=True).reset_index(name="frequency").rename(
-        columns={"index": "representative"}
-    ).to_csv(os.path.join(outdir, f"{csv_name}_threshold{threshold}_frequency.csv"), index=False)
-    df_sorted.to_csv(os.path.join(outdir, f"{csv_name}_threshold{threshold}_cluster.csv"), index=False)
+    df_sorted["representative"].value_counts(dropna=True).reset_index(
+        name="frequency"
+    ).rename(columns={"index": "representative"}).to_csv(
+        os.path.join(outdir, f"{csv_name}_threshold{threshold}_frequency.csv"),
+        index=False,
+    )
+    df_sorted.to_csv(
+        os.path.join(outdir, f"{csv_name}_threshold{threshold}_cluster.csv"),
+        index=False,
+    )
 
 
 def main() -> None:
-    p = argparse.ArgumentParser(description="Cluster SDF files by RMSD with Joblib parallelism.")
+    p = argparse.ArgumentParser(
+        description="Cluster SDF files by RMSD with Joblib parallelism."
+    )
     p.add_argument("--source_dir", type=str, help="Directory containing .sdf files")
-    p.add_argument("--threshold", type=float, default=2.0, help="RMSD threshold in Å (default 2.0)")
-    p.add_argument("--njobs", type=int, default=-1, help="Number of parallel njobs (default: all cores)")
+    p.add_argument(
+        "--threshold", type=float, default=2.0, help="RMSD threshold in Å (default 2.0)"
+    )
+    p.add_argument(
+        "--njobs",
+        type=int,
+        default=-1,
+        help="Number of parallel njobs (default: all cores)",
+    )
     p.add_argument(
         "--output_dir",
         type=str,

@@ -26,7 +26,9 @@ import sys
 import subprocess
 
 
-def fetch_and_process_pdb(pdb_id, output_dir, chains, ligand_code, ligand_name, cofactors, protein_name):
+def fetch_and_process_pdb(
+    pdb_id, output_dir, chains, ligand_code, ligand_name, cofactors, protein_name
+):
     """
     Fetch a PDB file using PyMOL, filter chains, extract ligands based on ligand_code,
     keep cofactors, and delete water. Save ligand as named in ligand_name.
@@ -228,7 +230,9 @@ def fix_and_minimize_pdb(
 
     forcefield = ForceField("amber14-all.xml")  # No water force field in gas phase
     modeller = Modeller(fixer.topology, fixer.positions)
-    system = forcefield.createSystem(modeller.topology, nonbondedMethod=NoCutoff, constraints=HBonds)
+    system = forcefield.createSystem(
+        modeller.topology, nonbondedMethod=NoCutoff, constraints=HBonds
+    )
 
     # **Apply Backbone Restraints (N, CA, C)**
     force = CustomExternalForce("0.5 * k * ((x-x0)^2 + (y-y0)^2 + (z-z0)^2)")
@@ -241,7 +245,9 @@ def fix_and_minimize_pdb(
         if atom.name in ["N", "CA", "C"]:  # Restrain backbone atoms
             idx = atom.index
             pos = modeller.positions[idx]
-            force.addParticle(idx, [5.0 * kilocalories_per_mole / angstroms**2, pos.x, pos.y, pos.z])
+            force.addParticle(
+                idx, [5.0 * kilocalories_per_mole / angstroms**2, pos.x, pos.y, pos.z]
+            )
 
     system.addForce(force)
 
@@ -260,11 +266,15 @@ def fix_and_minimize_pdb(
 
     integrator = LangevinIntegrator(300 * kelvin, 1 / picosecond, 0.002 * picoseconds)
     integrator.setRandomNumberSeed(42)
-    simulation = Simulation(modeller.topology, system, integrator, platform, platform_properties)
+    simulation = Simulation(
+        modeller.topology, system, integrator, platform, platform_properties
+    )
     simulation.context.setPositions(modeller.positions)
 
     # **Minimize Energy in Gas Phase**
-    simulation.minimizeEnergy(tolerance=energy_diff, maxIterations=max_minimization_steps)
+    simulation.minimizeEnergy(
+        tolerance=energy_diff, maxIterations=max_minimization_steps
+    )
     minimized_positions = simulation.context.getState(getPositions=True).getPositions()
 
     # **Save Gas-Minimized Structure**
@@ -290,15 +300,25 @@ def fix_and_minimize_pdb(
         )
 
         # **Recreate System & Integrator**
-        system = forcefield.createSystem(modeller.topology, nonbondedMethod=PME, constraints=HBonds)
-        integrator = LangevinIntegrator(300 * kelvin, 1 / picosecond, 0.002 * picoseconds)
+        system = forcefield.createSystem(
+            modeller.topology, nonbondedMethod=PME, constraints=HBonds
+        )
+        integrator = LangevinIntegrator(
+            300 * kelvin, 1 / picosecond, 0.002 * picoseconds
+        )
         integrator.setRandomNumberSeed(42)
-        simulation = Simulation(modeller.topology, system, integrator, platform, platform_properties)
+        simulation = Simulation(
+            modeller.topology, system, integrator, platform, platform_properties
+        )
         simulation.context.setPositions(modeller.positions)
 
         # **Minimize Energy in Solvent**
-        simulation.minimizeEnergy(tolerance=energy_diff, maxIterations=max_minimization_steps)
-        minimized_positions = simulation.context.getState(getPositions=True).getPositions()
+        simulation.minimizeEnergy(
+            tolerance=energy_diff, maxIterations=max_minimization_steps
+        )
+        minimized_positions = simulation.context.getState(
+            getPositions=True
+        ).getPositions()
 
         # **Save Final Minimized Structure**
         with open(final_pdb, "w") as f:
@@ -365,7 +385,10 @@ def main(args):
                 else None
             )
             cofactors = (
-                [str(cofactor.strip()).upper() for cofactor in row["cofactors"].split("+")]
+                [
+                    str(cofactor.strip()).upper()
+                    for cofactor in row["cofactors"].split("+")
+                ]
                 if "cofactors" in row and pd.notna(row["cofactors"])
                 else None
             )
@@ -432,7 +455,11 @@ if __name__ == "__main__":
         default=0.15,
         help="Ion concentration for energy minimization in water (if applicable).",
     )
-    parser.add_argument("--water_em", type=str, default=False, help="Energy minimization in water")
-    parser.add_argument("--output_dir", type=str, required=True, help="Directory to save output files.")
+    parser.add_argument(
+        "--water_em", type=str, default=False, help="Energy minimization in water"
+    )
+    parser.add_argument(
+        "--output_dir", type=str, required=True, help="Directory to save output files."
+    )
     args = parser.parse_args()
     main(args)

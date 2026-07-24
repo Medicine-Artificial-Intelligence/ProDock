@@ -5,9 +5,15 @@ import time
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="Automate GNINA on multiple ligands with .sdf extension.")
-    parser.add_argument("--protein_dir", required=True, help="Directory containing the protein files")
-    parser.add_argument("--ligand_dir", required=True, help="Directory containing the ligand files")
+    parser = argparse.ArgumentParser(
+        description="Automate GNINA on multiple ligands with .sdf extension."
+    )
+    parser.add_argument(
+        "--protein_dir", required=True, help="Directory containing the protein files"
+    )
+    parser.add_argument(
+        "--ligand_dir", required=True, help="Directory containing the ligand files"
+    )
     parser.add_argument(
         "--output_dir",
         default=None,
@@ -87,7 +93,9 @@ def parse_args():
         default=10,
         help="Number of modes to generate (default: 100)",
     )
-    parser.add_argument("--flexres", help="File with flexible residues for flexible docking (optional)")
+    parser.add_argument(
+        "--flexres", help="File with flexible residues for flexible docking (optional)"
+    )
     parser.add_argument(
         "--quiet",
         choices=["Y", "y", "Yes", "yes", "N", "n", "No", "no"],
@@ -106,7 +114,9 @@ def parse_args():
         default=None,
         help="Start at which molecule (default at compound 0)",
     )
-    parser.add_argument("--device", default=0, help="Which GPU should be used (default: first GPU)")
+    parser.add_argument(
+        "--device", default=0, help="Which GPU should be used (default: first GPU)"
+    )
     parser.add_argument(
         "--flexdist_ligand",
         default=None,
@@ -144,7 +154,9 @@ def run_docking(args, protein_path, ligand_path, result_dir):
     ligand_name = os.path.splitext(os.path.basename(ligand_path))[0]
     output_file = os.path.join(result_dir, "gnina_output", "raw", ligand_name + ".sdf")
     log_file = os.path.join(result_dir, "gnina_output", "log", ligand_name + ".txt")
-    gnina_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "gnina")
+    gnina_dir = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "gnina"
+    )
     gnina_script = os.path.join(gnina_dir, "gnina")
     print(gnina_script)
     command = [
@@ -205,11 +217,15 @@ def run_docking(args, protein_path, ligand_path, result_dir):
         if args.autobox_extend:
             command.extend(["--autobox_extend", str(args.autobox_extend)])
     if args.flexdist_ligand:
-        reference_ligand_flex = os.path.join(args.flexdist_ligand, f"{protein_name}.sdf")
+        reference_ligand_flex = os.path.join(
+            args.flexdist_ligand, f"{protein_name}.sdf"
+        )
         command.extend(["--flexdist_ligand", str(reference_ligand_flex)])
         command.extend(["--flexdist", str(args.flexdist)])
     if args.out_flex is not False:
-        out_flex_file = os.path.join(os.path.join(result_dir, "gnina_output", "flexres", ligand_name + ".pdb"))
+        out_flex_file = os.path.join(
+            os.path.join(result_dir, "gnina_output", "flexres", ligand_name + ".pdb")
+        )
         command.extend(["--out_flex", str(out_flex_file)])
         command.extend(["--full_flex_output"])
     if args.cpu:
@@ -230,7 +246,11 @@ def main():
     os.makedirs(os.path.join(base_dir, "result_gnina"), exist_ok=True)
     ligands = [f for f in sorted(os.listdir(args.ligand_dir)) if f.endswith(".sdf")]
 
-    protein_files = [f for f in os.listdir(args.protein_dir) if f.endswith(".pdb") or f.endswith(".pdbqt")]
+    protein_files = [
+        f
+        for f in os.listdir(args.protein_dir)
+        if f.endswith(".pdb") or f.endswith(".pdbqt")
+    ]
     print(protein_files)
     if not args.end_at:
         args.end_at = len(ligands) + 1
@@ -245,12 +265,19 @@ def main():
             if i > args.end_at - 1:
                 break
             print(f"  Docking ligand {ligand_file} with protein {protein_file}...")
-            run_docking(args, protein_path=protein_path, ligand_path=ligand_path, result_dir=result_dir)
+            run_docking(
+                args,
+                protein_path=protein_path,
+                ligand_path=ligand_path,
+                result_dir=result_dir,
+            )
     conformation_extract_dir = os.path.join(
         os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "Analysis_script"
     )
     print(str(os.path.dirname(result_dir)))
-    conformation_extract_script = os.path.join(conformation_extract_dir, "conformation_extract.py")
+    conformation_extract_script = os.path.join(
+        conformation_extract_dir, "conformation_extract.py"
+    )
     command_extract = [
         "python",
         str(conformation_extract_script),

@@ -63,6 +63,7 @@ Example
     print(result.merged_df.head())
 """
 
+import importlib.metadata
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
@@ -1316,6 +1317,28 @@ class ProDockPipeline:
         self.logger.debug("Database dataframe columns=%s", list(df.columns))
 
         db = PoseDatabase(str(db_path), create=True)
+
+        # Record run/campaign provenance and stamp inserted poses with its run_id.
+        try:
+            _prodock_version = importlib.metadata.version("prodock")
+        except Exception:
+            _prodock_version = None
+        db.create_run(
+            name=getattr(self, "campaign_name", None),
+            config={
+                "engines": list(self.engines),
+                "cpu": self.cpu,
+                "seed": self.seed,
+                "exhaustiveness": self.exhaustiveness,
+                "n_poses": self.n_poses,
+                "n_jobs": self.n_jobs,
+                "box_scale": self.box_scale,
+                "box_isotropic": self.box_isotropic,
+                "ligand_backend": self.ligand_backend,
+                "ligand_output_format": self.ligand_output_format,
+            },
+            prodock_version=_prodock_version,
+        )
 
         if interactions_by_pose is None:
             db.insert_dataframe(

@@ -24,7 +24,9 @@ def extract_molecules(sdf_file, conformation, output_dir):
 
     # Determine the number of molecules to export
     conformation = min(conformation, len(mols))
-    print(f"Found {len(mols)} molecules in the SDF file. Exporting the first {conformation} molecules.")
+    print(
+        f"Found {len(mols)} molecules in the SDF file. Exporting the first {conformation} molecules."
+    )
 
     # Export the molecules
     for i in range(conformation):
@@ -45,7 +47,9 @@ def list_primary_files(directory):
     all_items = os.listdir(directory)
 
     # Filter out and return only primary directories (directly in the specified directory)
-    primary_files = [item for item in all_items if os.path.isfile(os.path.join(directory, item))]
+    primary_files = [
+        item for item in all_items if os.path.isfile(os.path.join(directory, item))
+    ]
 
     return primary_files
 
@@ -55,21 +59,31 @@ def list_primary_folders(directory):
     all_items = os.listdir(directory)
 
     # Filter out and return only primary directories (directly in the specified directory)
-    primary_folders = [item for item in all_items if os.path.isdir(os.path.join(directory, item))]
+    primary_folders = [
+        item for item in all_items if os.path.isdir(os.path.join(directory, item))
+    ]
 
     return primary_folders
 
 
 def main():
     # Set up argument parsing
-    parser = argparse.ArgumentParser(description="Extract the first N molecules from an SDF file.")
+    parser = argparse.ArgumentParser(
+        description="Extract the first N molecules from an SDF file."
+    )
 
     # Create a mutually exclusive group for sdf_file and source_dir
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument("--sdf_file", type=str, help="Path to the input SDF file.")
-    group.add_argument("--source_dir", type=str, help="Directory to the result of all targets")
-    parser.add_argument("--conformation", type=int, default=10, help="Number of molecules to extract.")
-    parser.add_argument("--output_dir", type=str, help="Directory to save the output files.")
+    group.add_argument(
+        "--source_dir", type=str, help="Directory to the result of all targets"
+    )
+    parser.add_argument(
+        "--conformation", type=int, default=10, help="Number of molecules to extract."
+    )
+    parser.add_argument(
+        "--output_dir", type=str, help="Directory to save the output files."
+    )
 
     args = parser.parse_args()
 

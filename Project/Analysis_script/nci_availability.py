@@ -59,12 +59,16 @@ def check_nci_availability(input_csv: str, output_csv: str, headless: bool = Fal
             print(f"[i] Processing NSC={nsc_value} ({idx + 1}/{total_rows})")
 
             # Step 1: Click "Vialed"
-            vialed_button = wait.until(EC.element_to_be_clickable((By.ID, "orderForm:j_idt9")))
+            vialed_button = wait.until(
+                EC.element_to_be_clickable((By.ID, "orderForm:j_idt9"))
+            )
             vialed_button.click()
             time.sleep(0.1)
 
             # Step 2: Input NSC
-            nsc_box = wait.until(EC.presence_of_element_located((By.ID, "orderForm:nsc")))
+            nsc_box = wait.until(
+                EC.presence_of_element_located((By.ID, "orderForm:nsc"))
+            )
             nsc_box.clear()
             nsc_box.send_keys(nsc_value)
 
@@ -93,7 +97,9 @@ def check_nci_availability(input_csv: str, output_csv: str, headless: bool = Fal
         # Step 6: Reset form via button
         try:
             print("[i] Clicking Reset Form")
-            reset_button = wait.until(EC.element_to_be_clickable((By.ID, "orderForm:j_idt17")))
+            reset_button = wait.until(
+                EC.element_to_be_clickable((By.ID, "orderForm:j_idt17"))
+            )
             driver.execute_script("arguments[0].click();", reset_button)
             time.sleep(0.1)
         except Exception as e:
@@ -114,10 +120,23 @@ def check_nci_availability(input_csv: str, output_csv: str, headless: bool = Fal
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="Check NCI compound availability using Selenium.")
-    parser.add_argument("--input_csv", required=True, help="Path to input CSV with 'NSC' column.")
-    parser.add_argument("--output_csv", required=True, help="Path to save output CSV with 'NCI_availability' column.")
-    parser.add_argument("--headless", default=False, action="store_true", help="Run browser in headless mode.")
+    parser = argparse.ArgumentParser(
+        description="Check NCI compound availability using Selenium."
+    )
+    parser.add_argument(
+        "--input_csv", required=True, help="Path to input CSV with 'NSC' column."
+    )
+    parser.add_argument(
+        "--output_csv",
+        required=True,
+        help="Path to save output CSV with 'NCI_availability' column.",
+    )
+    parser.add_argument(
+        "--headless",
+        default=False,
+        action="store_true",
+        help="Run browser in headless mode.",
+    )
     return parser.parse_args()
 
 

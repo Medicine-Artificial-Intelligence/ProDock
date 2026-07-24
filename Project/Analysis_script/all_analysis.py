@@ -19,7 +19,10 @@ import matplotlib.pyplot as plt  # noqa: E402
 
 def natural_sort_key(s):
     normalized = re.sub(r"[-_]", "", s)  # Treat '-' and '_' equivalently
-    return [int(text) if text.isdigit() else text.lower() for text in re.split(r"(\d+)", normalized)]
+    return [
+        int(text) if text.isdigit() else text.lower()
+        for text in re.split(r"(\d+)", normalized)
+    ]
 
 
 def dataframe_map(df, func):
@@ -180,9 +183,19 @@ def process_file(root, file, all_dir, num_conform):
 
             for mol in supplier:
                 if mol is not None:
-                    minimized_affinity = mol.GetProp("minimizedAffinity") if mol.HasProp("minimizedAffinity") else None
-                    cnn_affinity = mol.GetProp("CNNaffinity") if mol.HasProp("CNNaffinity") else None
-                    cnn_score = mol.GetProp("CNNscore") if mol.HasProp("CNNscore") else None
+                    minimized_affinity = (
+                        mol.GetProp("minimizedAffinity")
+                        if mol.HasProp("minimizedAffinity")
+                        else None
+                    )
+                    cnn_affinity = (
+                        mol.GetProp("CNNaffinity")
+                        if mol.HasProp("CNNaffinity")
+                        else None
+                    )
+                    cnn_score = (
+                        mol.GetProp("CNNscore") if mol.HasProp("CNNscore") else None
+                    )
                 else:
                     minimized_affinity = None
                     cnn_affinity = None
@@ -240,7 +253,8 @@ def copy_and_rename_files(source_dir, destination_dir, num_conform, n_jobs):
 
     # Parallel execution
     results = Parallel(n_jobs=n_jobs)(
-        delayed(process_file)(root, file, all_dir, num_conform) for root, file in file_paths
+        delayed(process_file)(root, file, all_dir, num_conform)
+        for root, file in file_paths
     )
 
     # Collect results from parallel execution
@@ -264,7 +278,9 @@ def copy_and_rename_files(source_dir, destination_dir, num_conform, n_jobs):
 
         dfs = []
         for i in range(1, num_conform + 1):
-            csv_path = os.path.join(all_dir, f"rank{i}", f"rank{i}_confidence_score.csv")
+            csv_path = os.path.join(
+                all_dir, f"rank{i}", f"rank{i}_confidence_score.csv"
+            )
             with open(csv_path, "w", newline="") as csvfile:
                 writer = csv.writer(csvfile)
                 writer.writerow(["Compounds", f"Confidence_score_rank{i}"])
@@ -274,7 +290,9 @@ def copy_and_rename_files(source_dir, destination_dir, num_conform, n_jobs):
             dfs.append(df)
 
         combined_df = pd.concat(dfs, axis=1, sort=False)
-        combined_csv_path = os.path.join(confidence_dir, f"{final_folder_name}_confidence_score.csv")
+        combined_csv_path = os.path.join(
+            confidence_dir, f"{final_folder_name}_confidence_score.csv"
+        )
         combined_df.to_csv(combined_csv_path)
 
     if gnina_count != 0:  # Export only docking scores
@@ -302,7 +320,9 @@ def copy_and_rename_files(source_dir, destination_dir, num_conform, n_jobs):
             dfs.append(df)
 
         combined_df = pd.concat(dfs, axis=1, sort=False)
-        combined_csv_path = os.path.join(confidence_dir, f"{final_folder_name}_docking_score.csv")
+        combined_csv_path = os.path.join(
+            confidence_dir, f"{final_folder_name}_docking_score.csv"
+        )
         combined_df.to_csv(combined_csv_path)
 
     return metric_def
@@ -329,7 +349,9 @@ def run_occupancy(
     reference_ligand=None,
     residues=None,
 ):
-    analysis_script = os.path.join(os.path.dirname(os.path.abspath(__file__)), "single_analysis.py")
+    analysis_script = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)), "single_analysis.py"
+    )
 
     # Loop through ranks 1 to number of conformations
     for i in range(1, n_conf + 1):
@@ -389,7 +411,9 @@ def run_occupancy(
         print(f"Completed analysis for rank {i}.")
 
 
-def merge_diffdock_matrix(base_directory, atom=None, occupancy=None, confidence=None, distance=None):
+def merge_diffdock_matrix(
+    base_directory, atom=None, occupancy=None, confidence=None, distance=None
+):
     # Define the output directory
     output_directory = os.path.join(base_directory, "Visualization")
     # Create the output directory if it doesn't exist
@@ -410,12 +434,16 @@ def merge_diffdock_matrix(base_directory, atom=None, occupancy=None, confidence=
                 csv_data = pd.read_csv(file_path)
                 # Select required columns and rename the occupancy column
                 csv_data = csv_data[["Compounds", "Best_satisfied_occupancy"]]
-                csv_data.rename(columns={"Best_satisfied_occupancy": file_identifier}, inplace=True)
+                csv_data.rename(
+                    columns={"Best_satisfied_occupancy": file_identifier}, inplace=True
+                )
                 # Merge with the main DataFrame
                 if merged_df.empty:
                     merged_df = csv_data
                 else:
-                    merged_df = pd.merge(merged_df, csv_data, on="Compounds", how="outer")
+                    merged_df = pd.merge(
+                        merged_df, csv_data, on="Compounds", how="outer"
+                    )
                 merged_df = merged_df.drop_duplicates()
 
     sorted_columns = sorted(merged_df.columns, key=custom_sort_key)
@@ -425,16 +453,22 @@ def merge_diffdock_matrix(base_directory, atom=None, occupancy=None, confidence=
     merged_df = merged_df[new_order]
 
     # Sort rows based on the first column using the custom sorting function
-    merged_df = merged_df.sort_values(by=merged_df.columns[0], key=lambda col: col.map(custom_sort_key))
+    merged_df = merged_df.sort_values(
+        by=merged_df.columns[0], key=lambda col: col.map(custom_sort_key)
+    )
 
     # Identify columns containing the word 'wildtype*'
-    wildtype_columns = [col for col in merged_df.columns if re.search(r"wildtype.*", col, re.IGNORECASE)]
+    wildtype_columns = [
+        col for col in merged_df.columns if re.search(r"wildtype.*", col, re.IGNORECASE)
+    ]
 
     if wildtype_columns:
         # Separate the columns into three groups: first column, wildtype columns, and others
         first_column = [merged_df.columns[0]]
         other_columns = [
-            col for col in merged_df.columns if col not in wildtype_columns and col != merged_df.columns[0]
+            col
+            for col in merged_df.columns
+            if col not in wildtype_columns and col != merged_df.columns[0]
         ]
 
         # New column order: First column, then wildtype columns, then the rest
@@ -480,12 +514,16 @@ def merge_gnina_matrix(
                 csv_data = pd.read_csv(file_path)
                 # Select required columns and rename the occupancy column
                 csv_data = csv_data[["Compounds", "Best_satisfied_affinity"]]
-                csv_data.rename(columns={"Best_satisfied_affinity": file_identifier}, inplace=True)
+                csv_data.rename(
+                    columns={"Best_satisfied_affinity": file_identifier}, inplace=True
+                )
                 # Merge with the main DataFrame
                 if merged_df.empty:
                     merged_df = csv_data
                 else:
-                    merged_df = pd.merge(merged_df, csv_data, on="Compounds", how="outer")
+                    merged_df = pd.merge(
+                        merged_df, csv_data, on="Compounds", how="outer"
+                    )
                 merged_df = merged_df.drop_duplicates()
 
     sorted_columns = sorted(merged_df.columns, key=custom_sort_key)
@@ -495,16 +533,22 @@ def merge_gnina_matrix(
     merged_df = merged_df[new_order]
 
     # Sort rows based on the first column using the custom sorting function
-    merged_df = merged_df.sort_values(by=merged_df.columns[0], key=lambda col: col.map(custom_sort_key))
+    merged_df = merged_df.sort_values(
+        by=merged_df.columns[0], key=lambda col: col.map(custom_sort_key)
+    )
 
     # Identify columns containing the word 'wildtype*'
-    wildtype_columns = [col for col in merged_df.columns if re.search(r"wildtype.*", col, re.IGNORECASE)]
+    wildtype_columns = [
+        col for col in merged_df.columns if re.search(r"wildtype.*", col, re.IGNORECASE)
+    ]
 
     if wildtype_columns:
         # Separate the columns into three groups: first column, wildtype columns, and others
         first_column = [merged_df.columns[0]]
         other_columns = [
-            col for col in merged_df.columns if col not in wildtype_columns and col != merged_df.columns[0]
+            col
+            for col in merged_df.columns
+            if col not in wildtype_columns and col != merged_df.columns[0]
         ]
 
         # New column order: First column, then wildtype columns, then the rest
@@ -564,7 +608,9 @@ def visualization_gnina(
     # Set axis labels
     ax.set_xticks(np.arange(len(numeric_data.columns)))
     ax.set_yticks(np.arange(len(merged_df["Compounds"])))
-    ax.set_xticklabels(numeric_data.columns, rotation=45, ha="right", fontsize=font_size)
+    ax.set_xticklabels(
+        numeric_data.columns, rotation=45, ha="right", fontsize=font_size
+    )
     ax.set_yticklabels(merged_df["Compounds"], fontsize=font_size)
 
     # Add white patches for NaN values and display rounded values
@@ -661,7 +707,9 @@ def visualization_diffdock(
     # Set axis labels
     ax.set_xticks(np.arange(len(numeric_data.columns)))
     ax.set_yticks(np.arange(len(merged_df["Compounds"])))
-    ax.set_xticklabels(numeric_data.columns, rotation=45, ha="right", fontsize=font_size)
+    ax.set_xticklabels(
+        numeric_data.columns, rotation=45, ha="right", fontsize=font_size
+    )
     ax.set_yticklabels(merged_df["Compounds"], fontsize=font_size)
 
     # Add white patches for NaN values and display rounded values
@@ -718,8 +766,12 @@ def visualization_diffdock(
 
 
 def merge_final_gnina(base_directory):
-    merged_interaction_df = pd.DataFrame()  # Initialize an empty DataFrame for merging contact files
-    merged_final_df = pd.DataFrame()  # Initialize an empty DataFrame for merging final files
+    merged_interaction_df = (
+        pd.DataFrame()
+    )  # Initialize an empty DataFrame for merging contact files
+    merged_final_df = (
+        pd.DataFrame()
+    )  # Initialize an empty DataFrame for merging final files
 
     # Walk through the directory structure
     for root, dirs, files in os.walk(base_directory):
@@ -732,7 +784,9 @@ def merge_final_gnina(base_directory):
                 (f for f in os.listdir(csv_path) if f.endswith("_interaction.csv")),
                 None,
             )
-            final_file = next((f for f in os.listdir(csv_path) if f.endswith("_final.csv")), None)
+            final_file = next(
+                (f for f in os.listdir(csv_path) if f.endswith("_final.csv")), None
+            )
 
             # Process contact CSV files
             if interaction_file:
@@ -756,14 +810,28 @@ def merge_final_gnina(base_directory):
                 if merged_final_df.empty:
                     merged_final_df = df_final
                 else:
-                    merged_final_df = pd.merge(merged_final_df, df_final, on="Compounds", how="outer")
+                    merged_final_df = pd.merge(
+                        merged_final_df, df_final, on="Compounds", how="outer"
+                    )
     final_columns = [col for col in merged_final_df.columns if col.startswith("Final_")]
-    affinity_columns = [col for col in merged_final_df.columns if col.startswith("Affinity_")]
-    cnnpose_columns = [col for col in merged_final_df.columns if col.startswith("CNNpose_")]
-    cnnaffinity_columns = [col for col in merged_final_df.columns if col.startswith("CNNaffinity_")]
-    type1_columns = [col for col in merged_final_df.columns if col.startswith("Similarity-type1_")]
-    type2_columns = [col for col in merged_final_df.columns if col.startswith("Similarity-type2_")]
-    solvation_columns = [col for col in merged_final_df.columns if col.startswith("Solvation_")]
+    affinity_columns = [
+        col for col in merged_final_df.columns if col.startswith("Affinity_")
+    ]
+    cnnpose_columns = [
+        col for col in merged_final_df.columns if col.startswith("CNNpose_")
+    ]
+    cnnaffinity_columns = [
+        col for col in merged_final_df.columns if col.startswith("CNNaffinity_")
+    ]
+    type1_columns = [
+        col for col in merged_final_df.columns if col.startswith("Similarity-type1_")
+    ]
+    type2_columns = [
+        col for col in merged_final_df.columns if col.startswith("Similarity-type2_")
+    ]
+    solvation_columns = [
+        col for col in merged_final_df.columns if col.startswith("Solvation_")
+    ]
 
     merged_final_df["Satisfied_count"] = merged_final_df[final_columns].sum(axis=1)
     screened_df = merged_final_df[merged_final_df["Satisfied_count"] > 0]["Compounds"]
@@ -796,20 +864,22 @@ def merge_final_gnina(base_directory):
                             row[solvation_columns[i]],
                         ]
                     )
-                    matrix_df_affinity.at[index, "Best_satisfied_affinity"] = pd.to_numeric(
-                        row[affinity_columns[i]], errors="coerce"
+                    matrix_df_affinity.at[index, "Best_satisfied_affinity"] = (
+                        pd.to_numeric(row[affinity_columns[i]], errors="coerce")
                     )
                     matrix_df_affinity.at[index, "Best_satisfied_rank"] = f"rank{i+1}"
 
-                    matrix_df_cnnpose.at[index, "Best_satisfied_cnnpose"] = pd.to_numeric(
-                        row[cnnpose_columns[i]], errors="coerce"
+                    matrix_df_cnnpose.at[index, "Best_satisfied_cnnpose"] = (
+                        pd.to_numeric(row[cnnpose_columns[i]], errors="coerce")
                     )
                     matrix_df_cnnpose.at[index, "Best_satisfied_rank"] = f"rank{i+1}"
 
-                    matrix_df_cnnaffinity.at[index, "Best_satisfied_cnnaffinity"] = pd.to_numeric(
-                        row[cnnaffinity_columns[i]], errors="coerce"
+                    matrix_df_cnnaffinity.at[index, "Best_satisfied_cnnaffinity"] = (
+                        pd.to_numeric(row[cnnaffinity_columns[i]], errors="coerce")
                     )
-                    matrix_df_cnnaffinity.at[index, "Best_satisfied_rank"] = f"rank{i+1}"
+                    matrix_df_cnnaffinity.at[index, "Best_satisfied_rank"] = (
+                        f"rank{i+1}"
+                    )
                     break
     with open(
         os.path.join(
@@ -898,8 +968,12 @@ def merge_final_gnina(base_directory):
 
 
 def merge_final_diffdock(base_directory):
-    merged_contact_df = pd.DataFrame()  # Initialize an empty DataFrame for merging contact files
-    merged_final_df = pd.DataFrame()  # Initialize an empty DataFrame for merging final files
+    merged_contact_df = (
+        pd.DataFrame()
+    )  # Initialize an empty DataFrame for merging contact files
+    merged_final_df = (
+        pd.DataFrame()
+    )  # Initialize an empty DataFrame for merging final files
 
     # Walk through the directory structure
     for root, dirs, files in os.walk(base_directory):
@@ -909,8 +983,12 @@ def merge_final_diffdock(base_directory):
 
         for dir_name in dirs:
             csv_path = os.path.join(root, dir_name)
-            contact_file = next((f for f in os.listdir(csv_path) if f.endswith("_contact.csv")), None)
-            final_file = next((f for f in os.listdir(csv_path) if f.endswith("_final.csv")), None)
+            contact_file = next(
+                (f for f in os.listdir(csv_path) if f.endswith("_contact.csv")), None
+            )
+            final_file = next(
+                (f for f in os.listdir(csv_path) if f.endswith("_final.csv")), None
+            )
 
             # Process contact CSV files
             if contact_file:
@@ -919,7 +997,9 @@ def merge_final_diffdock(base_directory):
                 if merged_contact_df.empty:
                     merged_contact_df = df_contact
                 else:
-                    merged_contact_df = pd.merge(merged_contact_df, df_contact, on="Compounds", how="outer")
+                    merged_contact_df = pd.merge(
+                        merged_contact_df, df_contact, on="Compounds", how="outer"
+                    )
 
             # Process final CSV filess
             if final_file:
@@ -929,11 +1009,19 @@ def merge_final_diffdock(base_directory):
                 if merged_final_df.empty:
                     merged_final_df = df_final
                 else:
-                    merged_final_df = pd.merge(merged_final_df, df_final, on="Compounds", how="outer")
+                    merged_final_df = pd.merge(
+                        merged_final_df, df_final, on="Compounds", how="outer"
+                    )
     final_columns = [col for col in merged_final_df.columns if col.startswith("Final_")]
-    unoccupied_columns = [col for col in merged_final_df.columns if col.startswith("unoccupied_")]
-    percent_unoccupied_columns = [col for col in merged_final_df.columns if col.startswith("%occupancy_")]
-    atom_columns = [col for col in merged_final_df.columns if col.startswith(r"%atoms_")]
+    unoccupied_columns = [
+        col for col in merged_final_df.columns if col.startswith("unoccupied_")
+    ]
+    percent_unoccupied_columns = [
+        col for col in merged_final_df.columns if col.startswith("%occupancy_")
+    ]
+    atom_columns = [
+        col for col in merged_final_df.columns if col.startswith(r"%atoms_")
+    ]
 
     merged_final_df["Satisfied_count"] = merged_final_df[final_columns].sum(axis=1)
     screened_df = merged_final_df[merged_final_df["Satisfied_count"] > 0]["Compounds"]
@@ -970,7 +1058,9 @@ def merge_final_diffdock(base_directory):
         newline="",
     ) as csvfile:
         writer = csv.writer(csvfile)
-        writer.writerow(["Compounds", "Best_satisfied_rank", "unoccupied", "%occupancy", "%Atoms"])
+        writer.writerow(
+            ["Compounds", "Best_satisfied_rank", "unoccupied", "%occupancy", "%Atoms"]
+        )
         writer.writerows(screened_withscore_df)
     # Save merged contact DataFrame
     merged_contact_df.to_csv(
@@ -1012,7 +1102,9 @@ def merge_final_diffdock(base_directory):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Copy and rename files based on their rank and subfolder names.")
+    parser = argparse.ArgumentParser(
+        description="Copy and rename files based on their rank and subfolder names."
+    )
     parser.add_argument(
         "--source_dir",
         required=True,
@@ -1028,7 +1120,9 @@ def main():
         help="Number of conformations for analysis",
         default=10,
     )
-    parser.add_argument("--protein_dir", required=True, help="Path to the protein folder")
+    parser.add_argument(
+        "--protein_dir", required=True, help="Path to the protein folder"
+    )
     parser.add_argument(
         "--reference_ligand",
         default=None,
@@ -1137,18 +1231,28 @@ def main():
             result_each_dir = os.path.join(args.source_dir, entry)
             result_all_dir.append(os.path.join(args.source_dir, entry, "all", entry))
 
-            metric = copy_and_rename_files(result_each_dir, args.dest_dir, args.num_conform, args.cpu)
+            metric = copy_and_rename_files(
+                result_each_dir, args.dest_dir, args.num_conform, args.cpu
+            )
             # metric = "gnina"
             if args.protein_dir:
                 try:
-                    protein_file = glob.glob(os.path.join(args.protein_dir, f"*{entry}*"))[0]
-                    if glob.glob(os.path.join(args.reference_ligand, f"*{entry}*.sdf"))[0]:
-                        ref_ligand_file = glob.glob(os.path.join(args.reference_ligand, f"*{entry}*.sdf"))[0]
+                    protein_file = glob.glob(
+                        os.path.join(args.protein_dir, f"*{entry}*")
+                    )[0]
+                    if glob.glob(os.path.join(args.reference_ligand, f"*{entry}*.sdf"))[
+                        0
+                    ]:
+                        ref_ligand_file = glob.glob(
+                            os.path.join(args.reference_ligand, f"*{entry}*.sdf")
+                        )[0]
                         resi_file = None
                         # print(str(ref_ligand_file))
                     else:
                         with open(
-                            glob.glob(os.path.join(args.reference_ligand, f"*{entry}*.txt"))[0],
+                            glob.glob(
+                                os.path.join(args.reference_ligand, f"*{entry}*.txt")
+                            )[0],
                             "r",
                         ) as file:
                             resi_file = file.readline().strip()
