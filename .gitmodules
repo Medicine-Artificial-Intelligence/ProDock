@@ -1,0 +1,6 @@
+[submodule "DiffDock"]
+	path = Project/DiffDock
+	url = https://github.com/gcorso/DiffDock.git
+[submodule "gnina"]
+	path = Project/gnina
+	url = https://github.com/gnina/gnina.git
