@@ -22,6 +22,7 @@
   "config": {
     "engines": ["qvina", "qvina-w"],
     "extract_interaction": true,
+    "receptor_guess_bonds": false,
     "db_name": "demo.db",
     "cpu": 8,
     "n_jobs": 8,

@@ -981,6 +981,15 @@ def _build_parser(*, show_advanced: bool) -> argparse.ArgumentParser:
             dest="use_interaction_profiler",
             help="Use InteractionProfiler instead of extract_pose_table_interactions.",
         )
+        _add_bool_arg(
+            interaction_group,
+            "--receptor-guess-bonds",
+            dest="receptor_guess_bonds",
+            help=(
+                "Guess receptor bonds with ProLIF during interaction extraction. "
+                "Default is disabled; enabling it can segfault on some receptors."
+            ),
+        )
 
         db_group = parser.add_argument_group("Database insertion options")
         _add_bool_arg(
@@ -1043,6 +1052,7 @@ def _apply_cli_overrides(
         "include_countvectors",
         "fail_fast",
         "use_interaction_profiler",
+        "receptor_guess_bonds",
         "save_to_database",
         "db_name",
         "replace",
