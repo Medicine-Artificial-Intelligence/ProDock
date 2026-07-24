@@ -5,17 +5,29 @@ from __future__ import annotations
 SCHEMA_SQL = """
 CREATE TABLE IF NOT EXISTS receptors (
     receptor_id   TEXT PRIMARY KEY,
+    pdb_id        TEXT,
+    receptor_name TEXT,
     metadata_json TEXT NOT NULL DEFAULT '{}'
 );
 
 CREATE TABLE IF NOT EXISTS ligands (
     ligand_id     TEXT PRIMARY KEY,
+    smiles        TEXT,
+    inchikey      TEXT,
     metadata_json TEXT NOT NULL DEFAULT '{}'
 );
 
 CREATE TABLE IF NOT EXISTS engines (
     engine        TEXT PRIMARY KEY,
     metadata_json TEXT NOT NULL DEFAULT '{}'
+);
+
+CREATE TABLE IF NOT EXISTS runs (
+    run_id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    name            TEXT,
+    config_json     TEXT NOT NULL DEFAULT '{}' CHECK (json_valid(config_json)),
+    prodock_version TEXT,
+    created_at      TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS poses (
@@ -25,6 +37,7 @@ CREATE TABLE IF NOT EXISTS poses (
     ligand_id           TEXT NOT NULL,
     engine              TEXT NOT NULL,
     pose_rank           INTEGER NOT NULL CHECK (pose_rank >= 1),
+    run_id              INTEGER,
     mol_blob            BLOB NOT NULL,
     mol_is_compressed   INTEGER NOT NULL DEFAULT 1 CHECK (mol_is_compressed IN (0, 1)),
     metadata_json       TEXT NOT NULL DEFAULT '{}',
@@ -32,6 +45,7 @@ CREATE TABLE IF NOT EXISTS poses (
     FOREIGN KEY (receptor_id) REFERENCES receptors(receptor_id) ON DELETE CASCADE,
     FOREIGN KEY (ligand_id) REFERENCES ligands(ligand_id) ON DELETE CASCADE,
     FOREIGN KEY (engine) REFERENCES engines(engine) ON DELETE CASCADE,
+    FOREIGN KEY (run_id) REFERENCES runs(run_id) ON DELETE SET NULL,
     UNIQUE (receptor_id, ligand_id, engine, pose_rank)
 );
 
@@ -126,4 +140,36 @@ CREATE INDEX IF NOT EXISTS idx_interactions_residue
 
 CREATE INDEX IF NOT EXISTS idx_interactions_pose_type_residue
     ON interactions (pose_db_id, interaction_type, residue_id);
+"""
+
+# Objects that reference the typed columns added in schema version 2. These are
+# applied only after :meth:`PoseDatabase._migrate` has ensured those columns
+# exist, so they are safe on databases upgraded in place.
+VIEW_SQL = """
+CREATE INDEX IF NOT EXISTS idx_poses_run
+    ON poses (run_id);
+
+CREATE INDEX IF NOT EXISTS idx_ligands_inchikey
+    ON ligands (inchikey);
+
+CREATE VIEW IF NOT EXISTS v_poses_flat AS
+SELECT
+    p.pose_db_id,
+    p.pose_id,
+    p.receptor_id,
+    p.ligand_id,
+    p.engine,
+    p.pose_rank,
+    p.run_id,
+    p.created_at,
+    r.pdb_id,
+    r.receptor_name,
+    l.smiles,
+    l.inchikey,
+    s.affinity,
+    s.score_json
+FROM poses AS p
+LEFT JOIN receptors AS r ON p.receptor_id = r.receptor_id
+LEFT JOIN ligands AS l ON p.ligand_id = l.ligand_id
+LEFT JOIN pose_scores AS s ON p.pose_db_id = s.pose_db_id;
 """
