@@ -3,15 +3,30 @@ import argparse
 import pandas as pd
 from pymol import cmd
 from pdbfixer import PDBFixer
-from openmm.app import *
-from openmm import *
-from openmm.unit import *
+from openmm.app import (
+    ForceField,
+    HBonds,
+    Modeller,
+    NoCutoff,
+    PDBFile,
+    PME,
+    Simulation,
+)
+from openmm import CustomExternalForce, LangevinIntegrator, Platform
+from openmm.unit import (
+    angstroms,
+    kelvin,
+    kilocalories_per_mole,
+    molar,
+    nanometers,
+    picosecond,
+    picoseconds,
+)
 import sys
 import subprocess
 
-def fetch_and_process_pdb(
-    pdb_id, output_dir, chains, ligand_code, ligand_name, cofactors, protein_name
-):
+
+def fetch_and_process_pdb(pdb_id, output_dir, chains, ligand_code, ligand_name, cofactors, protein_name):
     """
     Fetch a PDB file using PyMOL, filter chains, extract ligands based on ligand_code,
     keep cofactors, and delete water. Save ligand as named in ligand_name.
@@ -52,31 +67,87 @@ def fetch_and_process_pdb(
 
     solvent = [
         # water
-        "HOH", "WAT", "H2O", "DOD",
-
+        "HOH",
+        "WAT",
+        "H2O",
+        "DOD",
         # alcohols / polyols / cryoprotectants
-        "GOL", "EDO", "PGO", "MPD", "IPA", "EOH", "MOH", "MEO", "ETH",
-        "PEG", "PG4", "PGE", "PE4", "PE5", "PE8", "1PE", "2PE",
-        "B3P", "BU3", "BTB",
-
+        "GOL",
+        "EDO",
+        "PGO",
+        "MPD",
+        "IPA",
+        "EOH",
+        "MOH",
+        "MEO",
+        "ETH",
+        "PEG",
+        "PG4",
+        "PGE",
+        "PE4",
+        "PE5",
+        "PE8",
+        "1PE",
+        "2PE",
+        "B3P",
+        "BU3",
+        "BTB",
         # organic solvents
-        "DMS", "DMSO", "ACT", "ACN", "ACE", "DMF", "DME",
-        "BEN", "TOL", "DCM", "CHL", "CCL",
-
+        "DMS",
+        "DMSO",
+        "ACT",
+        "ACN",
+        "ACE",
+        "DMF",
+        "DME",
+        "BEN",
+        "TOL",
+        "DCM",
+        "CHL",
+        "CCL",
         # buffers / crystallization additives
-        "TRS", "TLA", "HEP", "MES", "PIP", "MOPS", "BIC",
-        "CAC", "CIT", "FMT", "ACD",
-
+        "TRS",
+        "TLA",
+        "HEP",
+        "MES",
+        "PIP",
+        "MOPS",
+        "BIC",
+        "CAC",
+        "CIT",
+        "FMT",
+        "ACD",
         # inorganic salts / small additives
-        "SO4", "SUL", "PO4", "DPO", "CO3", "NO3", "SCN",
-        "IOD", "BR", "CL",
-
+        "SO4",
+        "SUL",
+        "PO4",
+        "DPO",
+        "CO3",
+        "NO3",
+        "SCN",
+        "IOD",
+        "BR",
+        "CL",
         # reducing agents / denaturants
-        "BME", "DTT", "TCEP", "URE",
-
+        "BME",
+        "DTT",
+        "TCEP",
+        "URE",
         # common ions / metals
-        "NA", "K", "CA", "MG", "ZN", "MN", "FE", "FE2", "CU", "CU1",
-        "CO", "NI", "CD", "HG",
+        "NA",
+        "K",
+        "CA",
+        "MG",
+        "ZN",
+        "MN",
+        "FE",
+        "FE2",
+        "CU",
+        "CU1",
+        "CO",
+        "NI",
+        "CD",
+        "HG",
     ]
     cmd.select("solvents", f"resn {' or resn '.join(solvent)}")
     if cofactors:
@@ -108,10 +179,11 @@ def fetch_and_process_pdb(
             "-O",
             os.path.basename(i),
         ]
-        result = subprocess.run(command)
+        subprocess.run(command)
         os.chdir(current_working_dir)
 
     return filtered_protein_path, ligand_path, cofactor_path
+
 
 def fix_and_minimize_pdb(
     input_pdb,
@@ -143,22 +215,20 @@ def fix_and_minimize_pdb(
 
     print(f"Fixing and minimizing {input_pdb}...")
 
-    ### **Step 1: Fix PDB (Add Missing Atoms & Hydrogens)**
+    # **Step 1: Fix PDB (Add Missing Atoms & Hydrogens)**
     fixer = PDBFixer(filename=input_pdb)
-    #fixer.removeHeterogens(keepWater=False)
+    # fixer.removeHeterogens(keepWater=False)
     fixer.findMissingResidues()
     fixer.findMissingAtoms()
     fixer.addMissingAtoms()
     fixer.addMissingHydrogens(7.4)
 
-    ### **Step 2: Gas-Phase Energy Minimization (With Backbone Constraints)**
+    # **Step 2: Gas-Phase Energy Minimization (With Backbone Constraints)**
     print("Performing gas-phase minimization with backbone restraints...")
 
     forcefield = ForceField("amber14-all.xml")  # No water force field in gas phase
     modeller = Modeller(fixer.topology, fixer.positions)
-    system = forcefield.createSystem(
-        modeller.topology, nonbondedMethod=NoCutoff, constraints=HBonds
-    )
+    system = forcefield.createSystem(modeller.topology, nonbondedMethod=NoCutoff, constraints=HBonds)
 
     # **Apply Backbone Restraints (N, CA, C)**
     force = CustomExternalForce("0.5 * k * ((x-x0)^2 + (y-y0)^2 + (z-z0)^2)")
@@ -171,9 +241,7 @@ def fix_and_minimize_pdb(
         if atom.name in ["N", "CA", "C"]:  # Restrain backbone atoms
             idx = atom.index
             pos = modeller.positions[idx]
-            force.addParticle(
-                idx, [5.0 * kilocalories_per_mole / angstroms**2, pos.x, pos.y, pos.z]
-            )
+            force.addParticle(idx, [5.0 * kilocalories_per_mole / angstroms**2, pos.x, pos.y, pos.z])
 
     system.addForce(force)
 
@@ -192,15 +260,11 @@ def fix_and_minimize_pdb(
 
     integrator = LangevinIntegrator(300 * kelvin, 1 / picosecond, 0.002 * picoseconds)
     integrator.setRandomNumberSeed(42)
-    simulation = Simulation(
-        modeller.topology, system, integrator, platform, platform_properties
-    )
+    simulation = Simulation(modeller.topology, system, integrator, platform, platform_properties)
     simulation.context.setPositions(modeller.positions)
 
     # **Minimize Energy in Gas Phase**
-    simulation.minimizeEnergy(
-        tolerance=energy_diff, maxIterations=max_minimization_steps
-    )
+    simulation.minimizeEnergy(tolerance=energy_diff, maxIterations=max_minimization_steps)
     minimized_positions = simulation.context.getState(getPositions=True).getPositions()
 
     # **Save Gas-Minimized Structure**
@@ -209,7 +273,7 @@ def fix_and_minimize_pdb(
 
     print(f"Gas-phase minimization complete. Saved minimized PDB to {final_pdb}")
 
-    ### **Step 3: Solvent Energy Minimization (Optional)**
+    # **Step 3: Solvent Energy Minimization (Optional)**
     if minimize_in_water:
         print("Adding water and performing solvent minimization...")
 
@@ -226,25 +290,15 @@ def fix_and_minimize_pdb(
         )
 
         # **Recreate System & Integrator**
-        system = forcefield.createSystem(
-            modeller.topology, nonbondedMethod=PME, constraints=HBonds
-        )
-        integrator = LangevinIntegrator(
-            300 * kelvin, 1 / picosecond, 0.002 * picoseconds
-        )
+        system = forcefield.createSystem(modeller.topology, nonbondedMethod=PME, constraints=HBonds)
+        integrator = LangevinIntegrator(300 * kelvin, 1 / picosecond, 0.002 * picoseconds)
         integrator.setRandomNumberSeed(42)
-        simulation = Simulation(
-            modeller.topology, system, integrator, platform, platform_properties
-        )
+        simulation = Simulation(modeller.topology, system, integrator, platform, platform_properties)
         simulation.context.setPositions(modeller.positions)
 
         # **Minimize Energy in Solvent**
-        simulation.minimizeEnergy(
-            tolerance=energy_diff, maxIterations=max_minimization_steps
-        )
-        minimized_positions = simulation.context.getState(
-            getPositions=True
-        ).getPositions()
+        simulation.minimizeEnergy(tolerance=energy_diff, maxIterations=max_minimization_steps)
+        minimized_positions = simulation.context.getState(getPositions=True).getPositions()
 
         # **Save Final Minimized Structure**
         with open(final_pdb, "w") as f:
@@ -252,7 +306,7 @@ def fix_and_minimize_pdb(
 
         print(f"Solvent minimization complete. Saved minimized PDB to {final_pdb}")
 
-    ### **Step 4: Final Cleanup & Processing with PyMOL**
+    # **Step 4: Final Cleanup & Processing with PyMOL**
     cmd.load(final_pdb)
 
     if cofactor_path is not None and os.path.exists(cofactor_path):
@@ -277,6 +331,7 @@ def fix_and_minimize_pdb(
     cmd.delete("all")
 
     print(f"Final minimized PDB saved to {final_pdb}")
+
 
 def main(args):
     """
@@ -317,9 +372,9 @@ def main(args):
             ligand_code = str(row["ligand_code"]).upper()
             ligand_name = str(row["ligand"]).lower()
             protein_name = str(row["protein"])
-            if row["start_at"] != None:
+            if row["start_at"] is not None:
                 start_at = int(row["start_at"])
-            if start_at == None:
+            if start_at is None:
                 start_at = 1
             print(start_at)
             filtered_protein_path, ligand_path, cofactor_path = fetch_and_process_pdb(
@@ -350,6 +405,7 @@ def main(args):
 
     print("All operations completed.")
 
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Process PDB files from a CSV input.")
     parser.add_argument(
@@ -376,11 +432,7 @@ if __name__ == "__main__":
         default=0.15,
         help="Ion concentration for energy minimization in water (if applicable).",
     )
-    parser.add_argument(
-        "--water_em", type=str, default=False, help="Energy minimization in water"
-    )
-    parser.add_argument(
-        "--output_dir", type=str, required=True, help="Directory to save output files."
-    )
+    parser.add_argument("--water_em", type=str, default=False, help="Energy minimization in water")
+    parser.add_argument("--output_dir", type=str, required=True, help="Directory to save output files.")
     args = parser.parse_args()
     main(args)

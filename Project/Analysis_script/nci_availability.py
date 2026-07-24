@@ -101,7 +101,7 @@ def check_nci_availability(input_csv: str, output_csv: str, headless: bool = Fal
 
         # Export every 100 entries (appending after first write)
         try:
-            mode = 'a' if os.path.exists(output_csv) else 'w'
+            mode = "a" if os.path.exists(output_csv) else "w"
             header = not os.path.exists(output_csv)
             df.iloc[[idx]].to_csv(output_csv, mode=mode, header=header, index=False)
             if idx % 100 == 0 or idx == total_rows - 1:

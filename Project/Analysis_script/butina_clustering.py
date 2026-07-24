@@ -9,12 +9,13 @@ from rdkit.ML.Cluster import Butina
 from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
 from sklearn.metrics import silhouette_score
-import matplotlib
-matplotlib.use("Agg")
-import matplotlib.pyplot as plt
 import seaborn as sns
 from joblib import Parallel, delayed
 from natsort import natsorted
+import matplotlib
+
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt  # noqa: E402
 
 
 def extract_smiles_from_sdf_folder(sdf_folder, output_path):
@@ -52,6 +53,7 @@ def smiles_to_ecfp4(smiles_list, n_jobs):
 def tanimoto_distance_matrix(fps, n_jobs):
     def get_dists(i):
         return [1 - x for x in DataStructs.BulkTanimotoSimilarity(fps[i], fps[:i])]
+
     all_dists = Parallel(n_jobs=n_jobs)(delayed(get_dists)(i) for i in range(1, len(fps)))
     return [d for sublist in all_dists for d in sublist]
 
@@ -94,7 +96,9 @@ def compute_silhouette(fps, labels):
     return score
 
 
-def assign_remaining_by_centroid(fps, clusters, compounds, smiles_list, min_compounds, tanimoto_threshold, threshold_decrement, max_iter=10):
+def assign_remaining_by_centroid(
+    fps, clusters, compounds, smiles_list, min_compounds, tanimoto_threshold, threshold_decrement, max_iter=10
+):
     large_clusters = [c for c in clusters if len(c) >= min_compounds]
     small_clusters = [c for c in clusters if len(c) < min_compounds]
 
@@ -179,8 +183,8 @@ def visualize_clusters(fps, clusters, output_prefix):
     tsne = TSNE(n_components=2, perplexity=70, max_iter=2000, random_state=42)
     reduced_tsne = tsne.fit_transform(reduced_pca)
 
-    df_tsne = pd.DataFrame(reduced_tsne, columns=['tsne-1', 'tsne-2'])
-    df_tsne['Cluster'] = labels.astype(int)
+    df_tsne = pd.DataFrame(reduced_tsne, columns=["tsne-1", "tsne-2"])
+    df_tsne["Cluster"] = labels.astype(int)
 
     sil_tsne = silhouette_score(reduced_tsne, labels) if len(set(labels)) > 1 else -1
     sil_tsne_str = f"{sil_tsne:.2f}" if sil_tsne >= 0 else "NA"
@@ -189,15 +193,7 @@ def visualize_clusters(fps, clusters, output_prefix):
     palette = sns.color_palette("hls", n_colors=num_clusters)
 
     plt.figure(figsize=(12, 8))
-    sns.scatterplot(
-        data=df_tsne,
-        x='tsne-1',
-        y='tsne-2',
-        hue='Cluster',
-        palette=palette,
-        s=8,
-        legend="full"
-    )
+    sns.scatterplot(data=df_tsne, x="tsne-1", y="tsne-2", hue="Cluster", palette=palette, s=8, legend="full")
     cluster_sizes = [len(cluster) for cluster in clusters]
     legend_labels = [f"Cluster {i} (n={size})" for i, size in enumerate(cluster_sizes)]
     handles, _ = plt.gca().get_legend_handles_labels()
@@ -209,36 +205,32 @@ def visualize_clusters(fps, clusters, output_prefix):
         bbox_to_anchor=(1.01, 0.5),
         borderaxespad=0.0,
         ncol=2,
-        fontsize='small',
-        title_fontsize='medium',
-        frameon=True
+        fontsize="small",
+        title_fontsize="medium",
+        frameon=True,
     )
     plt.title("t-SNE Projection of Clusters")
     plt.subplots_adjust(right=0.75)
-    tsne_path = f"{output_prefix}_TSNE_silEcfp4_{sil_ecfp4_str}_silTSNE_{sil_tsne_str}_decrement{args.threshold_decrement}_tanimoto{args.tanimoto_threshold}_min{args.min_compounds}.png"
-    plt.savefig(tsne_path, dpi=300, bbox_inches='tight')
+    tsne_path = (
+        f"{output_prefix}_TSNE_silEcfp4_{sil_ecfp4_str}_silTSNE_{sil_tsne_str}"
+        f"_decrement{args.threshold_decrement}_tanimoto{args.tanimoto_threshold}"
+        f"_min{args.min_compounds}.png"
+    )
+    plt.savefig(tsne_path, dpi=300, bbox_inches="tight")
     plt.close()
 
     # === Step 2b: UMAP ===
-    reducer = umap.UMAP(n_neighbors=10, min_dist=0.1, metric='euclidean', random_state=42)
+    reducer = umap.UMAP(n_neighbors=10, min_dist=0.1, metric="euclidean", random_state=42)
     reduced_umap = reducer.fit_transform(reduced_pca)
 
-    df_umap = pd.DataFrame(reduced_umap, columns=['umap-1', 'umap-2'])
-    df_umap['Cluster'] = labels.astype(int)
+    df_umap = pd.DataFrame(reduced_umap, columns=["umap-1", "umap-2"])
+    df_umap["Cluster"] = labels.astype(int)
 
     sil_umap = silhouette_score(reduced_umap, labels) if len(set(labels)) > 1 else -1
     sil_umap_str = f"{sil_umap:.2f}" if sil_umap >= 0 else "NA"
 
     plt.figure(figsize=(12, 8))
-    sns.scatterplot(
-        data=df_umap,
-        x='umap-1',
-        y='umap-2',
-        hue='Cluster',
-        palette=palette,
-        s=8,
-        legend="full"
-    )
+    sns.scatterplot(data=df_umap, x="umap-1", y="umap-2", hue="Cluster", palette=palette, s=8, legend="full")
     handles, _ = plt.gca().get_legend_handles_labels()
     plt.legend(
         handles=handles,
@@ -248,17 +240,22 @@ def visualize_clusters(fps, clusters, output_prefix):
         bbox_to_anchor=(1.01, 0.5),
         borderaxespad=0.0,
         ncol=2,
-        fontsize='small',
-        title_fontsize='medium',
-        frameon=True
+        fontsize="small",
+        title_fontsize="medium",
+        frameon=True,
     )
     plt.title("UMAP Projection of Clusters")
     plt.subplots_adjust(right=0.75)
-    umap_path = f"{output_prefix}_UMAP_silEcfp4_{sil_ecfp4_str}_silUMAP_{sil_umap_str}_decrement{args.threshold_decrement}_tanimoto{args.tanimoto_threshold}_min{args.min_compounds}.png"
-    plt.savefig(umap_path, dpi=300, bbox_inches='tight')
+    umap_path = (
+        f"{output_prefix}_UMAP_silEcfp4_{sil_ecfp4_str}_silUMAP_{sil_umap_str}"
+        f"_decrement{args.threshold_decrement}_tanimoto{args.tanimoto_threshold}"
+        f"_min{args.min_compounds}.png"
+    )
+    plt.savefig(umap_path, dpi=300, bbox_inches="tight")
     plt.close()
 
     return labels.tolist(), sil_ecfp4
+
 
 def export_centroid_similarity(centroid_indices, fps, compounds, output_path):
     centroid_names = [compounds[i] for i in centroid_indices]
@@ -276,6 +273,7 @@ def export_centroid_similarity(centroid_indices, fps, compounds, output_path):
     df_sim.to_csv(output_path)
     print(f"[✓] Saved centroid similarity matrix to: {output_path}")
 
+
 def plot_heatmap(csv_path, output_path):
     # Load CSV with first column as index
     df = pd.read_csv(csv_path, index_col=0)
@@ -292,8 +290,15 @@ def plot_heatmap(csv_path, output_path):
 
     # Plot heatmap
     plt.figure(figsize=(18, 16))
-    sns.heatmap(df_masked, cmap="viridis", linewidths=0.5, linecolor='gray',
-                square=True, cbar_kws={'label': 'Tanimoto Similarity'}, mask=df == 1.0)
+    sns.heatmap(
+        df_masked,
+        cmap="viridis",
+        linewidths=0.5,
+        linecolor="gray",
+        square=True,
+        cbar_kws={"label": "Tanimoto Similarity"},
+        mask=df == 1.0,
+    )
     plt.title("Pairwise Tanimoto Similarity Heatmap (Natural Sorted)", fontsize=16)
     plt.xticks(rotation=90)
     plt.yticks(rotation=0)
@@ -321,20 +326,21 @@ def main(args):
     clusters = butina_clustering(fps, cutoff=args.tanimoto_threshold, n_jobs=args.cpu)
 
     clusters = assign_remaining_by_centroid(
-        fps, clusters, compounds, smiles_list,
+        fps,
+        clusters,
+        compounds,
+        smiles_list,
         min_compounds=args.min_compounds,
         tanimoto_threshold=args.tanimoto_threshold,
-        threshold_decrement=args.threshold_decrement
+        threshold_decrement=args.threshold_decrement,
     )
 
     compound_cluster_mapping = []
     for cluster_id, cluster in enumerate(clusters):
         for idx in cluster:
-            compound_cluster_mapping.append({
-                "Compounds": compounds[idx],
-                "Smiles": smiles_list[idx],
-                "Cluster": cluster_id
-            })
+            compound_cluster_mapping.append(
+                {"Compounds": compounds[idx], "Smiles": smiles_list[idx], "Cluster": cluster_id}
+            )
 
     centroids = compute_centroids(clusters, fps, compounds)
     print(f"\n[✓] Total clusters: {len(clusters)}")
@@ -345,19 +351,27 @@ def main(args):
     plot_prefix = os.path.join(args.output_dir, "cluster_plot")
     cluster_labels, silhouette = visualize_clusters(fps, clusters, output_prefix=plot_prefix)
 
-    output_cluster_csv = os.path.join(args.output_dir, f"compound_clusters_decrement{args.threshold_decrement}_tanimoto{args.tanimoto_threshold}_min{args.min_compounds}.csv")
-    df_result = pd.DataFrame({
-        "Compounds": compounds,
-        "Smiles": smiles_list,
-        "Cluster": cluster_labels
-    })
+    output_cluster_csv = os.path.join(
+        args.output_dir,
+        f"compound_clusters_decrement{args.threshold_decrement}"
+        f"_tanimoto{args.tanimoto_threshold}_min{args.min_compounds}.csv",
+    )
+    df_result = pd.DataFrame({"Compounds": compounds, "Smiles": smiles_list, "Cluster": cluster_labels})
     df_result.to_csv(output_cluster_csv, index=False)
     print(f"[✓] Exported cluster assignments to: {output_cluster_csv}")
 
-    output_sim_csv = os.path.join(args.output_dir, f"centroid_similarity_decrement{args.threshold_decrement}_tanimoto{args.tanimoto_threshold}_min{args.min_compounds}.csv")
+    output_sim_csv = os.path.join(
+        args.output_dir,
+        f"centroid_similarity_decrement{args.threshold_decrement}"
+        f"_tanimoto{args.tanimoto_threshold}_min{args.min_compounds}.csv",
+    )
     export_centroid_similarity(centroids, fps, compounds, output_sim_csv)
 
-    output_full_cluster_csv = os.path.join(args.output_dir, f"all_compound_clusters_decrement{args.threshold_decrement}_tanimoto{args.tanimoto_threshold}_min{args.min_compounds}.csv")
+    output_full_cluster_csv = os.path.join(
+        args.output_dir,
+        f"all_compound_clusters_decrement{args.threshold_decrement}"
+        f"_tanimoto{args.tanimoto_threshold}_min{args.min_compounds}.csv",
+    )
     df_map = pd.DataFrame(compound_cluster_mapping)
     df_map.to_csv(output_full_cluster_csv, index=False)
     print(f"[✓] Exported full compound-cluster list to: {output_full_cluster_csv}")
@@ -368,8 +382,10 @@ def main(args):
         f.write(f"Silhouette Coefficient: {silhouette:.4f}\n")
     print(f"[✓] Silhouette score saved to: {score_txt_path}")
     plot_heatmap(
-    f'{args.output_dir}/centroid_similarity_decrement{args.threshold_decrement}_tanimoto{args.tanimoto_threshold}_min{args.min_compounds}.csv',
-    f'{args.output_dir}/centroid_similarity_decrement{args.threshold_decrement}_tanimoto{args.tanimoto_threshold}_min{args.min_compounds}.png'
+        f"{args.output_dir}/centroid_similarity_decrement{args.threshold_decrement}"
+        f"_tanimoto{args.tanimoto_threshold}_min{args.min_compounds}.csv",
+        f"{args.output_dir}/centroid_similarity_decrement{args.threshold_decrement}"
+        f"_tanimoto{args.tanimoto_threshold}_min{args.min_compounds}.png",
     )
 
 
@@ -379,7 +395,9 @@ if __name__ == "__main__":
     parser.add_argument("--output_dir", required=True, help="Directory to store output CSVs and plots")
     parser.add_argument("--source_csv", required=True, help="CSV file containing Compounds column")
     parser.add_argument("--tanimoto_threshold", type=float, default=0.35, help="Initial Tanimoto similarity cutoff")
-    parser.add_argument("--threshold_decrement", type=float, default=0.05, help="Decrease of similarity cutoff per iteration")
+    parser.add_argument(
+        "--threshold_decrement", type=float, default=0.05, help="Decrease of similarity cutoff per iteration"
+    )
     parser.add_argument("--cpu", type=int, default=-1, help="Number of CPUs to use for parallel jobs")
     parser.add_argument("--min_compounds", type=int, default=10, help="Minimum cluster size before reassignment")
     args = parser.parse_args()
