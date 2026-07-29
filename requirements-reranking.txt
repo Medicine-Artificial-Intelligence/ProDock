@@ -1,0 +1,6 @@
+numpy
+scipy
+scikit-learn
+seaborn
+optuna>=4
+joblib

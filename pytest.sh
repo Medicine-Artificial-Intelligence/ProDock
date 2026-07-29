@@ -1,3 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
+set -euo pipefail
 
-pytest Test
+python -m pytest Test

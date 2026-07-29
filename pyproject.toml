@@ -58,6 +58,11 @@ reranking = [
   "optuna>=4",
   "joblib"
 ]
+test = [
+  "pytest>=8",
+  "flake8>=7",
+  "black>=24"
+]
 
 [project.scripts]
 prodock = "prodock.cli:main"
