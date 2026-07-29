@@ -1,8 +1,8 @@
 AutoDock Vina Python backend
 
 Scoring function : vina
-Receptor         : /home/lolo/Documents/TACsy/Side/ProDock/Data/testcase/Multi/1M17/filtered_protein/1M17.pdbqt
-Ligand           : /home/lolo/Documents/TACsy/Side/ProDock/Data/testcase/Multi/ligands/erlotinib.pdbqt
+Receptor         : Data/testcase/Multi/1M17/filtered_protein/1M17.pdbqt
+Ligand           : Data/testcase/Multi/ligands/erlotinib.pdbqt
 Center           : [21.623, 0.4, 52.467]
 Box size         : [34.07, 34.07, 34.07]
 Exhaustiveness   : 8

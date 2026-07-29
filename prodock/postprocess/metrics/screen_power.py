@@ -78,12 +78,17 @@ class ScreenEvaluator:
         if P == 0 or N == 0:
             return np.array([]), np.array([]), np.array([])
         order = self._rank_order(s)
+        s_sorted = s[order]
         y_sorted = y[order]
-        tp_cum = np.concatenate([[0], np.cumsum(y_sorted == 1)])
-        fp_cum = np.concatenate([[0], np.cumsum(y_sorted == 0)])
-        tpr = tp_cum / P
-        fpr = fp_cum / N
-        thresholds = np.concatenate([s[order], [s[order[-1]] - 1.0]])
+        # Evaluate the curve only after each group of equal scores. Treating
+        # tied rows one at a time makes AUC depend on their input order.
+        distinct_ends = np.flatnonzero(np.diff(s_sorted))
+        threshold_indices = np.concatenate([distinct_ends, [len(s_sorted) - 1]])
+        tp_cum = np.cumsum(y_sorted == 1)[threshold_indices]
+        fp_cum = (threshold_indices + 1) - tp_cum
+        tpr = np.concatenate([[0.0], tp_cum / P])
+        fpr = np.concatenate([[0.0], fp_cum / N])
+        thresholds = np.concatenate([[np.inf], s_sorted[threshold_indices]])
         return fpr, tpr, thresholds
 
     def precision_recall_curve(
@@ -301,23 +306,42 @@ class ScreenEvaluator:
         n = len(y)
         if n == 0:
             return float("nan")
+        if alpha <= 0.0:
+            raise ValueError("alpha must be greater than zero")
         order = self._rank_order(s)
+        s_sorted = s[order]
         y_sorted = y[order]
         m = int(y_sorted.sum())
-        if m == 0:
+        if m == 0 or m == n:
             return float("nan")
-        ri = np.flatnonzero(y_sorted == 1) + 1  # 1-based indices
+
         ka = float(alpha)
-        exp_term = np.exp(-ka * (ri - 1) / n)
-        sum_exp = float(exp_term.sum())
-        fac = ka / (1.0 - math.exp(-ka))
-        Ra = (sum_exp / m) * fac
-        Ra_min = 1.0
-        exp_best = float(np.exp(-ka * (np.arange(1, m + 1) - 1) / n).sum())
-        Ra_max = (exp_best / m) * fac
-        if Ra_max - Ra_min == 0:
+        positions = np.arange(1, n + 1, dtype=float)
+        weights = np.exp(-ka * positions / n)
+
+        # Average the exponential contribution within equal-score groups so
+        # BEDROC, like ROC AUC, is independent of the input ordering of ties.
+        sum_exp = 0.0
+        start = 0
+        while start < n:
+            stop = start + 1
+            while stop < n and s_sorted[stop] == s_sorted[start]:
+                stop += 1
+            active_fraction = float(y_sorted[start:stop].sum()) / (stop - start)
+            sum_exp += active_fraction * float(weights[start:stop].sum())
+            start = stop
+
+        denom = ((1.0 - math.exp(-ka)) /
+                 (n * (math.exp(ka / n) - 1.0)))
+        rie = sum_exp / (m * denom)
+        ratio = m / n
+        rie_max = ((1.0 - math.exp(-ka * ratio)) /
+                   (ratio * (1.0 - math.exp(-ka))))
+        rie_min = ((1.0 - math.exp(ka * ratio)) /
+                   (ratio * (1.0 - math.exp(ka))))
+        if rie_max == rie_min:
             return float("nan")
-        return float((Ra - Ra_min) / (Ra_max - Ra_min))
+        return float((rie - rie_min) / (rie_max - rie_min))
 
     def mcc(
         self,

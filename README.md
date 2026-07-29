@@ -123,9 +123,12 @@ This architecture is intended to support:
   git clone https://github.com/Medicine-Artificial-Intelligence/ProDock.git
   cd ProDock
   pip install -r requirements.txt
-  pip install black flake8 pytest # black for formating, flake8 for checking format, pytest for testing
+  pip install -r requirements-dev.txt  # tests, linting, and reranking tools
   ```
 
+For reranking without the development tools, install either
+`pip install -e ".[reranking]"` or
+`pip install -r requirements-reranking.txt`.
 
 ## DiffDock + GNINA GPU pipeline
 
@@ -296,6 +299,7 @@ ProDock/
 ├── Project/
 │   ├── Analysis_script/
 │   ├── Docking_script/
+│   ├── Optimization_script/
 │   ├── Preparation_script/
 │   ├── DiffDock/
 │   │   ├── esm/
@@ -335,6 +339,96 @@ This command executes the case-study docking workflow using:
 - `Data/case/receptor.json`: receptor definitions
 - `Data/case/ligand.json`: ligand definitions
 
+## Pose Re-ranking Optimization and Analysis
+
+The scripts under `Project/Optimization_script/` merge per-pose GNINA and
+DiffDock results and use Optuna to tune descriptor thresholds for ROC-AUC,
+PR-AUC, or logAUC. Install their optional dependencies from the repository
+root:
+
+```bash
+pip install -e ".[reranking]"
+```
+
+The repository already contains the 43 GNINA/DiffDock target pairs used by
+these scripts:
+
+```text
+Project/benchmark/
+├── result_gnina/{target}_final.csv
+└── result_diffdock/{target}_final.csv
+```
+
+These are DUD-E-style files without an embedded activity column. Pass
+`--dude-labels` to apply the explicit dataset convention that `ZINC*`
+identifiers are decoys and all other identifiers are actives. The `MT1` pair
+contains `NONE` as its only non-ZINC identifier and should be excluded from
+aggregate results until a valid active record is recovered.
+
+Optimize one target:
+
+```bash
+python Project/Optimization_script/optuna_combine_all_structure.py \
+  --protein ABL1 \
+  --base-dir Project/benchmark \
+  --dude-labels \
+  --metric roc-auc
+```
+
+Useful options include:
+
+- `--scoring-metric {affinity,cnnaffinity,cnn-combined}`
+- `--metric {roc-auc,pr-auc,logauc}`
+- `--n-trials`, `--n-jobs`, and `--top-k`
+- `--split {train,test}`, `--data-dir split_merged`, and `--eval-on-test`
+- `--activity-column` for datasets that carry explicit binary labels
+
+Run all targets discovered under `--base-dir`:
+
+```bash
+python Project/Optimization_script/run_all_proteins_optimization.py \
+  --base-dir Project/benchmark \
+  --dude-labels \
+  --exclude-proteins MT1 \
+  --metric roc-auc \
+  --parallel 4
+```
+
+The original nested export layout remains supported:
+
+```text
+all/
+├── gnina/{target}/Confidence_score/{target}_{split}_final.csv
+└── diffdock/{target}/Confidence_score/{target}_{split}_final.csv
+```
+
+For the training split, the legacy unsplit filename `{target}_final.csv` is
+also accepted.
+
+Results default to `results_all_structure/{target}/` relative to the working
+directory. Use `--output-dir` to choose another location. Optimization output,
+Optuna studies, extracted threshold tables, and publication plots are
+generated artifacts and are intentionally ignored by Git.
+
+Extract thresholds from the nine scoring/metric configuration directories:
+
+```bash
+python Project/Analysis_script/extract_optimized_thresholds.py \
+  --root /path/to/configuration-results \
+  --output-dir threshold_csv
+```
+
+To generate the publication plots, place the nine summary JSON files
+(`aff_roc.json`, `cnn_pr.json`, `combined_log.json`, and the other
+scoring/metric combinations) beside `visualize_results.py`, then run:
+
+```bash
+python Project/Analysis_script/visualize_results.py
+```
+
+See [`REPRODUCIBILITY.md`](REPRODUCIBILITY.md) for the tracked-input manifest,
+artifact policy, and end-to-end verification commands.
+
 ## Setting Up Your Development Environment
 
 Before you start, ensure your local development environment is set up correctly. Pull the latest version of the `main` branch to start with the most recent stable code.
@@ -365,7 +459,7 @@ git pull
 
    ```bash
    ./lint.sh # Check code format
-   pytest Test # Run tests
+   pytest Test # Run tests; optional suites skip if their extras are absent
    ```
 
    Fix any issues or errors highlighted by these checks.

@@ -2,7 +2,7 @@
   "receptors": [
     {
       "id": "1M17",
-      "receptor": "/home/lolo/Documents/TACsy/Side/ProDock/Data/testcase/Multi/1M17/filtered_protein/1M17.pdbqt",
+      "receptor": "Data/testcase/Multi/1M17/filtered_protein/1M17.pdbqt",
       "box": {
         "center": [
           21.623,
@@ -15,8 +15,8 @@
           34.07
         ]
       },
-      "out_dir": "/home/lolo/Documents/TACsy/Side/ProDock/Data/testcase/Multi/1M17/results/docked",
-      "log_dir": "/home/lolo/Documents/TACsy/Side/ProDock/Data/testcase/Multi/1M17/results/logs",
+      "out_dir": "Data/testcase/Multi/1M17/results/docked",
+      "log_dir": "Data/testcase/Multi/1M17/results/logs",
       "softwares": [
         {
           "name": "smina",
@@ -27,11 +27,11 @@
           "ligands": [
             {
               "id": "erlotinib",
-              "ligand": "/home/lolo/Documents/TACsy/Side/ProDock/Data/testcase/Multi/ligands/erlotinib.pdbqt"
+              "ligand": "Data/testcase/Multi/ligands/erlotinib.pdbqt"
             },
             {
               "id": "gefitinib",
-              "ligand": "/home/lolo/Documents/TACsy/Side/ProDock/Data/testcase/Multi/ligands/gefitinib.pdbqt"
+              "ligand": "Data/testcase/Multi/ligands/gefitinib.pdbqt"
             }
           ]
         }
@@ -39,7 +39,7 @@
     },
     {
       "id": "4WKQ",
-      "receptor": "/home/lolo/Documents/TACsy/Side/ProDock/Data/testcase/Multi/4WKQ/filtered_protein/4WKQ.pdbqt",
+      "receptor": "Data/testcase/Multi/4WKQ/filtered_protein/4WKQ.pdbqt",
       "box": {
         "center": [
           2.865,
@@ -52,8 +52,8 @@
           27.091
         ]
       },
-      "out_dir": "/home/lolo/Documents/TACsy/Side/ProDock/Data/testcase/Multi/4WKQ/results/docked",
-      "log_dir": "/home/lolo/Documents/TACsy/Side/ProDock/Data/testcase/Multi/4WKQ/results/logs",
+      "out_dir": "Data/testcase/Multi/4WKQ/results/docked",
+      "log_dir": "Data/testcase/Multi/4WKQ/results/logs",
       "softwares": [
         {
           "name": "smina",
@@ -64,11 +64,11 @@
           "ligands": [
             {
               "id": "erlotinib",
-              "ligand": "/home/lolo/Documents/TACsy/Side/ProDock/Data/testcase/Multi/ligands/erlotinib.pdbqt"
+              "ligand": "Data/testcase/Multi/ligands/erlotinib.pdbqt"
             },
             {
               "id": "gefitinib",
-              "ligand": "/home/lolo/Documents/TACsy/Side/ProDock/Data/testcase/Multi/ligands/gefitinib.pdbqt"
+              "ligand": "Data/testcase/Multi/ligands/gefitinib.pdbqt"
             }
           ]
         }
