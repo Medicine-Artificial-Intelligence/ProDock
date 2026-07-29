@@ -12,6 +12,8 @@ Overview
        <div class="pd-actions">
          <a class="pd-btn pd-btn--primary" href="getting_started.html">Get started</a>
          <a class="pd-btn" href="tutorial.html">Tutorial</a>
+         <a class="pd-btn" href="reranking.html">Reranking</a>
+         <a class="pd-btn" href="reproducibility.html">Reproducibility</a>
          <a class="pd-btn" href="architecture.html">Architecture</a>
          <a class="pd-btn" href="api.html">API</a>
        </div>
@@ -39,6 +41,13 @@ Overview
      <a class="pd-card" href="tutorial.html"><div class="pd-kicker">Tutorial</div><h3>Follow the workflow</h3><p>Structure, preprocess, dock, postprocess, database, and automation pages stay grouped under one tutorial hub.</p></a>
      <a class="pd-card" href="architecture.html"><div class="pd-kicker">Architecture</div><h3>Understand the design</h3><p>See why ProDock uses a pose-centric database and how the package is split into reusable layers.</p></a>
      <a class="pd-card" href="api.html"><div class="pd-kicker">API</div><h3>Scan the package</h3><p>Start with a short API page, then move to a larger automodule-based reference under the same API section.</p></a>
+   </div>
+
+.. raw:: html
+
+   <div class="pd-grid-2">
+     <a class="pd-card" href="reranking.html"><div class="pd-kicker">Analysis</div><h3>Rerank GNINA and DiffDock poses</h3><p>Validate paired inputs, optimize descriptor thresholds, replay train-selected thresholds on test data, and interpret generated results.</p></a>
+     <a class="pd-card" href="reproducibility.html"><div class="pd-kicker">Reproduction</div><h3>Record an auditable campaign</h3><p>Separate source inputs from generated artifacts and capture the configuration, versions, labels, and checks needed to repeat a run.</p></a>
    </div>
 
 Store once, analyze many times
@@ -69,6 +78,8 @@ Store once, analyze many times
 
    getting_started
    tutorial
+   reranking
+   reproducibility
    architecture
    api
    reference

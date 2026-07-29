@@ -124,6 +124,7 @@ Installation
    git clone https://github.com/Medicine-Artificial-Intelligence/ProDock
    cd ProDock
    conda env create -f prodock-env.yml
+   conda activate prodock
 
 .. raw:: html
 
@@ -132,6 +133,68 @@ Installation
    </div>
    </div>
    </div>
+
+Installation profiles
+---------------------
+
+The source checkout provides separate dependency profiles so a minimal docking
+installation does not need the analysis stack:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 30 35 35
+
+   * - Goal
+     - Command
+     - Includes
+   * - Core package
+     - ``python -m pip install -e .``
+     - Docking, preparation, post-processing, and database APIs
+   * - Reranking
+     - ``python -m pip install -e ".[reranking]"``
+     - NumPy, SciPy, scikit-learn, seaborn, Optuna, and joblib
+   * - Repository development
+     - ``python -m pip install -r requirements-dev.txt``
+     - Reranking dependencies, pytest, flake8, and Black
+
+``prodock-env.yml`` creates the source-development environment and installs the
+reranking and test tools. ``environment.yml`` is the larger GPU workflow
+environment used by the DiffDock and GNINA campaign scripts.
+
+External docking engines
+------------------------
+
+The Python package does not bundle every docking executable. Install the
+engines used by your campaign and make their commands available on ``PATH``.
+For example:
+
+.. code-block:: bash
+
+   command -v vina
+   command -v smina
+   command -v qvina
+   command -v qvina-w
+
+Only the executables named in the campaign configuration are required.
+
+Verify the installation
+-----------------------
+
+.. code-block:: bash
+
+   python -c "import prodock; print(prodock.__version__)"
+   prodock --help
+
+For a source checkout, validate the bundled case-study configuration without
+starting docking:
+
+.. code-block:: bash
+
+   prodock \
+     --config Data/case/config.json \
+     --receptor-json Data/case/receptor.json \
+     --ligand-json Data/case/ligand.json \
+     --validate-only
 
 
 Quick example

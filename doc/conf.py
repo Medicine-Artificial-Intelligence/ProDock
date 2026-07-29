@@ -10,14 +10,13 @@ author = "Tieu-Long Phan"
 try:
     release = _get_version("prodock")
 except PackageNotFoundError:
-    release = "0.1.0"
+    release = "0.5.0"
 
 version = ".".join(release.split(".")[:3])
 
 extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.autosummary",
-    "sphinx.ext.intersphinx",
     "sphinx.ext.githubpages",
     "sphinxcontrib.bibtex",
 ]
@@ -69,10 +68,6 @@ suppress_warnings = [
     "autosectionlabel.*",
     "autodoc.import_object",
 ]
-
-intersphinx_mapping = {
-    "python": ("https://docs.python.org/3", None),
-}
 
 html_title = project
 html_static_path = ["_static"]

@@ -3,7 +3,7 @@ ReceptorPrep orchestration using small helpers (minimizers + converters).
 
 Key behaviour
 - use_meeko=True by default
-- the mekoo executable name is fixed internally as "mk_prepare_receptor.py" (not provided by callers)
+- the Meeko executable name is fixed internally as "mk_prepare_receptor.py" (not provided by callers)
 - prep(...) is the main orchestration method (previously fix_and_minimize_pdb)
 - OpenMM minimization is attempted first. On failure we fallback to OpenBabel minimizer.
 - If fallback to OpenBabel occurs we prefer OpenBabel for conversions.
@@ -37,14 +37,14 @@ class ReceptorPrep(ReprMixin):
     """
     High-level receptor preprocessor.
 
-    :param use_meeko: If True, attempt to use mekoo for receptor PDBQT conversion first.
+    :param use_meeko: If True, attempt to use Meeko for receptor PDBQT conversion first.
     :type use_meeko: bool
     :param enable_logging: Enable console logging for the instance.
     :type enable_logging: bool
 
     Notes
     -----
-    The mekoo executable is a fixed internal constant: "mk_prepare_receptor.py".
+    The Meeko executable is a fixed internal constant: "mk_prepare_receptor.py".
     """
 
     _MEKOO_EXE = "mk_prepare_receptor.py"
@@ -97,12 +97,12 @@ class ReceptorPrep(ReprMixin):
 
     @property
     def use_meeko(self) -> bool:
-        """Whether mekoo is enabled for this instance."""
+        """Whether Meeko is enabled for this instance."""
         return self._use_meeko
 
     @property
     def mekoo_cmd(self) -> str:
-        """Internal mekoo command (fixed): returns 'mk_prepare_receptor.py'."""
+        """Return the fixed internal Meeko command name."""
         return self._mekoo_cmd
 
     @property
@@ -381,18 +381,15 @@ class ReceptorPrep(ReprMixin):
         """
         High-level orchestration for preparing a receptor.
 
-        Behaviour summary:
-        - run PDBFixer
-        - attempt OpenMM minimization
-          - if OpenMM fails, fall back to OpenBabel minimization
-        - if out_fmt == 'pdbqt':
-          - if minimization fallback used -> use OpenBabel conversion
-          - else if use_meeko=True -> try Meeko conversion first
-          - if Meeko conversion fails -> fallback to OpenBabel conversion
-        - receptor PDBQT is sanitized and validated for downstream docking
-        - run PyMOL postprocessing for PDB artifacts
+        The workflow runs PDBFixer, attempts OpenMM minimization, and falls back
+        to OpenBabel minimization if needed. For ``pdbqt`` output it prefers
+        Meeko unless minimization already required OpenBabel, and it falls back
+        to OpenBabel if Meeko conversion fails. The resulting receptor PDBQT is
+        sanitized and validated before PyMOL post-processing.
 
-        :raises RuntimeError: if minimization fails, or if out_fmt='pdbqt' and no valid PDBQT is produced
+        :raises RuntimeError:
+            If minimization fails, or if ``out_fmt="pdbqt"`` and no valid
+            PDBQT file is produced.
         """
         if enable_logging:
             self.enable_console_logging()
