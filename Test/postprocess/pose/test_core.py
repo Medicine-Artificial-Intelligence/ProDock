@@ -333,6 +333,7 @@ class TestCoreWrappers(unittest.TestCase):
     def setUp(self) -> None:
         self._orig_build_pose_records = core.build_pose_records
         self._orig_pdbqt_to_rdkit_mols = core.pdbqt_to_rdkit_mols
+        self._orig_save_pose_sdf = io.save_pose_sdf
 
         self.sample_records = [
             PoseRecord(
@@ -370,6 +371,7 @@ class TestCoreWrappers(unittest.TestCase):
     def tearDown(self) -> None:
         core.build_pose_records = self._orig_build_pose_records
         core.pdbqt_to_rdkit_mols = self._orig_pdbqt_to_rdkit_mols
+        io.save_pose_sdf = self._orig_save_pose_sdf
 
     def test_crawl_poses(self) -> None:
         def fake_build_pose_records(roots, engine=None, recursive=True):
@@ -406,8 +408,14 @@ class TestCoreWrappers(unittest.TestCase):
                 return ["mol_qvina"]
             return []
 
+        save_calls = []
+
+        def fake_save_pose_sdf(source_file, backend="obabel", overwrite=False):
+            save_calls.append((Path(source_file).resolve(), backend, overwrite))
+
         core.build_pose_records = fake_build_pose_records
         core.pdbqt_to_rdkit_mols = fake_pdbqt_to_rdkit_mols
+        io.save_pose_sdf = fake_save_pose_sdf
 
         df = core.crawl_pose_mols(
             ["Data/testcase/post/1M17/results/docked/qvina/erlotinib_docked.pdbqt"],

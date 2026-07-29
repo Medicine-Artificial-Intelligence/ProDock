@@ -1,4 +1,4 @@
-REMARK  Name = /home/lolo/Documents/TACsy/Side/ProDock/Data/testcase/Multi/1M17/filtered_protein/1M17.pdb
+REMARK  Name = Data/testcase/Multi/1M17/filtered_protein/1M17.pdb
 REMARK                            x       y       z     vdW  Elec       q    Type
 REMARK                         _______ _______ _______ _____ _____    ______ ____
 ATOM      1  N   GLY A   1      53.468  10.371  68.454  0.00  0.00    +0.000 N 

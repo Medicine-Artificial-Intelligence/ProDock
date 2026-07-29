@@ -63,6 +63,7 @@ Example
     print(result.merged_df.head())
 """
 
+import importlib.metadata
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
@@ -70,7 +71,7 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 import pandas as pd
 
 from prodock.database import PoseDatabase
-from prodock.dock import BatchDock
+from prodock.dock import BatchConfig, BatchDock
 from prodock.dock.campaign import Campaign
 from prodock.io.logging import get_logger, setup_logging
 from prodock.postprocess.interaction.core import (
@@ -231,9 +232,18 @@ class ProDockPipeline:
     :param ligand_backend:
         Ligand conversion backend used by :class:`LigandPrep`.
     :type ligand_backend: str
+    :param box_algorithm:
+        Ligand-derived box algorithm. ``None`` selects the new default
+        ``"pad"`` unless ``box_scale`` is supplied explicitly, in which case
+        legacy ``"scale"`` behavior is preserved.
+    :type box_algorithm: Optional[str]
+    :param box_pad:
+        Symmetric padding in Angstrom used by the ``"pad"`` algorithm.
+    :type box_pad: float
     :param box_scale:
-        Scale factor used when computing a grid box from a reference ligand.
-    :type box_scale: float
+        Scale factor used by the ``"scale"`` algorithm. Supplying this without
+        ``box_algorithm`` selects legacy scale behavior.
+    :type box_scale: Optional[float]
     :param box_isotropic:
         Whether ligand-derived boxes should be isotropic.
     :type box_isotropic: bool
@@ -288,7 +298,9 @@ class ProDockPipeline:
         receptor_use_meeko: bool = False,
         ligand_output_format: str = "pdbqt",
         ligand_backend: str = "meeko",
-        box_scale: float = 2.0,
+        box_algorithm: Optional[str] = None,
+        box_pad: float = 4.0,
+        box_scale: Optional[float] = None,
         box_isotropic: bool = True,
         campaign_name: str = "campaign.json",
         log_file: str = "prodock.log",
@@ -334,9 +346,17 @@ class ProDockPipeline:
         :param ligand_backend:
             Ligand conversion backend used by :class:`LigandPrep`.
         :type ligand_backend: str
+        :param box_algorithm:
+            Ligand-derived box algorithm. ``None`` selects ``"pad"`` unless
+            ``box_scale`` is supplied explicitly.
+        :type box_algorithm: Optional[str]
+        :param box_pad:
+            Symmetric padding in Angstrom used by the ``"pad"`` algorithm.
+        :type box_pad: float
         :param box_scale:
-            Scale factor used when computing a grid box from a reference ligand.
-        :type box_scale: float
+            Scale factor used by the ``"scale"`` algorithm. Supplying this
+            without ``box_algorithm`` preserves the legacy scale behavior.
+        :type box_scale: Optional[float]
         :param box_isotropic:
             Whether ligand-derived boxes should be isotropic.
         :type box_isotropic: bool
@@ -368,7 +388,24 @@ class ProDockPipeline:
         self.ligand_output_format = ligand_output_format
         self.ligand_backend = ligand_backend
 
-        self.box_scale = box_scale
+        if box_algorithm is None:
+            resolved_box_algorithm = "scale" if box_scale is not None else "pad"
+        else:
+            resolved_box_algorithm = str(box_algorithm).strip().lower()
+        if resolved_box_algorithm not in {"pad", "scale"}:
+            raise ValueError(
+                "box_algorithm must be one of {'pad', 'scale'}, "
+                f"got {box_algorithm!r}."
+            )
+        if float(box_pad) < 0.0:
+            raise ValueError("box_pad must be non-negative.")
+        resolved_box_scale = 2.0 if box_scale is None else float(box_scale)
+        if resolved_box_scale <= 0.0:
+            raise ValueError("box_scale must be positive.")
+
+        self.box_algorithm = resolved_box_algorithm
+        self.box_pad = float(box_pad)
+        self.box_scale = resolved_box_scale
         self.box_isotropic = box_isotropic
         self.campaign_name = campaign_name
 
@@ -376,7 +413,8 @@ class ProDockPipeline:
             "Initialized ProDockPipeline | project_dir=%s | engines=%s | cpu=%s | "
             "n_jobs=%s | seed=%s | exhaustiveness=%s | n_poses=%s | "
             "receptor_use_meeko=%s | ligand_output_format=%s | ligand_backend=%s | "
-            "box_scale=%s | box_isotropic=%s | campaign_name=%s",
+            "box_algorithm=%s | box_pad=%s | box_scale=%s | "
+            "box_isotropic=%s | campaign_name=%s",
             self.project_dir,
             self.engines,
             self.cpu,
@@ -387,6 +425,8 @@ class ProDockPipeline:
             self.receptor_use_meeko,
             self.ligand_output_format,
             self.ligand_backend,
+            self.box_algorithm,
+            self.box_pad,
             self.box_scale,
             self.box_isotropic,
             self.campaign_name,
@@ -580,23 +620,43 @@ class ProDockPipeline:
         if not fmt:
             fmt = "sdf"
 
-        self.logger.info(
-            "Deriving docking box from reference ligand for receptor %s | path=%s | fmt=%s | scale=%s | isotropic=%s",
-            pdb_id,
-            ref_path,
-            fmt,
-            self.box_scale,
-            self.box_isotropic,
-        )
+        algorithm = str(record.get("box_algorithm", self.box_algorithm)).lower()
+        isotropic = bool(record.get("box_isotropic", self.box_isotropic))
+        gb = GridBox().load_ligand(str(ref_path), fmt=fmt)
 
-        gb = (
-            GridBox()
-            .load_ligand(str(ref_path), fmt=fmt)
-            .from_ligand_scale(
-                scale=self.box_scale,
-                isotropic=self.box_isotropic,
+        if algorithm == "pad":
+            pad = float(record.get("box_pad", self.box_pad))
+            if pad < 0.0:
+                raise ValueError("box_pad must be non-negative.")
+            self.logger.info(
+                "Deriving docking box from reference ligand for receptor %s | "
+                "path=%s | fmt=%s | algorithm=pad | pad=%s | isotropic=%s",
+                pdb_id,
+                ref_path,
+                fmt,
+                pad,
+                isotropic,
             )
-        )
+            gb.from_ligand_pad(pad=pad, isotropic=isotropic)
+        elif algorithm == "scale":
+            scale = float(record.get("box_scale", self.box_scale))
+            if scale <= 0.0:
+                raise ValueError("box_scale must be positive.")
+            self.logger.info(
+                "Deriving docking box from reference ligand for receptor %s | "
+                "path=%s | fmt=%s | algorithm=scale | scale=%s | isotropic=%s",
+                pdb_id,
+                ref_path,
+                fmt,
+                scale,
+                isotropic,
+            )
+            gb.from_ligand_scale(scale=scale, isotropic=isotropic)
+        else:
+            raise ValueError(
+                "box_algorithm must be one of {'pad', 'scale'}, "
+                f"got {algorithm!r} for receptor {pdb_id!r}."
+            )
         center = self._as_vec3(gb.center, field_name="center")
         size = self._as_vec3(gb.size, field_name="size")
 
@@ -1103,6 +1163,7 @@ class ProDockPipeline:
         include_countvectors: bool = False,
         fail_fast: bool = True,
         use_profiler: bool = False,
+        receptor_guess_bonds: bool = False,
     ) -> Tuple[Any, Dict[str, Path]]:
         """
         Extract protein-ligand interactions from a crawled pose dataframe.
@@ -1196,13 +1257,13 @@ class ProDockPipeline:
 
         if use_profiler:
             self.logger.info("Using InteractionProfiler.run_pose_table")
-            profiler = InteractionProfiler()
+            profiler = InteractionProfiler(
+                receptor_guess_bonds=receptor_guess_bonds,
+            )
             result = profiler.run_pose_table(
                 poses=poses,
                 receptor_pdb_by_id=receptor_pdb_by_id_str,
                 batch_size=batch_size,
-                progress=progress,
-                n_jobs=n_jobs,
                 include_fingerprint_columns=include_fingerprint_columns,
                 include_interaction_events=include_interaction_events,
                 include_bitvectors=include_bitvectors,
@@ -1222,6 +1283,7 @@ class ProDockPipeline:
                 include_bitvectors=include_bitvectors,
                 include_countvectors=include_countvectors,
                 fail_fast=fail_fast,
+                receptor_guess_bonds=receptor_guess_bonds,
             )
 
         merged_rows = (
@@ -1313,6 +1375,30 @@ class ProDockPipeline:
 
         db = PoseDatabase(str(db_path), create=True)
 
+        # Record run/campaign provenance and stamp inserted poses with its run_id.
+        try:
+            _prodock_version = importlib.metadata.version("prodock")
+        except Exception:
+            _prodock_version = None
+        db.create_run(
+            name=getattr(self, "campaign_name", None),
+            config={
+                "engines": list(self.engines),
+                "cpu": self.cpu,
+                "seed": self.seed,
+                "exhaustiveness": self.exhaustiveness,
+                "n_poses": self.n_poses,
+                "n_jobs": self.n_jobs,
+                "box_algorithm": self.box_algorithm,
+                "box_pad": self.box_pad,
+                "box_scale": self.box_scale,
+                "box_isotropic": self.box_isotropic,
+                "ligand_backend": self.ligand_backend,
+                "ligand_output_format": self.ligand_output_format,
+            },
+            prodock_version=_prodock_version,
+        )
+
         if interactions_by_pose is None:
             db.insert_dataframe(
                 df,
@@ -1349,6 +1435,7 @@ class ProDockPipeline:
         include_countvectors: bool = False,
         fail_fast: bool = True,
         use_interaction_profiler: bool = False,
+        receptor_guess_bonds: bool = False,
         save_to_database: bool = True,
         db_name: PathLike = "prodock.db",
         replace: bool = True,
@@ -1417,6 +1504,12 @@ class ProDockPipeline:
             Whether to use :class:`InteractionProfiler` for interaction
             extraction.
         :type use_interaction_profiler: bool
+        :param receptor_guess_bonds:
+            Whether ProLIF should guess receptor bonds during interaction
+            extraction. Disabled by default because enabling it can segfault
+            on some receptor topologies; when disabled, MDAnalysis still infers
+            bonds through its RDKit converter.
+        :type receptor_guess_bonds: bool
         :param save_to_database:
             Whether to create or update the SQLite database and insert results.
         :type save_to_database: bool
@@ -1507,8 +1600,17 @@ class ProDockPipeline:
             self.n_jobs,
             self.progress,
         )
-        runner = BatchDock(n_jobs=self.n_jobs, progress=self.progress)
-        docking_results = runner.run_from_config(str(campaign_json))
+        # ``BatchDock.run_from_config`` is a classmethod: calling it on an
+        # instance does not use that instance's settings, it builds a fresh
+        # BatchDock from whatever ``n_jobs``/``progress`` are recorded in the
+        # campaign file itself (defaulting to n_jobs=1 when absent). Override
+        # those fields on the loaded config so this pipeline's n_jobs/progress
+        # actually take effect instead of silently falling back to serial
+        # execution.
+        batch_cfg = BatchConfig.from_file(str(campaign_json))
+        batch_cfg.n_jobs = self.n_jobs
+        batch_cfg.progress = self.progress
+        docking_results = BatchDock.run_from_config(batch_cfg)
         self.logger.info("Batch docking complete")
 
         pose_df = self.crawl_poses(backend=crawl_backend)
@@ -1534,6 +1636,7 @@ class ProDockPipeline:
                 include_countvectors=include_countvectors,
                 fail_fast=fail_fast,
                 use_profiler=use_interaction_profiler,
+                receptor_guess_bonds=receptor_guess_bonds,
             )
 
             merged_df = interaction_result.merged_df
@@ -1609,7 +1712,9 @@ def prodock(
     receptor_use_meeko: bool = False,
     ligand_output_format: str = "pdbqt",
     ligand_backend: str = "meeko",
-    box_scale: float = 2.0,
+    box_algorithm: Optional[str] = None,
+    box_pad: float = 4.0,
+    box_scale: Optional[float] = None,
     box_isotropic: bool = True,
     campaign_name: str = "campaign.json",
     crawl_backend: str = "auto",
@@ -1623,6 +1728,7 @@ def prodock(
     include_countvectors: bool = False,
     fail_fast: bool = True,
     use_interaction_profiler: bool = False,
+    receptor_guess_bonds: bool = False,
     save_to_database: bool = True,
     db_name: PathLike = "prodock.db",
     replace: bool = True,
@@ -1683,9 +1789,17 @@ def prodock(
     :param ligand_backend:
         Ligand conversion backend.
     :type ligand_backend: str
+    :param box_algorithm:
+        Ligand-derived box algorithm. ``None`` selects ``"pad"`` unless
+        ``box_scale`` is supplied explicitly.
+    :type box_algorithm: Optional[str]
+    :param box_pad:
+        Symmetric padding in Angstrom used by the ``"pad"`` algorithm.
+    :type box_pad: float
     :param box_scale:
-        Box scale factor used for ligand-derived boxes.
-    :type box_scale: float
+        Scale factor used by the ``"scale"`` algorithm. Supplying this without
+        ``box_algorithm`` preserves legacy scale behavior.
+    :type box_scale: Optional[float]
     :param box_isotropic:
         Whether ligand-derived boxes are isotropic.
     :type box_isotropic: bool
@@ -1725,6 +1839,12 @@ def prodock(
     :param use_interaction_profiler:
         Whether to use :class:`InteractionProfiler`.
     :type use_interaction_profiler: bool
+    :param receptor_guess_bonds:
+        Whether ProLIF should guess receptor bonds during interaction
+        extraction. Disabled by default because enabling it can segfault on
+        some receptor topologies; when disabled, MDAnalysis still infers bonds
+        through its RDKit converter.
+    :type receptor_guess_bonds: bool
     :param save_to_database:
         Whether to write results into the SQLite database.
     :type save_to_database: bool
@@ -1829,6 +1949,8 @@ def prodock(
         receptor_use_meeko=receptor_use_meeko,
         ligand_output_format=ligand_output_format,
         ligand_backend=ligand_backend,
+        box_algorithm=box_algorithm,
+        box_pad=box_pad,
         box_scale=box_scale,
         box_isotropic=box_isotropic,
         campaign_name=campaign_name,
@@ -1855,6 +1977,7 @@ def prodock(
         include_countvectors=include_countvectors,
         fail_fast=fail_fast,
         use_interaction_profiler=use_interaction_profiler,
+        receptor_guess_bonds=receptor_guess_bonds,
         save_to_database=save_to_database,
         db_name=db_name,
         replace=replace,

@@ -906,9 +906,26 @@ def _build_parser(*, show_advanced: bool) -> argparse.ArgumentParser:
             help="Override ligand conversion backend, for example meeko.",
         )
         prep_group.add_argument(
+            "--box-algorithm",
+            choices=("pad", "scale"),
+            help=(
+                "Override the ligand-derived box algorithm. The default is "
+                "isotropic 4-Angstrom padding; scale remains available for "
+                "legacy campaigns."
+            ),
+        )
+        prep_group.add_argument(
+            "--box-pad",
+            type=float,
+            help="Override symmetric ligand-derived box padding in Angstrom.",
+        )
+        prep_group.add_argument(
             "--box-scale",
             type=float,
-            help="Override ligand-derived box scale factor.",
+            help=(
+                "Override ligand-derived box scale factor. When supplied "
+                "without --box-algorithm, this selects legacy scale behavior."
+            ),
         )
         _add_bool_arg(
             prep_group,
@@ -981,6 +998,15 @@ def _build_parser(*, show_advanced: bool) -> argparse.ArgumentParser:
             dest="use_interaction_profiler",
             help="Use InteractionProfiler instead of extract_pose_table_interactions.",
         )
+        _add_bool_arg(
+            interaction_group,
+            "--receptor-guess-bonds",
+            dest="receptor_guess_bonds",
+            help=(
+                "Guess receptor bonds with ProLIF during interaction extraction. "
+                "Default is disabled; enabling it can segfault on some receptors."
+            ),
+        )
 
         db_group = parser.add_argument_group("Database insertion options")
         _add_bool_arg(
@@ -1029,6 +1055,8 @@ def _apply_cli_overrides(
         "receptor_use_meeko",
         "ligand_output_format",
         "ligand_backend",
+        "box_algorithm",
+        "box_pad",
         "box_scale",
         "box_isotropic",
         "campaign_name",
@@ -1043,6 +1071,7 @@ def _apply_cli_overrides(
         "include_countvectors",
         "fail_fast",
         "use_interaction_profiler",
+        "receptor_guess_bonds",
         "save_to_database",
         "db_name",
         "replace",

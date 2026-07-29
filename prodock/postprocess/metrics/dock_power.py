@@ -341,13 +341,34 @@ class DockEvaluator:
             probe_m = self._load_rdkit(probe)
             if ref_m.GetNumConformers() == 0 or probe_m.GetNumConformers() == 0:
                 raise ValueError("Both molecules must have 3D conformers for RMSD.")
-            # remove hydrogens for alignment to reduce artifacts
+            # remove hydrogens for alignment to reduce artifacts (RemoveHs is not
+            # in place; capture the returned mol)
             try:
-                Chem.RemoveHs(ref_m)
-                Chem.RemoveHs(probe_m)
+                ref_m = Chem.RemoveHs(ref_m)
+                probe_m = Chem.RemoveHs(probe_m)
             except Exception:
-                # ignore if RemoveHs not supported in-place
                 pass
+
+            # When no explicit atom map is supplied, prefer a symmetry-aware,
+            # bond-order-tolerant match. Docked poses recovered from PDBQT often
+            # carry different bond perception than a reference SDF, which breaks
+            # a naive substructure match; reconciling bond orders from the
+            # reference first makes the atom correspondence unambiguous.
+            if atom_map is None:
+                try:
+                    from rdkit.Chem import rdMolAlign
+
+                    probe_fixed = probe_m
+                    try:
+                        probe_fixed = AllChem.AssignBondOrdersFromTemplate(
+                            ref_m, probe_m
+                        )
+                    except Exception:
+                        pass
+                    return float(rdMolAlign.GetBestRMS(probe_fixed, ref_m))
+                except Exception:
+                    # fall through to the basic alignment below
+                    pass
             try:
                 if atom_map is None:
                     rmsd_val = AllChem.AlignMol(probe_m, ref_m)

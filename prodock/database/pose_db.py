@@ -60,6 +60,7 @@ from pathlib import Path
 from typing import Any, Iterable, Mapping, Optional, Sequence, Union
 
 import pandas as pd
+from rdkit import Chem
 from rdkit.Chem import rdchem
 
 from .query import (
@@ -68,7 +69,7 @@ from .query import (
     resolve_order_by,
 )
 from .records import InteractionRecord, PoseRecord, ScoreRecord
-from .schema import SCHEMA_SQL
+from .schema import SCHEMA_SQL, VIEW_SQL
 from .serialization import (
     compose_residue_id,
     deserialize_mol,
@@ -82,6 +83,10 @@ from .serialization import (
 )
 
 PathLike = Union[str, Path]
+
+# Bump when the on-disk schema changes so existing databases can be migrated
+# in place by :meth:`PoseDatabase._migrate`.
+_SCHEMA_VERSION = 2
 
 
 class PoseDatabase:
@@ -160,11 +165,13 @@ class PoseDatabase:
         """
         self.db_path = Path(db_path)
         self.compress_mol = bool(compress_mol)
+        self._active_run_id: Optional[int] = None
         self._conn = sqlite3.connect(str(self.db_path), timeout=timeout)
         self._conn.row_factory = sqlite3.Row
         self._configure_connection()
         if create:
             self.create_schema()
+        self._migrate()
 
     def _configure_connection(self) -> None:
         """
@@ -247,6 +254,105 @@ class PoseDatabase:
         self._conn.executescript(SCHEMA_SQL)
         self._conn.commit()
 
+    def _table_exists(self, name: str) -> bool:
+        """Return whether a table exists in the current database."""
+        row = self._conn.execute(
+            "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?",
+            (name,),
+        ).fetchone()
+        return row is not None
+
+    def _add_column_if_missing(self, table: str, column: str, decl: str) -> None:
+        """Add ``column`` to ``table`` via ALTER TABLE only if it is absent."""
+        existing = {
+            r["name"] for r in self._conn.execute(f"PRAGMA table_info({table})")
+        }
+        if column not in existing:
+            self._conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {decl}")
+
+    def _migrate(self) -> None:
+        """
+        Bring an existing database schema up to :data:`_SCHEMA_VERSION`.
+
+        New databases already contain every object from ``SCHEMA_SQL``; this
+        adds columns and objects that ``CREATE ... IF NOT EXISTS`` cannot add to
+        databases created by an earlier schema version. The flattened view is
+        (re)created last so its referenced columns are guaranteed to exist.
+        """
+        if not self._table_exists("poses"):
+            return
+        version = int(self._conn.execute("PRAGMA user_version").fetchone()[0])
+        if version >= _SCHEMA_VERSION:
+            return
+
+        # Ensure structural objects introduced in newer versions exist even on
+        # databases opened with create=False (idempotent, IF NOT EXISTS).
+        self._conn.executescript(SCHEMA_SQL)
+
+        # Columns that IF NOT EXISTS on a pre-existing table cannot add.
+        self._add_column_if_missing("receptors", "pdb_id", "TEXT")
+        self._add_column_if_missing("receptors", "receptor_name", "TEXT")
+        self._add_column_if_missing("ligands", "smiles", "TEXT")
+        self._add_column_if_missing("ligands", "inchikey", "TEXT")
+        self._add_column_if_missing(
+            "poses",
+            "run_id",
+            "INTEGER REFERENCES runs(run_id) ON DELETE SET NULL",
+        )
+
+        # Now that the typed columns exist, (re)create the flattened view.
+        self._conn.executescript(VIEW_SQL)
+
+        self._conn.execute(f"PRAGMA user_version = {_SCHEMA_VERSION}")
+        self._conn.commit()
+
+    def create_run(
+        self,
+        *,
+        name: Optional[str] = None,
+        config: Optional[Mapping[str, Any]] = None,
+        prodock_version: Optional[str] = None,
+        set_active: bool = True,
+    ) -> int:
+        """
+        Insert a run/campaign provenance row and return its ``run_id``.
+
+        :param name:
+            Optional human-readable run name.
+        :param config:
+            Optional configuration snapshot serialized into ``config_json``.
+        :param prodock_version:
+            Optional ProDock version string that produced the run.
+        :param set_active:
+            When ``True`` (default), subsequently inserted poses are stamped
+            with this ``run_id`` until another run is activated.
+
+        :returns:
+            The new ``run_id``.
+        :rtype: int
+        """
+        cur = self._conn.execute(
+            """
+            INSERT INTO runs (name, config_json, prodock_version)
+            VALUES (?, ?, ?)
+            """,
+            (name, json_dumps(config or {}), prodock_version),
+        )
+        run_id = int(cur.lastrowid)
+        if set_active:
+            self._active_run_id = run_id
+        self._conn.commit()
+        return run_id
+
+    @property
+    def active_run_id(self) -> Optional[int]:
+        """The ``run_id`` stamped on newly inserted poses, if any."""
+        return self._active_run_id
+
+    @active_run_id.setter
+    def active_run_id(self, value: Optional[int]) -> None:
+        self._active_run_id = None if value is None else int(value)
+
     @staticmethod
     def _norm_value(value: Any) -> Any:
         """
@@ -314,12 +420,53 @@ class PoseDatabase:
             int(row["pose_rank"]),
         )
 
+    @staticmethod
+    def _ligand_typed_columns(
+        mol: Any,
+        ligand_metadata: Optional[Mapping[str, Any]],
+    ) -> dict:
+        """
+        Best-effort typed columns for the ``ligands`` table.
+
+        ``smiles``/``inchikey`` supplied via ligand metadata take precedence;
+        otherwise ``smiles`` is derived from the pose molecule. Values are only
+        returned when available so existing non-null values are never cleared.
+        """
+        md = ligand_metadata or {}
+        smiles = md.get("smiles")
+        inchikey = md.get("inchikey")
+        if smiles is None and isinstance(mol, rdchem.Mol):
+            try:
+                smiles = Chem.MolToSmiles(mol)
+            except Exception:
+                smiles = None
+        out: dict = {}
+        if smiles is not None:
+            out["smiles"] = smiles
+        if inchikey is not None:
+            out["inchikey"] = inchikey
+        return out
+
+    @staticmethod
+    def _receptor_typed_columns(
+        receptor_metadata: Optional[Mapping[str, Any]],
+    ) -> dict:
+        """Typed columns for the ``receptors`` table sourced from metadata."""
+        md = receptor_metadata or {}
+        out: dict = {}
+        if md.get("pdb_id") is not None:
+            out["pdb_id"] = md["pdb_id"]
+        if md.get("receptor_name") is not None:
+            out["receptor_name"] = md["receptor_name"]
+        return out
+
     def _ensure_reference_row(
         self,
         table: str,
         id_column: str,
         value: str,
         metadata: Optional[Mapping[str, Any]] = None,
+        extra_columns: Optional[Mapping[str, Any]] = None,
     ) -> None:
         """
         Insert a dimension-table row if it does not already exist.
@@ -341,12 +488,27 @@ class PoseDatabase:
             None
         :rtype: None
         """
+        extra = {k: v for k, v in (extra_columns or {}).items() if v is not None}
+        columns = [id_column, "metadata_json", *extra.keys()]
+        params = [value, json_dumps(metadata), *extra.values()]
+        placeholders = ", ".join("?" for _ in columns)
+
+        if extra:
+            # Populate typed columns on insert and backfill them on conflict
+            # (COALESCE keeps any existing non-null value if none is supplied).
+            set_clause = ", ".join(
+                f"{col} = COALESCE(excluded.{col}, {table}.{col})" for col in extra
+            )
+            conflict = f"DO UPDATE SET {set_clause}"
+        else:
+            conflict = "DO NOTHING"
+
         sql = f"""
-            INSERT INTO {table} ({id_column}, metadata_json)
-            VALUES (?, ?)
-            ON CONFLICT({id_column}) DO NOTHING
+            INSERT INTO {table} ({", ".join(columns)})
+            VALUES ({placeholders})
+            ON CONFLICT({id_column}) {conflict}
         """
-        self._conn.execute(sql, (value, json_dumps(metadata)))
+        self._conn.execute(sql, params)
 
     def _insert_or_update_pose_only(
         self,
@@ -412,12 +574,14 @@ class PoseDatabase:
             "receptor_id",
             receptor_id,
             receptor_metadata,
+            extra_columns=self._receptor_typed_columns(receptor_metadata),
         )
         self._ensure_reference_row(
             "ligands",
             "ligand_id",
             ligand_id,
             ligand_metadata,
+            extra_columns=self._ligand_typed_columns(mol, ligand_metadata),
         )
         self._ensure_reference_row(
             "engines",
@@ -441,6 +605,7 @@ class PoseDatabase:
                         ligand_id = ?,
                         engine = ?,
                         pose_rank = ?,
+                        run_id = COALESCE(?, run_id),
                         mol_blob = ?,
                         mol_is_compressed = ?,
                         metadata_json = ?,
@@ -452,6 +617,7 @@ class PoseDatabase:
                         ligand_id,
                         engine,
                         int(pose_rank),
+                        self._active_run_id,
                         sqlite3.Binary(mol_blob),
                         int(self.compress_mol),
                         json_dumps(pose_metadata),
@@ -469,14 +635,16 @@ class PoseDatabase:
                 ligand_id,
                 engine,
                 pose_rank,
+                run_id,
                 mol_blob,
                 mol_is_compressed,
                 metadata_json
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(receptor_id, ligand_id, engine, pose_rank)
             DO UPDATE SET
                 pose_id = COALESCE(excluded.pose_id, poses.pose_id),
+                run_id = COALESCE(excluded.run_id, poses.run_id),
                 mol_blob = excluded.mol_blob,
                 mol_is_compressed = excluded.mol_is_compressed,
                 metadata_json = excluded.metadata_json
@@ -487,6 +655,7 @@ class PoseDatabase:
                 ligand_id,
                 engine,
                 int(pose_rank),
+                self._active_run_id,
                 sqlite3.Binary(mol_blob),
                 int(self.compress_mol),
                 json_dumps(pose_metadata),
@@ -709,12 +878,14 @@ class PoseDatabase:
                     "receptor_id",
                     receptor_id,
                     receptor_metadata,
+                    extra_columns=self._receptor_typed_columns(receptor_metadata),
                 )
                 self._ensure_reference_row(
                     "ligands",
                     "ligand_id",
                     ligand_id,
                     ligand_metadata,
+                    extra_columns=self._ligand_typed_columns(mol, ligand_metadata),
                 )
                 self._ensure_reference_row(
                     "engines",
@@ -737,11 +908,12 @@ class PoseDatabase:
                         ligand_id,
                         engine,
                         pose_rank,
+                        run_id,
                         mol_blob,
                         mol_is_compressed,
                         metadata_json
                     )
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     (
                         pose_id,
@@ -749,6 +921,7 @@ class PoseDatabase:
                         ligand_id,
                         engine,
                         pose_rank,
+                        self._active_run_id,
                         sqlite3.Binary(mol_blob),
                         int(self.compress_mol),
                         json_dumps(pose_metadata),
