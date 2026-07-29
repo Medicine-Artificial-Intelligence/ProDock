@@ -18,8 +18,8 @@ AutoDock Vina v1.2.4-1-g0575dfa
 #################################################################
 
 Scoring function : vina
-Rigid receptor: /home/labhhc/Documents/Workspace/D18/SonD18/Molecular_docking/Protein/4o2b_protein.pdbqt
-Ligand: /home/labhhc/Documents/Workspace/D18/SonD18/Molecular_docking/Ligand.pdbqt/90.pdbqt
+Rigid receptor: 4o2b_protein.pdbqt
+Ligand: 90.pdbqt
 Grid center: X 20.448 Y 69.893 Z 45.579
 Grid size  : X 25 Y 25 Z 25
 Grid space : 0.375

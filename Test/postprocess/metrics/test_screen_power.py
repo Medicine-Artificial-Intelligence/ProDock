@@ -93,6 +93,31 @@ class TestScreenEvaluator(unittest.TestCase):
         with self.assertRaises(ValueError):
             se.roc_curve([1, 2], [1])
 
+    def test_auc_ties_do_not_depend_on_input_order(self):
+        se = ScreenEvaluator(higher_is_better=True)
+        scores = [1.0, 1.0, 0.0, 0.0]
+        self.assertAlmostEqual(se.auc_roc(scores, [1, 0, 1, 0]), 0.5)
+        self.assertAlmostEqual(se.auc_roc(scores, [0, 1, 0, 1]), 0.5)
+
+    def test_bedroc_matches_reference_for_untied_scores(self):
+        se = ScreenEvaluator(higher_is_better=False)
+        scores = [-10.0, -9.0, -8.0, -7.0, -2.0, -1.0]
+        labels = [1, 0, 1, 0, 0, 0]
+        self.assertAlmostEqual(
+            se.bedroc(scores, labels, alpha=20.0),
+            0.9667835482175713,
+            places=12,
+        )
+
+    def test_bedroc_ties_do_not_depend_on_input_order(self):
+        se = ScreenEvaluator(higher_is_better=True)
+        scores = [1.0, 1.0, 0.0, 0.0]
+        first = se.bedroc(scores, [1, 0, 1, 0], alpha=20.0)
+        second = se.bedroc(scores, [0, 1, 0, 1], alpha=20.0)
+        self.assertAlmostEqual(first, second, places=12)
+        self.assertGreaterEqual(first, 0.0)
+        self.assertLessEqual(first, 1.0)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
