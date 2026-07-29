@@ -13,6 +13,11 @@ workflows and distinguishes them from generated campaign artifacts.
 
 The tests cover the default ligand-derived grid box, batch receptor-name
 handling, tied-score metrics, and the committed reranking data contract.
+Install all development and reranking test dependencies with:
+
+```bash
+pip install -r requirements-dev.txt
+```
 
 ### EGFR workflow example
 
@@ -92,6 +97,7 @@ the source active record is recovered.
 For a fast repository check:
 
 ```bash
+pip install -r requirements-dev.txt
 python -m compileall -q prodock Project Data/benchmark
 pytest -q
 git diff --check

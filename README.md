@@ -123,9 +123,12 @@ This architecture is intended to support:
   git clone https://github.com/Medicine-Artificial-Intelligence/ProDock.git
   cd ProDock
   pip install -r requirements.txt
-  pip install black flake8 pytest # black for formating, flake8 for checking format, pytest for testing
+  pip install -r requirements-dev.txt  # tests, linting, and reranking tools
   ```
 
+For reranking without the development tools, install either
+`pip install -e ".[reranking]"` or
+`pip install -r requirements-reranking.txt`.
 
 ## DiffDock + GNINA GPU pipeline
 
@@ -456,7 +459,7 @@ git pull
 
    ```bash
    ./lint.sh # Check code format
-   pytest Test # Run tests
+   pytest Test # Run tests; optional suites skip if their extras are absent
    ```
 
    Fix any issues or errors highlighted by these checks.

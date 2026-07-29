@@ -4,6 +4,13 @@ import importlib.util
 from pathlib import Path
 
 import pandas as pd
+import pytest
+
+
+pytest.importorskip(
+    "sklearn",
+    reason="reranking tests require the optional 'reranking' dependencies",
+)
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
