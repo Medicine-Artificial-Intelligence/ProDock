@@ -59,6 +59,16 @@ Override selected runtime parameters from the shell:
        --n-poses 20 \
        --db-name campaign.sqlite
 
+Validate and record the effective configuration before a long run:
+
+.. code-block:: bash
+
+   prodock \
+       --config run.json \
+       --validate-only \
+       --print-effective-config \
+       --effective-config-json records/effective.json
+
 Configuration model
 -------------------
 
@@ -108,6 +118,20 @@ The CLI also accepts nested runtime dictionaries under ``config``, ``options``,
 or ``run``. These are merged into one normalized argument dictionary before the
 pipeline is called.
 
+Configuration precedence
+------------------------
+
+Values are resolved in this order, from lowest to highest precedence:
+
+#. The main ``--config`` payload.
+#. ``--receptor-json`` and ``--ligand-json`` replace receptor or ligand
+   collections embedded in the main config.
+#. Explicit command-line flags override JSON-derived runtime values.
+
+Relative paths inside each JSON file are resolved relative to the directory
+containing that file. This keeps a split configuration portable when invoked
+from another working directory.
+
 Common override patterns
 ------------------------
 
@@ -138,6 +162,26 @@ Request a traceback for debugging invalid or failing runs:
 
    python -m prodock --config run.json --traceback
 
+Reproducible run records
+------------------------
+
+``--validate-only`` checks the merged configuration without running docking.
+``--print-effective-config`` displays the final normalized payload, while
+``--effective-config-json`` writes it to disk. ``--summary-json`` records the
+compact outcome after a run.
+
+.. code-block:: bash
+
+   prodock \
+       --config config.json \
+       --receptor-json receptor.json \
+       --ligand-json ligand.json \
+       --effective-config-json records/effective.json \
+       --summary-json records/summary.json
+
+Relative paths supplied to the two output options are resolved relative to the
+main config directory.
+
 Notes
 -----
 
@@ -145,6 +189,8 @@ Notes
 * Explicit command-line flags take precedence over JSON-provided runtime options.
 * The CLI validates that exactly one receptor mode and exactly one ligand mode are selected.
 * The final return object is condensed into a JSON-serializable summary for console or file output.
+
+See :doc:`../reproducibility` for the complete campaign-record checklist.
 
 Reference
 ---------

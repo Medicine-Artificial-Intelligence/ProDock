@@ -123,5 +123,6 @@ time measurement helpers.
 
 .. automodule:: prodock.io.logging.compat_logging
    :members:
+   :exclude-members: StructuredAdapter
    :undoc-members:
    :show-inheritance:

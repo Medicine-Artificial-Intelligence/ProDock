@@ -17,6 +17,15 @@ Automatic pipeline for molecular modeling
 
 **ProDock** is a toolkit for building automated molecular docking workflows. It is designed for campaigns involving multiple receptors, multiple ligands, and multiple docking engines, with support for downstream pose extraction, interaction profiling, visualization, and SQLite-backed result management. Please visit [Documentation](https://prodock.readthedocs.io/en/latest/) for more details.
 
+### Documentation map
+
+| Goal | Start here |
+| --- | --- |
+| Install and verify ProDock | [Getting started](https://prodock.readthedocs.io/en/latest/getting_started.html) |
+| Run a JSON-driven campaign | [Automation tutorial](https://prodock.readthedocs.io/en/latest/tutorial/automation.html) |
+| Combine and rerank GNINA/DiffDock results | [Reranking guide](https://prodock.readthedocs.io/en/latest/reranking.html) |
+| Record a reproducible run | [Reproducibility guide](https://prodock.readthedocs.io/en/latest/reproducibility.html) |
+| Browse commands and Python APIs | [CLI reference](https://prodock.readthedocs.io/en/latest/api/cli.html) and [API index](https://prodock.readthedocs.io/en/latest/api.html) |
 
 The project aims to provide one consistent workflow for:
 
@@ -97,38 +106,39 @@ This architecture is intended to support:
 - clean integration with pandas- and RDKit-based analysis
 
 
-## Step-by-Step Installation Guide
+## Installation
 
-1. **Python Installation:**
-  Ensure that Python 3.11 or later is installed on your system. You can download it from [python.org](https://www.python.org/downloads/).
+ProDock requires Python 3.11 or later. For a source installation:
 
-2. **Creating a Virtual Environment (Optional but Recommended):**
-  It's recommended to use a virtual environment to avoid conflicts with other projects or system-wide packages. Use the following commands to create and activate a virtual environment:
+```bash
+git clone --recurse-submodules \
+  https://github.com/Medicine-Artificial-Intelligence/ProDock.git
+cd ProDock
 
-  ```bash
-  python -m venv prodock-env
-  source prodock-env/bin/activate  
-  ```
-  Or Conda
+conda create --name prodock-env python=3.11
+conda activate prodock-env
+python -m pip install -e .
+```
 
-  ```bash
-  conda create --name prodock-env python=3.11
-  conda activate prodock-env
-  ```
+Choose an additional profile only when needed:
 
-3. **Cloning and Installing ProDock:**
-  Clone the ProDock repository from GitHub and install it:
+| Goal | Command |
+| --- | --- |
+| GNINA + DiffDock reranking | `python -m pip install -e ".[reranking]"` |
+| Reranking in an existing install | `python -m pip install -r requirements-reranking.txt` |
+| Tests, linting, and reranking | `python -m pip install -r requirements-dev.txt` |
+| Recreate the source-development Conda environment | `conda env create -f prodock-env.yml` |
 
-  ```bash
-  git clone https://github.com/Medicine-Artificial-Intelligence/ProDock.git
-  cd ProDock
-  pip install -r requirements.txt
-  pip install -r requirements-dev.txt  # tests, linting, and reranking tools
-  ```
+Verify the package and inspect the command-line interface:
 
-For reranking without the development tools, install either
-`pip install -e ".[reranking]"` or
-`pip install -r requirements-reranking.txt`.
+```bash
+python -c "import prodock; print(prodock.__version__)"
+prodock --help
+```
+
+Docking engines are external executables. Install the engines named in your
+campaign and ensure commands such as `vina`, `smina`, `qvina`, or `qvina-w`
+are available on `PATH`.
 
 ## DiffDock + GNINA GPU pipeline
 
@@ -431,65 +441,63 @@ artifact policy, and end-to-end verification commands.
 
 ## Setting Up Your Development Environment
 
-Before you start, ensure your local development environment is set up correctly. Pull the latest version of the `main` branch to start with the most recent stable code.
+Create the development environment and start from the current `main` branch:
 
 ```bash
-git checkout main
-git pull
+conda env create -f prodock-env.yml
+conda activate prodock
+git switch main
+git pull --ff-only
 ```
 
 ## Working on New Features
 
-1. **Create a New Branch**:  
-   For every new feature or bug fix, create a new branch from the `main` branch. Name your branch meaningfully, related to the feature or fix you are working on.
+1. **Create a branch.** Use a short name that describes the feature or fix.
 
    ```bash
-   git checkout -b feature/your-feature-name
+   git switch -c feature/your-feature-name
    ```
 
-2. **Develop and Commit Changes**:  
-   Make your changes locally, commit them to your branch. Keep your commits small and focused; each should represent a logical unit of work.
+2. **Develop and commit.** Keep commits focused on one logical change.
 
    ```bash
+   git add <changed-files>
    git commit -m "Describe the change"
    ```
 
-3. **Run Quality Checks**:  
-   Before finalizing your feature, run the following commands to ensure your code meets our formatting standards and passes all tests:
+3. **Run the quality checks.**
 
    ```bash
-   ./lint.sh # Check code format
-   pytest Test # Run tests; optional suites skip if their extras are absent
+   ./lint.sh
+   python -m pytest -q Test
+   git diff --check
    ```
-
-   Fix any issues or errors highlighted by these checks.
 
 ## Integrating Changes
 
-1. **Rebase onto Staging**:  
-   Once your feature is complete and tests pass, rebase your changes onto the `staging` branch to prepare for integration.
+Update the feature branch against the latest `main`, resolve conflicts locally,
+and repeat the checks:
 
-   ```bash
-   git fetch origin
-   git rebase origin/staging
-   ```
+```bash
+git fetch origin
+git rebase origin/main
+python -m pytest -q Test
+```
 
-   Carefully resolve any conflicts that arise during the rebase.
+Push the feature branch and open a pull request targeting `main`:
 
-2. **Push to Your Feature Branch**:
-   After successfully rebasing, push your branch to the remote repository.
-
-   ```bash
-   git push origin feature/your-feature-name
-   ```
-
-3. **Create a Pull Request**:
-   Open a pull request from your feature branch to the `staging` branch. Ensure the pull request description clearly describes the changes and any additional context necessary for review.
+```bash
+git push --set-upstream origin feature/your-feature-name
+```
 
 ## Important Notes
 
-- **Direct Commits Prohibited**: Do not push changes directly to the `main` or `staging` branches. All changes must come through pull requests reviewed by at least one other team member.
-- **Merge Restrictions**: The `main` branch can only be updated from the `staging` branch, not directly from feature branches.
+- Do not commit generated campaign outputs, caches, built documentation, or
+  local environment paths.
+- Keep reproduction inputs and scripts visible in the commit tree; see
+  [`REPRODUCIBILITY.md`](REPRODUCIBILITY.md) for the artifact boundary.
+- Use pull requests for changes to `main` and include the validation commands
+  in the pull-request description.
 
 ## Publication
 

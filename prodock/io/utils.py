@@ -11,16 +11,15 @@ def shutdown_pymol(remove_modules: bool = True, quiet: bool = True) -> Dict[str,
 
     This is best-effort: it will swallow errors and report them in the returned dict.
 
-    Args:
-        remove_modules: if True, delete any sys.modules entries that equal
-                        "pymol" or start with "pymol." after shutdown attempts.
-        quiet: if False, print a short summary; default True.
-
-    Returns:
-        A dict with keys:
-          - imported: bool, whether an import of "pymol" succeeded initially
-          - actions: dict mapping attempted action -> (success: bool, message:str)
-          - clean: bool, whether no "pymol" entries remain in sys.modules
+    :param remove_modules:
+        If ``True``, delete entries equal to ``"pymol"`` or beginning with
+        ``"pymol."`` from :mod:`sys.modules` after shutdown attempts.
+    :param quiet:
+        If ``False``, print a short summary.
+    :return:
+        A dictionary containing ``imported`` (whether the initial import
+        succeeded), ``actions`` (the attempted actions and outcomes), and
+        ``clean`` (whether no PyMOL modules remain cached).
     """
     res: Dict[str, Any] = {"imported": False, "actions": {}, "clean": None}
 

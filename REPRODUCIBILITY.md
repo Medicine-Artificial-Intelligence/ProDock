@@ -84,6 +84,27 @@ all remaining identifiers are actives. The `MT1` files contain `NONE` as the
 only non-ZINC identifier, so exclude `MT1` from aggregate optimization until
 the source active record is recovered.
 
+## Run record
+
+For a production campaign, preserve:
+
+- the Git commit and effective JSON configuration;
+- Python, ProDock, and docking-engine versions;
+- random seed, exhaustiveness, pose count, and worker counts;
+- the input dataset identity, activity-label contract, and exclusions; and
+- the output directory and validation command.
+
+The CLI can validate and freeze a merged configuration before docking:
+
+```bash
+prodock \
+  --config Data/case/config.json \
+  --receptor-json Data/case/receptor.json \
+  --ligand-json Data/case/ligand.json \
+  --validate-only \
+  --effective-config-json effective-config.json
+```
+
 ## Generated files that must not be tracked
 
 - Python caches and `.pytest_cache/`
@@ -98,7 +119,9 @@ For a fast repository check:
 
 ```bash
 pip install -r requirements-dev.txt
+pip install -r doc/requirements.txt
 python -m compileall -q prodock Project Data/benchmark
-pytest -q
+python -m pytest -q Test
 git diff --check
+python -m sphinx -W --keep-going -b html doc doc/_build/html
 ```
