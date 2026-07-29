@@ -1,14 +1,42 @@
-*.pyc
-dev/*
-logs/*
+# Python caches and test metadata
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Local agent/editor metadata
+.agents/
+.claude/
+.codex/
+.DS_Store
+
+# Runtime and generated output
 *.dat
-docs/*
-*.html
-develop/*
-*ipynb
-auto/*
-out/*
-demo/*
-Data/testcase/Multi/4WKQ/results/*
+*.log
+*.db-shm
+*.db-wal
+logs/
+auto/
+out/
+demo/
+develop/
+dev/
+docs/
+paper/
 Data/Demo/
-dev/*
+Data/benchmark/runs/
+Data/testcase/Multi/4WKQ/results/
+Project/Analysis_script/figures/
+Project/Analysis_script/threshold_csv/
+Project/Optimization_script/results_all_structure/
+Project/Optimization_script/batch_optimization_results.json
+Combined/
+figures/
+threshold_csv/
+results_all_structure/
+batch_optimization_results.json
+*.pkl
+
+# Local notebooks and review scratch files
+*.ipynb
+SS_LOG.md
+review.md

@@ -44,7 +44,12 @@ def process_batch(
     results = []
     for idx, row in enumerate(rows):
         pdb_id = row.get(pdb_id_key) or row.get("pdb") or row.get("id")
-        protein_name = row.get(protein_name_key) or pdb_id
+        # ``receptor_name`` is the public split-JSON spelling used by the CLI
+        # examples.  Keep ``protein_name`` (and custom key mappings) for
+        # backwards compatibility while accepting that documented alias.
+        protein_name = (
+            row.get(protein_name_key) or row.get("receptor_name") or pdb_id
+        )
         ligand_code = row.get(ligand_key) or row.get("ligand") or ""
         chains = row.get(chains_key) or row.get("chain") or []
         cofactors = row.get(cofactors_key) or []
