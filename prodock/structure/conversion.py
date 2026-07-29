@@ -699,13 +699,8 @@ def convert_with_obabel(
     :raises ValueError:
         If the input or output file extension is missing.
     """
-    exe = shutil.which("obabel") or shutil.which("babel")
-    if not exe:
-        raise RuntimeError("Open Babel (obabel/babel) not found in PATH")
-
     input_path = _ensure_exists(input_path, "Input file")
     output_path = Path(output_path)
-    output_path.parent.mkdir(parents=True, exist_ok=True)
 
     in_ext = input_path.suffix.lower().lstrip(".")
     out_ext = output_path.suffix.lower().lstrip(".")
@@ -715,6 +710,11 @@ def convert_with_obabel(
     if not out_ext:
         raise ValueError(f"Output path has no extension: {output_path}")
 
+    exe = shutil.which("obabel") or shutil.which("babel")
+    if not exe:
+        raise RuntimeError("Open Babel (obabel/babel) not found in PATH")
+
+    output_path.parent.mkdir(parents=True, exist_ok=True)
     user_extra_args = list(extra_args or [])
 
     if out_ext == "pdbqt" and validate_receptor:

@@ -906,9 +906,26 @@ def _build_parser(*, show_advanced: bool) -> argparse.ArgumentParser:
             help="Override ligand conversion backend, for example meeko.",
         )
         prep_group.add_argument(
+            "--box-algorithm",
+            choices=("pad", "scale"),
+            help=(
+                "Override the ligand-derived box algorithm. The default is "
+                "isotropic 4-Angstrom padding; scale remains available for "
+                "legacy campaigns."
+            ),
+        )
+        prep_group.add_argument(
+            "--box-pad",
+            type=float,
+            help="Override symmetric ligand-derived box padding in Angstrom.",
+        )
+        prep_group.add_argument(
             "--box-scale",
             type=float,
-            help="Override ligand-derived box scale factor.",
+            help=(
+                "Override ligand-derived box scale factor. When supplied "
+                "without --box-algorithm, this selects legacy scale behavior."
+            ),
         )
         _add_bool_arg(
             prep_group,
@@ -1038,6 +1055,8 @@ def _apply_cli_overrides(
         "receptor_use_meeko",
         "ligand_output_format",
         "ligand_backend",
+        "box_algorithm",
+        "box_pad",
         "box_scale",
         "box_isotropic",
         "campaign_name",

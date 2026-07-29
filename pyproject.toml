@@ -50,6 +50,14 @@ docs = [
   "pydata-sphinx-theme>=0.15",
   "sphinxcontrib-bibtex>=2.6"
 ]
+reranking = [
+  "numpy",
+  "scipy",
+  "scikit-learn",
+  "seaborn",
+  "optuna>=4",
+  "joblib"
+]
 
 [project.scripts]
 prodock = "prodock.cli:main"
