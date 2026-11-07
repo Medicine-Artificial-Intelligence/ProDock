@@ -1,0 +1,4 @@
+# Additional dependency for process-tree RSS sampling; install inside prodock.
+# The normal ProDock/reranking dependencies supply RDKit, scipy, pandas,
+# matplotlib, ProLIF/MDAnalysis, Meeko/gemmi, PDBFixer and OpenMM.
+psutil>=5.9

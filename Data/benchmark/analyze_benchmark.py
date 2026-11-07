@@ -83,7 +83,7 @@ def docking_power() -> None:
             try:
                 pose = q.pose(receptor_id=pdb, ligand_id=f"native_{pdb}", engine=eng, pose_rank=1)
                 if pose is not None and pose.mol is not None:
-                    val = de.rmsd(str(ref), pose.mol)
+                    val = de.rmsd(str(ref), pose.mol, align=False)
             except Exception as exc:
                 log.warning("%s/%s RMSD failed: %s", pdb, eng, exc)
             rmsd[eng][pdb] = val

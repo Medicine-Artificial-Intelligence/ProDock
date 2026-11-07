@@ -78,7 +78,7 @@ def collect_rmsd(top_n: int = 10) -> pd.DataFrame:
                         "ligand": ligand_code,
                         "engine": engine,
                         "pose_rank": pose_rank,
-                        "rmsd_angstrom": evaluator.rmsd(str(reference), pose.mol),
+                        "rmsd_angstrom": evaluator.rmsd(str(reference), pose.mol, align=False),
                     }
                 )
 

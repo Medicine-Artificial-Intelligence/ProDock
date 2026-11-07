@@ -1,0 +1,113 @@
+{
+  "selection": "First 12 target names in lexical order from committed Target_ID.csv, selected before observing preparation outcomes. Locally chain-filtered coordinate inputs; not retrieved or selected using success.",
+  "count": 12,
+  "source_table_sha256": "061c119df8fc8a37518c38e996a06db0a1a7c77dc25a2db5b3563eec9fc4202f",
+  "parameters": {
+    "cpu_threads": 1,
+    "max_minimization_steps": 200,
+    "default_max_minimization_steps": 5000,
+    "energy_diff": 10.0,
+    "backbone_k_kcal_per_A2": 5.0,
+    "minimize_in_water": false,
+    "use_meeko": false,
+    "obabel_steps": 500
+  },
+  "cases": [
+    {
+      "target": "AA2AR",
+      "pdb_id": "3EML",
+      "chains": "A",
+      "source_path": "Project/benchmark/filtered_protein/3eml.pdb",
+      "sha256": "23cdcd65b758cdaf436f5662dc2d1064f22d5fb209e132216e670058d56e38ac",
+      "original_declared_cofactors": ""
+    },
+    {
+      "target": "ABL1",
+      "pdb_id": "2HZI",
+      "chains": "A",
+      "source_path": "Project/benchmark/filtered_protein/2hzi.pdb",
+      "sha256": "e96549e549ca2ea7a0d28303cb814119ece49dd5ca546672d5a9d916709ff2f4",
+      "original_declared_cofactors": ""
+    },
+    {
+      "target": "ACES",
+      "pdb_id": "1E66",
+      "chains": "A",
+      "source_path": "Project/benchmark/filtered_protein/1e66.pdb",
+      "sha256": "55a7eab8a67d9c60f9bf2aeb83ce77e9949213a8514b428e925cd1278d25f295",
+      "original_declared_cofactors": ""
+    },
+    {
+      "target": "ADA",
+      "pdb_id": "2E1W",
+      "chains": "A",
+      "source_path": "Project/benchmark/filtered_protein/2e1w.pdb",
+      "sha256": "25dfbb620688706726e968a69c711f43756c1dda86043474ec932f978f5fff91",
+      "original_declared_cofactors": "ZN"
+    },
+    {
+      "target": "ADRB2",
+      "pdb_id": "3NY8",
+      "chains": "A",
+      "source_path": "Project/benchmark/filtered_protein/3ny8.pdb",
+      "sha256": "217e0fa4181e9dcac6f92ad0e6ce68bfcd7cda2f47e42c79894ef5c9cf30bf0b",
+      "original_declared_cofactors": ""
+    },
+    {
+      "target": "AMPC",
+      "pdb_id": "1L2S",
+      "chains": "A",
+      "source_path": "Project/benchmark/filtered_protein/1l2s.pdb",
+      "sha256": "872725531273a0efc5e36bc6e667aa0de1e2a24ebc758719218044b9935b1765",
+      "original_declared_cofactors": ""
+    },
+    {
+      "target": "ANDR",
+      "pdb_id": "2AM9",
+      "chains": "A",
+      "source_path": "Project/benchmark/filtered_protein/2am9.pdb",
+      "sha256": "6d2f91c064ed1df28d662ea841a6921dec1d086e3d7c290b0135ac3ebbd7e1dd",
+      "original_declared_cofactors": ""
+    },
+    {
+      "target": "CSF1R",
+      "pdb_id": "3KRJ",
+      "chains": "A",
+      "source_path": "Project/benchmark/filtered_protein/3krj.pdb",
+      "sha256": "cab575c6f6d4dddd0734ec3240b6d89b4bc0a8b818c7da5aef46f0ad3b8c426d",
+      "original_declared_cofactors": ""
+    },
+    {
+      "target": "CXCR4",
+      "pdb_id": "3ODU",
+      "chains": "A",
+      "source_path": "Project/benchmark/filtered_protein/3odu.pdb",
+      "sha256": "0be75c1a0581c0ad6f4971816544da1fb6f5ef9a0218ac4b6942cfb0f715fa44",
+      "original_declared_cofactors": ""
+    },
+    {
+      "target": "DEF",
+      "pdb_id": "1LRU",
+      "chains": "A",
+      "source_path": "Project/benchmark/filtered_protein/1lru.pdb",
+      "sha256": "00fa54a798edc82c7c9769ae84097391970d2af759761b8de09d4a9ee38b4981",
+      "original_declared_cofactors": ""
+    },
+    {
+      "target": "DRD4",
+      "pdb_id": "5WIU",
+      "chains": "A",
+      "source_path": "Project/benchmark/filtered_protein/5wiu.pdb",
+      "sha256": "b2ac31a3d775fa62c390e1c5886a5921205e0710ad37ba5350c53ff7f31014c9",
+      "original_declared_cofactors": ""
+    },
+    {
+      "target": "EGFR",
+      "pdb_id": "2RGP",
+      "chains": "A",
+      "source_path": "Project/benchmark/filtered_protein/2rgp.pdb",
+      "sha256": "a517ec6f8f519730bafdcf995cd6ab73bce5d4485f2ab781146a8b07cdd0bf60",
+      "original_declared_cofactors": ""
+    }
+  ]
+}

@@ -56,8 +56,9 @@ Examples
 """
 
 import sqlite3
+from contextlib import contextmanager
 from pathlib import Path
-from typing import Any, Iterable, Mapping, Optional, Sequence, Union
+from typing import Any, Iterable, Iterator, Mapping, Optional, Sequence, Union
 
 import pandas as pd
 from rdkit import Chem
@@ -166,6 +167,7 @@ class PoseDatabase:
         self.db_path = Path(db_path)
         self.compress_mol = bool(compress_mol)
         self._active_run_id: Optional[int] = None
+        self._savepoint_counter = 0
         self._conn = sqlite3.connect(str(self.db_path), timeout=timeout)
         self._conn.row_factory = sqlite3.Row
         self._configure_connection()
@@ -184,6 +186,27 @@ class PoseDatabase:
         self._conn.execute("PRAGMA foreign_keys = ON")
         self._conn.execute("PRAGMA journal_mode = WAL")
         self._conn.execute("PRAGMA synchronous = NORMAL")
+
+    @contextmanager
+    def _transaction(self) -> Iterator[None]:
+        """Make a write atomic without committing an enclosing writer.
+
+        SQLite connection context managers do not nest: an inner successful
+        context commits the entire transaction. Savepoints instead compose
+        pose, score and interaction writes, and preserve a caller-owned outer
+        transaction when one already exists.
+        """
+        self._savepoint_counter += 1
+        name = f"prodock_write_{self._savepoint_counter}"
+        self._conn.execute(f"SAVEPOINT {name}")
+        try:
+            yield
+        except BaseException:
+            self._conn.execute(f"ROLLBACK TO SAVEPOINT {name}")
+            self._conn.execute(f"RELEASE SAVEPOINT {name}")
+            raise
+        else:
+            self._conn.execute(f"RELEASE SAVEPOINT {name}")
 
     @property
     def connection(self) -> sqlite3.Connection:
@@ -752,7 +775,7 @@ class PoseDatabase:
                 pose_id="1M17__erlotinib__qvina__pose1",
             )
         """
-        with self._conn:
+        with self._transaction():
             pose_db_id = self._insert_or_update_pose_only(
                 receptor_id=receptor_id,
                 ligand_id=ligand_id,
@@ -833,7 +856,7 @@ class PoseDatabase:
             ]
             db.insert_many(rows, replace=True)
         """
-        with self._conn:
+        with self._transaction():
             for row in rows:
                 receptor_id = str(row["receptor_id"])
                 ligand_id = str(row["ligand_id"])
@@ -1027,13 +1050,13 @@ class PoseDatabase:
                     "engine_metadata": self._norm_value(row.get("engine_metadata")),
                 }
             )
-        self.insert_many(rows, replace=replace)
-
-        if interactions_by_pose is not None:
-            self.upsert_interaction_payload(
-                interactions_by_pose,
-                replace=replace_interactions,
-            )
+        with self._transaction():
+            self.insert_many(rows, replace=replace)
+            if interactions_by_pose is not None:
+                self.upsert_interaction_payload(
+                    interactions_by_pose,
+                    replace=replace_interactions,
+                )
 
     @classmethod
     def from_dataframe(
@@ -1805,7 +1828,7 @@ class PoseDatabase:
         if replace:
             sql += self._interaction_upsert_suffix()
 
-        with self._conn:
+        with self._transaction():
             cur = self._conn.execute(
                 sql,
                 (
@@ -1853,11 +1876,11 @@ class PoseDatabase:
             engine=engine,
             pose_rank=pose_rank,
         )
-        cur = self._conn.execute(
-            "DELETE FROM interactions WHERE pose_db_id = ?",
-            (resolved_pose_db_id,),
-        )
-        self._conn.commit()
+        with self._transaction():
+            cur = self._conn.execute(
+                "DELETE FROM interactions WHERE pose_db_id = ?",
+                (resolved_pose_db_id,),
+            )
         return int(cur.rowcount)
 
     @staticmethod
@@ -2054,7 +2077,7 @@ class PoseDatabase:
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """ + self._interaction_upsert_suffix()
 
-        with self._conn:
+        with self._transaction():
             for pose_id, payload in interactions_by_pose.items():
                 resolved_pose_db_id = self._resolve_pose_db_id(pose_id=str(pose_id))
 
@@ -2126,7 +2149,7 @@ class PoseDatabase:
             None
         :rtype: None
         """
-        with self._conn:
+        with self._transaction():
             for row in rows:
                 self.add_interaction(replace=replace, **dict(row))
 
@@ -2853,8 +2876,8 @@ class PoseDatabase:
             + where_sql
             + ")"
         )
-        cur = self._conn.execute(sql, params)
-        self._conn.commit()
+        with self._transaction():
+            cur = self._conn.execute(sql, params)
         return int(cur.rowcount)
 
     def delete_interactions(
@@ -2947,8 +2970,8 @@ class PoseDatabase:
             "SELECT i.interaction_id FROM interactions AS i "
             "INNER JOIN poses AS p ON p.pose_db_id = i.pose_db_id" + where_sql + ")"
         )
-        cur = self._conn.execute(sql, params)
-        self._conn.commit()
+        with self._transaction():
+            cur = self._conn.execute(sql, params)
         return int(cur.rowcount)
 
     def vacuum(self) -> None:

@@ -16,8 +16,6 @@ from prodock import prodock
 
 HAS_SMINA = which("smina") is not None
 RUN_NETWORK_TESTS = os.environ.get("PRODOCK_RUN_NETWORK_TESTS", "0") == "1"
-HAS_SMINA = True
-RUN_NETWORK_TESTS = True
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SOURCE_MULTI = REPO_ROOT / "Data" / "testcase" / "Multi"

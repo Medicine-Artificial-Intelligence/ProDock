@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "structures": [
+    {
+      "pdb": "1M17",
+      "chain": "A",
+      "ligand_code": "AQ4",
+      "hinge_raw": "769",
+      "gatekeeper_raw": "766",
+      "raw_pdb": "1M17_raw.pdb",
+      "native_reference_sdf": "1M17_native_experimental.sdf",
+      "ccd_ideal_sdf": "AQ4_ideal.sdf",
+      "source_urls": {
+        "raw_pdb": "https://files.rcsb.org/download/1M17.pdb",
+        "ccd_ideal_sdf": "https://files.rcsb.org/ligands/download/AQ4_ideal.sdf",
+        "entry": "https://www.rcsb.org/structure/1M17"
+      },
+      "sha256": {
+        "raw_pdb": "5b020cd186307d657de80611793554b074f6936a3443d33f81d9b1a58004962e",
+        "native_reference_sdf": "de51f72513d1bbd50cd26631b5e4f681a4fa97ff2abb3ec509fb2b92c1ff74e2",
+        "ccd_ideal_sdf": "ca37d8bf0aaab94e2e0d6fdbe1c74b9399038e29fbf37a34ed773c12fa0a77b9"
+      },
+      "reference_policy": "Experimental bound coordinates retained. CCD ideal coordinates provide chemistry only, not pose geometry.",
+      "model_scope": "Noncovalent recognition geometry; no covalent reaction or mutant-selectivity prediction."
+    },
+    {
+      "pdb": "4ZAU",
+      "chain": "A",
+      "ligand_code": "YY3",
+      "hinge_raw": "793",
+      "gatekeeper_raw": "790",
+      "raw_pdb": "4ZAU_raw.pdb",
+      "native_reference_sdf": "4ZAU_native_experimental.sdf",
+      "ccd_ideal_sdf": "YY3_ideal.sdf",
+      "source_urls": {
+        "raw_pdb": "https://files.rcsb.org/download/4ZAU.pdb",
+        "ccd_ideal_sdf": "https://files.rcsb.org/ligands/download/YY3_ideal.sdf",
+        "entry": "https://www.rcsb.org/structure/4ZAU"
+      },
+      "sha256": {
+        "raw_pdb": "b2056aeb5ef92055d3bb088682a8136f4be4ed855d2356f580c1bacb6098790c",
+        "native_reference_sdf": "b823e1676939dfc610c17a18b0861ff1adde117f67926bc39dc46e77012edd5b",
+        "ccd_ideal_sdf": "f7a51638e584dfc062f744e68c818767584f6f0510514f5194a296418a1eebe2"
+      },
+      "reference_policy": "Experimental bound coordinates retained. CCD ideal coordinates provide chemistry only, not pose geometry.",
+      "model_scope": "Noncovalent recognition geometry; no covalent reaction or mutant-selectivity prediction."
+    }
+  ]
+}

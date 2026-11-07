@@ -321,6 +321,8 @@ class DockEvaluator:
         ref: MolLike,
         probe: MolLike,
         atom_map: Optional[Sequence[Tuple[int, int]]] = None,
+        *,
+        align: bool = True,
     ) -> float:
         """
         Compute RMSD between ``ref`` and ``probe`` molecules using the selected engine.
@@ -330,10 +332,16 @@ class DockEvaluator:
         :param probe: Probe molecule (RDKit Mol or file path)
         :type probe: rdkit.Chem.Mol or Path or str
         :param atom_map: optional list of (ref_idx, probe_idx) atom index pairs to constrain alignment
+        :param align: Fit the ligand before comparison (default). Set to False
+            for redocking RMSD in the shared protein coordinate frame. This
+            fixed-frame mode currently requires the RDKit backend.
         :type atom_map: sequence of tuple(int,int) or None
         :returns: RMSD in Angstroms (float)
         :raises ValueError: on parsing/align errors or if backend is not available
         """
+        if not align and self.engine != "rdkit":
+            raise ValueError("Fixed-frame RMSD requires the rdkit backend")
+
         if self.engine == "rdkit":
             if not _HAS_RDKIT:
                 raise ImportError("RDKit not available")
@@ -348,6 +356,22 @@ class DockEvaluator:
                 probe_m = Chem.RemoveHs(probe_m)
             except Exception:
                 pass
+
+            if not align:
+                from rdkit.Chem import rdMolAlign
+
+                if atom_map is not None:
+                    mapping = [
+                        [(probe_idx, ref_idx) for ref_idx, probe_idx in atom_map]
+                    ]
+                    return float(rdMolAlign.CalcRMS(probe_m, ref_m, map=mapping))
+                try:
+                    probe_m = AllChem.AssignBondOrdersFromTemplate(ref_m, probe_m)
+                except Exception:
+                    pass
+                # CalcRMS searches symmetry-equivalent atom mappings without
+                # fitting the ligand. A displaced pose must remain displaced.
+                return float(rdMolAlign.CalcRMS(probe_m, ref_m))
 
             # When no explicit atom map is supplied, prefer a symmetry-aware,
             # bond-order-tolerant match. Docked poses recovered from PDBQT often

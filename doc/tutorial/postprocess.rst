@@ -315,7 +315,8 @@ Typical use cases include:
    from prodock.postprocess import DockEvaluator, ScreenEvaluator
 
    dock_eval = DockEvaluator(engine="rdkit")
-   rmsd = dock_eval.rmsd("reference.sdf", "pose.sdf")
+   # Redocking: both structures must share the protein coordinate frame.
+   rmsd = dock_eval.rmsd("reference.sdf", "pose.sdf", align=False)
 
    screen_eval = ScreenEvaluator(higher_is_better=False)
 

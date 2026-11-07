@@ -1,0 +1,59 @@
+CHEMICAL USE-CASE ANALYSIS PROTOCOL — FIXED BEFORE CAMPAIGN RESULTS
+
+Scope: descriptive noncovalent WT-EGFR recognition and pose-inspection workflow,
+not an affinity predictor, covalent docking protocol, activity benchmark or
+prospective screening validation. ChEMBL37 IC50 annotations summarize diverse
+assays and their median pIC50 values are contextual annotations only. No activity
+labels select weights, metrics, thresholds, poses, pocket radius or examples.
+
+Input: frozen ChEMBL203 library; all available valid rank-1 docking poses,
+actual ProLIF interaction-event rows and context with prepared protein/reference
+paths. Primary engine is smina. Each receptor/program channel retains its own
+best-scored pose; no alternative pose is chosen by activity labels or hinge bond.
+Additional engines are descriptive cross-checks, never selected by favorable
+outcome. Missing results are counted; paired comparisons use complete pairs only.
+
+Questions and fixed analyses
+1. Structure dependence: paired compound rank percentiles (tied average ranks,
+   lower score better), Spearman rank correlation, absolute percentile shift,
+   and top-decile overlap between the two protein structures for each engine.
+   Top-decile means rank <= ceil(n_complete_pairs*0.10); ties are kept and actual
+   selected-set counts are reported. This is rank stability, not accuracy.
+2. Hinge recognition: actual ProLIF HBAcceptor/HBDonor events at prepared MET98
+   in 1M17 or MET87 in 4ZAU. Separately flag any contact event at that residue.
+   Tabulate hinge contact/H-bond counts and fractions by heterogeneous activity
+   stratum, and retain the residue mapping. Absence is a pose-event observation,
+   not proof that the molecule cannot bind. Missing profiling is not zero.
+3. Size/flexibility: plot score versus heavy-atom count and report Spearman
+   associations with heavy-atom count, rotatable bonds and median pIC50. Also
+   report -docking_score/heavy_atoms as a size diagnostic, explicitly not an
+   experimental ligand-efficiency estimate or a newly validated ranking score.
+4. Contact-size sensitivity: before reading outcomes, define native-ligand
+   residue neighborhoods from prepared protein heavy atoms within 5.0 A of each
+   experimental reference ligand. Align prepared protein sequences to the first
+   prepared EGFR structure and map residues to a common anchor identity. The
+   common pocket is the UNION of those mapped native neighborhoods. Primary
+   radius is 5.0 A; 6.0 and 8.0 A are fixed sensitivity radii. Compare historical
+   per-template set Tanimoto with common-pocket coverage = contacted pocket
+   residues / available common-pocket residues. Extra contacts outside the
+   pocket do not lower coverage, but coverage can favor larger compounds; report
+   its size association. This is an explicit diagnostic, not proof of a better
+   scoring function. Preserve residue mapping and pocket lists for inspection.
+5. Inspection shortlist: at most three per category, selected without activity
+   labels. (a) stable_hinge: top decile in both primary-engine structures AND a
+   hinge H-bond in both; sort worst percentile, then mean percentile, then ID.
+   (b) good_score_no_hinge: mean percentile <=0.10 AND no hinge H-bond in either
+   adequately profiled pose; sort mean percentile then ID.
+   (c) structure_sensitive: absolute percentile shift >=0.50; sort shift descending,
+   mean percentile, then ID. Do not relax thresholds or fill empty categories.
+   Export scores, ranks, contacts, structural descriptors, activity annotations
+   and reasons. Draw 2D structures for these rule-selected cases only.
+6. Annotate a generic acrylamide substructure SMARTS C=CC(=O)N. This flag does not
+   establish electrophilic reactivity, covalent activity or selectivity. The
+   4ZAU reference AZD9291 has an acrylamide, but this study models only noncovalent
+   recognition and predicts neither reaction chemistry nor mutant selectivity.
+
+Figures: paired rank percentiles; actual hinge H-bond frequencies by annotated
+stratum; score-versus-size; pocket-overlap/coverage size diagnostic. Export all
+underlying compound-level tables and correlation counts. Statistical summaries
+are descriptive; no p-values will be used to claim general predictive ability.

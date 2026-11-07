@@ -64,6 +64,9 @@ Example
 """
 
 import importlib.metadata
+import hashlib
+import json
+import platform
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
@@ -1108,6 +1111,10 @@ class ProDockPipeline:
         self.logger.info("Saving campaign JSON to %s", out_path)
         campaign.save_json(str(out_path))
         resolved = out_path.resolve()
+        self._saved_campaign_path = resolved
+        # Freeze the serialized execution plan before another process or later
+        # user edit can change the file used for provenance.
+        self._saved_campaign_bytes = resolved.read_bytes()
         self.logger.info("Campaign JSON written: %s", resolved)
         return resolved
 
@@ -1373,44 +1380,59 @@ class ProDockPipeline:
         )
         self.logger.debug("Database dataframe columns=%s", list(df.columns))
 
-        db = PoseDatabase(str(db_path), create=True)
+        with PoseDatabase(str(db_path), create=True) as db:
 
-        # Record run/campaign provenance and stamp inserted poses with its run_id.
-        try:
-            _prodock_version = importlib.metadata.version("prodock")
-        except Exception:
-            _prodock_version = None
-        db.create_run(
-            name=getattr(self, "campaign_name", None),
-            config={
-                "engines": list(self.engines),
-                "cpu": self.cpu,
-                "seed": self.seed,
-                "exhaustiveness": self.exhaustiveness,
-                "n_poses": self.n_poses,
-                "n_jobs": self.n_jobs,
-                "box_algorithm": self.box_algorithm,
-                "box_pad": self.box_pad,
-                "box_scale": self.box_scale,
-                "box_isotropic": self.box_isotropic,
-                "ligand_backend": self.ligand_backend,
-                "ligand_output_format": self.ligand_output_format,
-            },
-            prodock_version=_prodock_version,
-        )
+            # Record run/campaign provenance and stamp inserted poses with its run_id.
+            try:
+                _prodock_version = importlib.metadata.version("prodock")
+            except Exception:
+                _prodock_version = None
+            campaign_path = getattr(
+                self, "_saved_campaign_path", self.project_dir / self.campaign_name
+            )
+            provenance = {"python_version": platform.python_version()}
+            campaign_bytes = getattr(self, "_saved_campaign_bytes", None)
+            if campaign_bytes is None and campaign_path.is_file():
+                campaign_bytes = campaign_path.read_bytes()
+            if campaign_bytes is not None:
+                provenance["campaign"] = json.loads(campaign_bytes)
+                provenance["campaign_sha256"] = hashlib.sha256(
+                    campaign_bytes
+                ).hexdigest()
+            else:
+                provenance["campaign"] = None
+            db.create_run(
+                name=getattr(self, "campaign_name", None),
+                config={
+                    **provenance,
+                    "engines": list(self.engines),
+                    "cpu": self.cpu,
+                    "seed": self.seed,
+                    "exhaustiveness": self.exhaustiveness,
+                    "n_poses": self.n_poses,
+                    "n_jobs": self.n_jobs,
+                    "box_algorithm": self.box_algorithm,
+                    "box_pad": self.box_pad,
+                    "box_scale": self.box_scale,
+                    "box_isotropic": self.box_isotropic,
+                    "ligand_backend": self.ligand_backend,
+                    "ligand_output_format": self.ligand_output_format,
+                },
+                prodock_version=_prodock_version,
+            )
 
-        if interactions_by_pose is None:
-            db.insert_dataframe(
-                df,
-                replace=replace,
-            )
-        else:
-            db.insert_dataframe(
-                df,
-                interactions_by_pose=interactions_by_pose,
-                replace=replace,
-                replace_interactions=replace_interactions,
-            )
+            if interactions_by_pose is None:
+                db.insert_dataframe(
+                    df,
+                    replace=replace,
+                )
+            else:
+                db.insert_dataframe(
+                    df,
+                    interactions_by_pose=interactions_by_pose,
+                    replace=replace,
+                    replace_interactions=replace_interactions,
+                )
 
         resolved = db_path.resolve()
         self.logger.info("Database write complete | db_path=%s", resolved)

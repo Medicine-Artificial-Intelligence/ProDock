@@ -21,9 +21,10 @@ demo/
 develop/
 dev/
 docs/
-paper/
 Data/Demo/
 Data/benchmark/runs/
+Data/validation/runs/
+Data/validation/inputs/chembl_egfr/raw/
 Data/testcase/Multi/4WKQ/results/
 Project/Analysis_script/figures/
 Project/Analysis_script/threshold_csv/

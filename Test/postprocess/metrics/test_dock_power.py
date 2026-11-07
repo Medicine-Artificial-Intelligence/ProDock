@@ -7,7 +7,6 @@ from rdkit import Chem
 from rdkit.Chem import AllChem
 
 from prodock.postprocess.metrics.dock_power import DockEvaluator
-from prodock.io.utils import shutdown_pymol
 
 
 def _module_available(name: str) -> bool:
@@ -37,6 +36,31 @@ class TestDockEvaluator(unittest.TestCase):
         rmsd = de.rmsd(m1, m2)
         self.assertIsInstance(rmsd, float)
         self.assertAlmostEqual(rmsd, 0.0, places=3)
+
+    def test_fixed_frame_rmsd_retains_translation(self):
+        reference = self._embed_mol("CCO")
+        displaced = Chem.Mol(reference)
+        conf = displaced.GetConformer()
+        for i in range(displaced.GetNumAtoms()):
+            pos = conf.GetAtomPosition(i)
+            conf.SetAtomPosition(i, (pos.x + 10.0, pos.y, pos.z))
+        evaluator = DockEvaluator(engine="rdkit")
+        self.assertAlmostEqual(
+            evaluator.rmsd(reference, displaced, align=False), 10.0, places=5
+        )
+        self.assertAlmostEqual(evaluator.rmsd(reference, displaced), 0.0, places=5)
+        # Neither comparison may change the caller's coordinates.
+        self.assertAlmostEqual(
+            displaced.GetConformer().GetAtomPosition(0).x
+            - reference.GetConformer().GetAtomPosition(0).x,
+            10.0,
+            places=5,
+        )
+
+    def test_fixed_frame_rmsd_rejects_unimplemented_backend(self):
+        evaluator = DockEvaluator(engine="openbabel")
+        with self.assertRaisesRegex(ValueError, "Fixed-frame"):
+            evaluator.rmsd(None, None, align=False)
 
     def test_rdkit_rmsd_different_molecules_nonzero(self):
         de = DockEvaluator(engine="rdkit")
@@ -105,7 +129,10 @@ class TestDockEvaluator(unittest.TestCase):
 
     @unittest.skipUnless(HAS_PYMOL, "PyMOL not available in this environment")
     def test_pymol_rmsd_from_files(self):
-        shutdown_pymol(quiet=False)
+        from pymol import cmd
+
+        # cmd.quit() terminates the pytest process before it can report results.
+        cmd.reinitialize()
         de = DockEvaluator(engine="pymol")
         m = self._embed_mol("CCO")
         tmpdir = Path(tempfile.mkdtemp())

@@ -1,0 +1,3 @@
+# Frozen molecular inputs and upstream source snapshots are checksum-verified.
+# Preserve their bytes, including fixed-width padding and original line endings.
+Data/validation/inputs/** -text -whitespace

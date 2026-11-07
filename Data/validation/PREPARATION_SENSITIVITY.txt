@@ -1,0 +1,102 @@
+PREPARATION SENSITIVITY — CLUSTER-ONLY SCIENTIFIC QUALITY GATE
+
+No new scientific execution was performed locally after the user's instruction
+to prepare scripts and dry-runs only. This package contains a prepared study,
+not completed native-control results. Earlier read-only artifact checks and the
+12-case bounded panel are separate historical evidence and must not be relabeled
+as completed runs of this new protocol.
+
+WHY THIS SMALL STUDY IS ESSENTIAL
+The cached ligand-free minimized proteins introduce native-ligand heavy-atom
+clashes absent in the raw crystal models. Meanwhile the original native RMSD
+calculation fitted the ligand independently. Before spending time on a larger
+screen, compare two explicitly defined preparations under identical docking
+settings. This tests a chemical workflow assumption directly; it is not a
+large docking-engine accuracy benchmark or hyperparameter optimization.
+
+DESIGN FIXED BEFORE EXECUTION
+- Protein inputs: chain A of 1M17 (erlotinib/AQ4) and 4ZAU (AZD9291/YY3).
+- Tracked input manifest: inputs/egfr_structures/manifest.json.
+- Both protein policies are freshly generated from those same raw inputs:
+  default_minimized: standard repair, hydrogen addition, restrained OpenMM
+  minimization (default maximum 5000 steps), Open Babel receptor conversion.
+  crystal_heavy_preserved: missing-atom/hydrogen addition at pH 7.4, no missing-
+  residue modeling, no final all-heavy receptor minimization; every observed
+  heavy atom must retain its name/residue and coordinates within 0.002 angstrom.
+  Added atoms/hydrogens may be relaxed by PDBFixer. It is a policy contrast,
+  not an isolated single-variable minimizer ablation.
+- Fresh native ligand inputs: CCD chemistry, ETKDGv3 seed 42, MMFF94 up to
+  200 iterations, Meeko PDBQT conversion. Experimental bound coordinates
+  remain the evaluation reference and are not reused as docking starting poses.
+- Docking: Smina is the prespecified primary program; QuickVina 2 is a secondary
+  robustness diagnostic. Each uses one CPU per task, exhaustiveness 8, five
+  requested poses, seed 42. Eight tasks total; no parameter sweep.
+- Boxes derive from experimental native coordinates before outcomes. No box,
+  seed, score, pose, structure, or preparation policy is selected by a favorable
+  observed RMSD. Every result is retained, including failures.
+
+DRY-RUN (DEFAULT; NO PROTEIN PREPARATION OR DOCKING)
+From the repository root:
+  python Data/validation/preparation_sensitivity.py --dry-run
+or:
+  python Data/validation/preparation_sensitivity.py \
+    --input-manifest Data/validation/inputs/egfr_structures/manifest.json \
+    --output results/preparation_sensitivity --plan-json results/preparation_plan.json
+
+The dry-run validates the manifest's file hashes and prints the planned eight
+calls. It does not import scientific dependencies, create proteins, generate
+ligands, run engines, or create an experimental output directory. A dry-run
+never emits a qualified native-control result. --plan-json writes only the
+requested metadata plan.
+
+EXECUTION ON THE CLUSTER ONLY
+Activate the ProDock environment or select its Python explicitly, then run:
+  python Data/validation/preparation_sensitivity.py --execute \
+    --input-manifest Data/validation/inputs/egfr_structures/manifest.json \
+    --output results/preparation_sensitivity --jobs 2 --timeout 180
+
+--max-minimization-steps changes the declared maximum (default 5000); keep its
+actual value in the report. --engine-bin-dir can select cluster-compatible
+Smina/QVina binaries. With no override the repository's bundled binaries are
+used. These paths are computed relative to the checkout, never a developer's
+home directory. Engine digests, actual task arguments, input digests and the
+script digest are recorded with the design and task files.
+
+Fresh output directories are required. Existing outcomes are not overwritten.
+Timed-out tasks are terminated as a process group so engine children do not
+continue running after their worker is stopped.
+
+OUTPUTS AND COMPUTED GATE
+- prespecified_design.json: input identities and frozen design before execution.
+- prepared_spec.json per protein/policy: actual coordinate preservation,
+  protein-derived transforms, native clash pairs, residue IDs and references.
+- ready_receptors.json: selected crystal-preserved input specification.
+- chemical_context.json: matching fresh protein/reference transforms and maps.
+- summary.csv, poses.csv, report.json: all eight outcomes, all parsed poses,
+  native no-ligand-fit RMSD, centroid shifts and geometric hinge proximity.
+- quality_report.json: automatically derived qualification and exact hashes
+  of ready_receptors.json and chemical_context.json.
+
+Automatic qualification requires manifest identity, complete observed-heavy-atom
+preservation, no new <2.0-angstrom native heavy-atom clashes, all eight controls
+accounted for with explicit terminal states, and both selected crystal-preserved
+Smina rank-1 controls successful, parsed and within 2.0 angstroms RMSD. Secondary
+QuickVina or default-minimized failures are retained as reported outcomes and do
+not block qualification merely because not all programs or policies succeed. These cutoffs define a prespecified workflow
+QC test on two known complexes; they are not independent docking validation.
+A reference is transformed only using matched protein C-alpha coordinates.
+The ligand is never fitted independently for pose recovery.
+
+The driver returns exit status 2 on incomplete/failed qualification, preventing
+an unattended larger run. An explicit --acknowledge-native-failures records an
+informed override for continuation; it never changes failed scientific gates
+or qualified_for_new_campaign=false into a pass. The outer cluster pipeline
+must also require explicit acknowledgement when consuming an unqualified report.
+
+CHEMICAL SCOPE
+4ZAU contains a ligand with an acrylamide warhead. The supplied model has no
+protein-ligand LINK/CONECT bond, and this is a noncovalent recognition-geometry
+study; it does not model covalent reaction or infer mutant selectivity. The
+ligand states are the declared CCD states, not an exhaustive protonation or
+tautomer ensemble. Cached 4WKQ is excluded because its preparation removed
+modified CSX797; no silent CSX-to-CYS repair is performed.

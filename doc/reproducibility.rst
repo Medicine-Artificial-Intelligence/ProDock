@@ -100,7 +100,7 @@ Build the Sphinx documentation with warnings treated as errors:
 Reproduce the included workflows
 --------------------------------
 
-Run the checkpointed EGFR campaign and analysis:
+Run the EGFR campaign and analysis:
 
 .. code-block:: bash
 
@@ -108,6 +108,38 @@ Run the checkpointed EGFR campaign and analysis:
 
 This workflow requires ``smina``, ``vina``, ``qvina``, and ``qvina-w`` on
 ``PATH`` and network access for initial structure retrieval.
+
+The general pipeline does not implement verified checkpoint/resume. Repeating
+SMILES preparation can generate suffixed ligand filenames. Reuse prepared
+inputs with stable identifiers and separate output directories for controlled
+reruns. The pose uniqueness key excludes ``run_id``: replacement updates an
+existing protein/ligand/engine/rank record, so use separate databases or
+explicit namespaces for parameter variants that must remain distinct.
+
+Database run records snapshot the saved campaign JSON and its SHA-256 digest,
+common settings, and Python and ProDock versions. They do not automatically
+capture input-file digests, PDB entry revisions, or external executable versions.
+Preserve those separately using the run record above.
+
+For redocking RMSD, compare poses in the same protein coordinate frame using
+``DockEvaluator(engine="rdkit").rmsd(reference, pose, align=False)``.
+The default ``align=True`` independently fits the ligand and measures
+conformational similarity; it cannot establish placement in the binding site.
+The historical EGFR success claim requires a fresh fixed-frame evaluation
+from complete matching artifacts.
+
+Measure synthetic storage integrity separately from docking throughput:
+
+.. code-block:: bash
+
+   python Data/validation/revision_audit.py \
+     --output /tmp/prodock-storage-fresh --sizes 1000 10000
+
+Use a fresh output directory. This test repeats one small three-dimensional
+molecule under logical ligand identifiers, checks duplicate-key replay,
+coordinate recovery, and SQLite integrity, and reports insertion/query times
+and database size. It does not measure docking, interaction profiling,
+screening accuracy, or maximum capacity.
 
 Validate a committed reranking target without running Optuna:
 

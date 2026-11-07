@@ -156,7 +156,7 @@ def _best_rmsd(
         )
         if pose is None or pose.mol is None:
             continue
-        values.append((rank, float(evaluator.rmsd(str(reference), pose.mol))))
+        values.append((rank, float(evaluator.rmsd(str(reference), pose.mol, align=False))))
     return min(values, key=lambda item: item[1]) if values else (None, None)
 
 

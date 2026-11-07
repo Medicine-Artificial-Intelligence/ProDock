@@ -1,0 +1,118 @@
+{
+  "DockM8": {
+    "repository": "DrugBud-Suite/DockM8",
+    "commit": "3b765ea1122d01b6d3484ea25ec789f4456d8f8a",
+    "files": [
+      {
+        "path": "LICENSE",
+        "url": "https://raw.githubusercontent.com/DrugBud-Suite/DockM8/3b765ea1122d01b6d3484ea25ec789f4456d8f8a/LICENSE",
+        "sha256": "5e52d44b167607af7c06a34ed692376f7e7d7e2949d3b3a8d2bd0e3d16905d8c",
+        "bytes": 35141,
+        "top_level_imports": []
+      },
+      {
+        "path": "scripts/utilities/fast_sdf_loader.py",
+        "url": "https://raw.githubusercontent.com/DrugBud-Suite/DockM8/3b765ea1122d01b6d3484ea25ec789f4456d8f8a/scripts/utilities/fast_sdf_loader.py",
+        "sha256": "c3c4010674ab54c0af5c4b25ce5f148589ed4546ed448668932aa4d196b39b15",
+        "bytes": 11359,
+        "top_level_imports": [
+          "from pathlib import Path",
+          "import os",
+          "from typing import NamedTuple",
+          "from collections.abc import Iterator",
+          "import mmap",
+          "from concurrent.futures import ProcessPoolExecutor, as_completed",
+          "import pandas as pd",
+          "from rdkit import Chem",
+          "from contextlib import contextmanager",
+          "from functools import partial",
+          "import array"
+        ]
+      },
+      {
+        "path": "scripts/consensus/methods/zscore.py",
+        "url": "https://raw.githubusercontent.com/DrugBud-Suite/DockM8/3b765ea1122d01b6d3484ea25ec789f4456d8f8a/scripts/consensus/methods/zscore.py",
+        "sha256": "2a42383ac6f83029640dbc1132d04261cb19a289f55ec5858d1fb0a146e411e9",
+        "bytes": 512,
+        "top_level_imports": [
+          "import pandas as pd"
+        ]
+      },
+      {
+        "path": "scripts/consensus/methods/rbr.py",
+        "url": "https://raw.githubusercontent.com/DrugBud-Suite/DockM8/3b765ea1122d01b6d3484ea25ec789f4456d8f8a/scripts/consensus/methods/rbr.py",
+        "sha256": "4def5df0c781ac34f121000a70e26add56cfe53c4f24319a782e7ffdcb340438",
+        "bytes": 946,
+        "top_level_imports": [
+          "import numpy as np",
+          "import pandas as pd"
+        ]
+      }
+    ]
+  },
+  "MolDockLab": {
+    "repository": "volkamerlab/MolDockLab",
+    "commit": "1cceb4f099ee02c2884272edde3c10881cb8fdc6",
+    "files": [
+      {
+        "path": "LICENSE.txt",
+        "url": "https://raw.githubusercontent.com/volkamerlab/MolDockLab/1cceb4f099ee02c2884272edde3c10881cb8fdc6/LICENSE.txt",
+        "sha256": "5e52d44b167607af7c06a34ed692376f7e7d7e2949d3b3a8d2bd0e3d16905d8c",
+        "bytes": 35141,
+        "top_level_imports": []
+      },
+      {
+        "path": "src/consensus_rank.py",
+        "url": "https://raw.githubusercontent.com/volkamerlab/MolDockLab/1cceb4f099ee02c2884272edde3c10881cb8fdc6/src/consensus_rank.py",
+        "sha256": "33d1ecec73a6db6f913ea0c17f0d2abfba7599c939aeded68fce18155cb53770",
+        "bytes": 3911,
+        "top_level_imports": [
+          "import numpy as np",
+          "import pandas as pd"
+        ]
+      },
+      {
+        "path": "src/preprocessing.py",
+        "url": "https://raw.githubusercontent.com/volkamerlab/MolDockLab/1cceb4f099ee02c2884272edde3c10881cb8fdc6/src/preprocessing.py",
+        "sha256": "27e2475ea7c8d348149c766995657c1ce4727df42682209862d11a6cd186e3c2",
+        "bytes": 10011,
+        "top_level_imports": [
+          "import os",
+          "import hdbscan",
+          "import numpy as np",
+          "import pandas as pd",
+          "import sklearn.model_selection as skl_model_sel",
+          "from pathlib import Path",
+          "from rdkit import Chem",
+          "from rdkit.Chem import PandasTools",
+          "from rdkit.Chem.Scaffolds import MurckoScaffold",
+          "from sklearn.preprocessing import RobustScaler",
+          "from rdkit.Chem.rdFingerprintGenerator import GetMorganGenerator",
+          "from .utilities import handling_multicollinearity, run_command"
+        ]
+      },
+      {
+        "path": "src/utilities.py",
+        "url": "https://raw.githubusercontent.com/volkamerlab/MolDockLab/1cceb4f099ee02c2884272edde3c10881cb8fdc6/src/utilities.py",
+        "sha256": "8c59e36eaa7a86b5afee8bfe855874e24de71a18d03fbae93c1dbfb6e6f0daef",
+        "bytes": 16112,
+        "top_level_imports": [
+          "import os",
+          "import ast",
+          "import csv",
+          "import subprocess",
+          "import requests",
+          "import zipfile",
+          "import pandas as pd",
+          "from pathlib import Path",
+          "from IPython import get_ipython",
+          "from rdkit import Chem",
+          "from Bio import SeqIO",
+          "from Bio.Data import IUPACData",
+          "from Bio.PDB import PDBParser",
+          "from itertools import combinations, product"
+        ]
+      }
+    ]
+  }
+}
